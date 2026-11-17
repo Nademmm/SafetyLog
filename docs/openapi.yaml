@@ -1,0 +1,332 @@
+openapi: 3.1.0
+info:
+  title: SafetyLog Core API
+  version: 0.1.0
+  description: >
+    Kontrak REST API backend SafetyLog (Laravel + Sanctum) untuk alur closed-loop
+    Capture, Resolve, Learn, dan Prevent. Seluruh resource utama terisolasi per organization_id.
+servers:
+  - url: http://localhost:8000/api
+    description: Local Laravel Development Server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SanctumToken
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message: { type: string }
+        error_code: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+paths:
+  /health:
+    get:
+      summary: Health check API
+      responses:
+        "200": { description: Service sehat }
+  /auth/login:
+    post:
+      summary: Login email & password (rate limit 5x/menit per email+IP, 20x/menit per IP)
+      responses:
+        "200": { description: Token Bearer dan profil user }
+        "403": { description: Akun/organisasi tidak aktif }
+        "422": { description: Kredensial salah }
+        "429": { description: Rate limit tercapai }
+  /auth/logout:
+    post:
+      summary: Logout sesi saat ini
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Berhasil logout }
+  /auth/logout-all:
+    post:
+      summary: Logout semua sesi perangkat
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Semua token dicabut }
+  /auth/me:
+    get:
+      summary: Profil user aktif beserta peran dan permissions
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Profil user }
+  /auth/change-password:
+    post:
+      summary: Ubah password pengguna aktif
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Password diperbarui }
+  /reference-data:
+    get:
+      summary: Master konfigurasi dinamis organisasi
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Data referensi }
+  /users/assignable:
+    get:
+      summary: Daftar user aktif untuk pilihan PIC (Supervisor/K3/Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar user }
+  /machines:
+    get:
+      summary: Daftar mesin aktif di organisasi pengguna
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar mesin }
+    post:
+      summary: Tambah mesin baru (Admin, B-06)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Mesin dibuat dengan qr_token acak }
+  /machines/{machine}:
+    patch:
+      summary: Ubah data mesin (Admin, B-06)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Mesin diperbarui }
+  /machines/{machine}/archive:
+    post:
+      summary: Arsipkan mesin (Admin, B-06)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Mesin diarsipkan }
+  /machines/{machine}/regenerate-qr:
+    post:
+      summary: Buat ulang token QR acak mesin (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Token QR diperbarui }
+  /machines/qr/{qrToken}:
+    get:
+      summary: Lookup mesin via QR token + open_cases_warning (B-08, B-10)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Detail mesin dan peringatan kasus terbuka }
+  /machines/{machine}/open-cases:
+    get:
+      summary: Peringatan kasus terbuka 7 hari terakhir pada mesin (B-10)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar ringkas kasus terbuka }
+  /machines/{machine}/cases:
+    get:
+      summary: Riwayat kasus mesin + label Berulang (B-20, C-01)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Riwayat kasus mesin }
+  /my-cases:
+    get:
+      summary: Kasus yang dilaporkan oleh pengguna saat ini
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar kasus pelapor }
+  /cases:
+    get:
+      summary: Antrean triase & pencarian kasus toleran salah ketik (Supervisor/K3/Admin, B-11, B-19)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar kasus terpaginasi }
+        "403": { description: Ditolak untuk peran Pelapor }
+    post:
+      summary: Kirim laporan kasus baru (B-08)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Kasus dibuat dengan nomor otomatis SL-{SITE}-{YEAR}-{0001} }
+  /cases/{case}:
+    get:
+      summary: Detail lengkap kasus (B-11)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Detail kasus lengkap }
+  /cases/{case}/summary:
+    get:
+      summary: Ringkasan aman untuk tautan peringatan B-10
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Ringkasan kasus }
+  /cases/{case}/similar:
+    get:
+      summary: Daftar maks 5 kasus mirip berbasis kemiripan teks non-AI (B-20)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Kasus mirip }
+  /cases/{case}/histories:
+    get:
+      summary: Riwayat perubahan status kasus (B-22)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar audit log kasus }
+  /cases/{case}/attachments:
+    post:
+      summary: Unggah foto tambahan ke kasus (B-09)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Lampiran disimpan }
+  /cases/{case}/triage:
+    post:
+      summary: Triase risiko, PIC, tolak, atau tandai duplikat (Supervisor/Admin, B-12)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Triase tersimpan }
+  /cases/{case}/root-cause:
+    post:
+      summary: Simpan analisis akar penyebab 5 Why & 6M (Supervisor/K3/Admin, B-13)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Analisis akar penyebab tersimpan }
+  /cases/{case}/actions:
+    post:
+      summary: Tambah tindakan Sementara/Korektif/Preventif (B-14)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Tindakan dibuat }
+  /cases/{case}/verify:
+    post:
+      summary: Verifikasi & tutup/tolak kasus (K3/Admin, B-16)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Verifikasi selesai }
+        "422": { description: Ditolak aturan Verifikator!=PIC atau Sedang/Tinggi wajib Preventif }
+  /cases/{case}/reopen:
+    post:
+      summary: Buka ulang kasus Selesai dengan alasan wajib (K3/Admin, B-17)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Kasus dibuka kembali ke Tindakan berjalan }
+  /my-actions:
+    get:
+      summary: Daftar tindakan milik PIC saat ini, urut tenggat terdekat (B-14)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar tindakan PIC }
+  /actions/{action}:
+    patch:
+      summary: Ubah detail/PIC/tenggat tindakan yang masih terbuka
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Tindakan diperbarui }
+  /actions/{action}/complete:
+    post:
+      summary: Selesaikan tindakan oleh PIC dengan catatan wajib + foto bukti opsional (B-15)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Tindakan selesai }
+  /actions/{action}/reopen:
+    post:
+      summary: Buka ulang tindakan sebelum kasus ditutup (K3/Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Tindakan dibuka ulang }
+  /actions/{action}/attachments:
+    post:
+      summary: Unggah foto bukti tambahan pada tindakan (B-09)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Lampiran disimpan }
+  /attachments/{attachment}:
+    get:
+      summary: Unduh/stream foto lampiran secara terotorisasi
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Berkas gambar }
+    delete:
+      summary: Hapus lampiran selama kasus belum terkunci
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Lampiran dihapus }
+  /dashboard:
+    get:
+      summary: Ringkasan KPI, grafik per mesin (Berulang), per kategori, dan daftar tindakan terlambat (B-21)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Data dashboard }
+  /audit-logs:
+    get:
+      summary: Riwayat perubahan append-only lintas kasus (Supervisor/K3/Admin, B-22)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Audit log terpaginasi }
+  /notifications:
+    get:
+      summary: Notifikasi dalam aplikasi beserta jumlah belum dibaca dan alert tindakan (B-18)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar notifikasi }
+  /notifications/read-all:
+    post:
+      summary: Tandai seluruh notifikasi sudah dibaca
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Berhasil }
+  /notifications/{notification}/read:
+    post:
+      summary: Tandai satu notifikasi sudah dibaca
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Berhasil }
+  /sites:
+    get:
+      summary: Daftar site aktif organisasi (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar site }
+  /areas:
+    get:
+      summary: Daftar area produksi (Admin, B-06)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar area }
+    post:
+      summary: Tambah area produksi (Admin, B-06)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Area dibuat }
+  /areas/{area}:
+    patch:
+      summary: Ubah area produksi (Admin, B-06)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Area diperbarui }
+  /areas/{area}/archive:
+    post:
+      summary: Arsipkan area produksi (Admin, B-06)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Area diarsipkan }
+  /users:
+    get:
+      summary: Daftar pengguna organisasi (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Daftar pengguna }
+    post:
+      summary: Tambah pengguna baru organisasi (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Pengguna dibuat }
+  /users/{user}:
+    patch:
+      summary: Ubah data/peran/status aktif pengguna (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Pengguna diperbarui }
+  /risk-configs/{riskConfig}:
+    patch:
+      summary: Ubah ambang skor dan target SLA risiko organisasi (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Konfigurasi risiko diperbarui }
+  /configurations/{key}:
+    put:
+      summary: Ubah konfigurasi organisasi berbasis key (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Konfigurasi diperbarui }
