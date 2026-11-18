@@ -1,0 +1,177 @@
+/**
+ * SafetyLog Design Tokens — Centralized Source of Truth
+ * Conforms to Industrial Dark Visual Direction (Carbon / Graphite / Industrial Accent)
+ * Standards: ISO 7010 / ISO 3864 & ANSI Z535 for K3 Safety Semantics.
+ */
+
+/* ==========================================================================
+   1. PRIMITIVE LAYER (Raw Brand & Palette Values)
+   ========================================================================== */
+:root {
+  /* Foundation Primitives */
+  --primitive-carbon: #111418;
+  --primitive-graphite: #1C2229;
+  --primitive-elevated: #252D36;
+  --primitive-off-white: #F4F5F6;
+  --primitive-steel-muted: #A3AAB3;
+  --primitive-charcoal-border: #343D47;
+  --primitive-pure-white: #FFFFFF;
+
+  /* Industrial Accent */
+  --primitive-orange-base: #F97316;
+  --primitive-orange-hover: #EA580C;
+
+  /* K3 Safety Primitives (ISO 7010 / ANSI Z535) */
+  --primitive-red-500: #EF4444;
+  --primitive-orange-500: #F97316;
+  --primitive-yellow-400: #FACC15;
+  --primitive-blue-500: #3B82F6;
+  --primitive-green-500: #22C55E;
+
+  /* Radii Scale */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius: var(--radius-md);
+
+  /* Touch Target Rules (Factory/Mobile Ergonomics) */
+  --touch-target-min: 44px;
+}
+
+/* ==========================================================================
+   2. SEMANTIC LAYER — INDUSTRIAL DARK (Default & Primary SafetyLog Theme)
+   ========================================================================== */
+:root,
+.dark {
+  /* Surfaces */
+  --surface-base: var(--primitive-carbon);
+  --surface-default: var(--primitive-graphite);
+  --surface-elevated: var(--primitive-elevated);
+  --surface-overlay: rgba(17, 20, 24, 0.82);
+
+  /* Typography Colors */
+  --text-primary: var(--primitive-off-white);
+  --text-secondary: var(--primitive-steel-muted);
+  --text-muted: #7E8691;
+  --text-inverse: var(--primitive-carbon);
+
+  /* Borders & Dividers */
+  --border-subtle: var(--primitive-charcoal-border);
+  --border-focus: var(--primitive-orange-base);
+
+  /* shadcn/ui semantic HSL compatibility */
+  --background: 210 17% 8%;          /* #111418 Carbon */
+  --foreground: 210 12% 96%;         /* #F4F5F6 Off-White */
+  --card: 213 19% 14%;               /* #1C2229 Graphite */
+  --card-foreground: 210 12% 96%;
+  --popover: 213 18% 18%;            /* #252D36 Elevated */
+  --popover-foreground: 210 12% 96%;
+  --primary: 210 12% 96%;            /* High-contrast neutral action: Off-white surface */
+  --primary-foreground: 210 17% 8%;  /* Carbon text */
+  --secondary: 213 18% 18%;          /* Elevated charcoal action */
+  --secondary-foreground: 210 12% 96%;
+  --muted: 213 19% 14%;
+  --muted-foreground: 214 10% 67%;   /* #A3AAB3 */
+  --accent: 213 18% 18%;
+  --accent-foreground: 210 12% 96%;
+  --destructive: 0 84% 60%;          /* #EF4444 */
+  --destructive-foreground: 0 0% 100%;
+  --border: 212 16% 24%;             /* #343D47 */
+  --input: 212 16% 24%;
+  --ring: 24 95% 53%;                /* #F97316 Industrial Orange */
+
+  /* K3 Safety Semantic Tokens (Dark surface variants) */
+  /* DANGER: Emergency Stop, High Risk (15-25), Prohibition, Overdue */
+  --safety-danger: #EF4444;
+  --safety-danger-foreground: #FCA5A5;
+  --safety-danger-bg: rgba(239, 68, 68, 0.15);
+  --safety-danger-border: rgba(239, 68, 68, 0.35);
+
+  /* WARNING: Warning, Medium Risk (7-14), Unsafe Condition */
+  --safety-warning: #F97316;
+  --safety-warning-foreground: #FDBA74;
+  --safety-warning-bg: rgba(249, 115, 22, 0.15);
+  --safety-warning-border: rgba(249, 115, 22, 0.35);
+
+  /* CAUTION: Attention, Low Risk (1-6), Machine Abnormality */
+  --safety-caution: #FACC15;
+  --safety-caution-foreground: #FDE047;
+  --safety-caution-bg: rgba(250, 204, 21, 0.15);
+  --safety-caution-border: rgba(250, 204, 21, 0.35);
+
+  /* INFORMATION / MANDATORY: Mandatory procedure, New case (Baru), Blue instruction */
+  --safety-info: #3B82F6;
+  --safety-info-foreground: #93C5FD;
+  --safety-info-bg: rgba(59, 130, 246, 0.15);
+  --safety-info-border: rgba(59, 130, 246, 0.35);
+
+  /* SAFE CONDITION: Resolved, Verified, Selesai, First Aid */
+  --safety-safe: #22C55E;
+  --safety-safe-foreground: #86EFAC;
+  --safety-safe-bg: rgba(34, 197, 94, 0.15);
+  --safety-safe-border: rgba(34, 197, 94, 0.35);
+}
+
+/* ==========================================================================
+   3. SEMANTIC LAYER — LIGHT THEME EXTENSION (Future-Ready)
+   ========================================================================== */
+.light {
+  --surface-base: #F8FAFC;
+  --surface-default: #FFFFFF;
+  --surface-elevated: #F1F5F9;
+  --surface-overlay: rgba(15, 23, 42, 0.4);
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-inverse: #F8FAFC;
+
+  --border-subtle: #E2E8F0;
+  --border-focus: #F97316;
+
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 222 47% 11%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 24 95% 53%;
+
+  --safety-danger: #DC2626;
+  --safety-danger-foreground: #991B1B;
+  --safety-danger-bg: #FEF2F2;
+  --safety-danger-border: #FECACA;
+
+  --safety-warning: #EA580C;
+  --safety-warning-foreground: #9A3412;
+  --safety-warning-bg: #FFF7ED;
+  --safety-warning-border: #FED7AA;
+
+  --safety-caution: #CA8A04;
+  --safety-caution-foreground: #854D0E;
+  --safety-caution-bg: #FEFCE8;
+  --safety-caution-border: #FEF08A;
+
+  --safety-info: #2563EB;
+  --safety-info-foreground: #1E40AF;
+  --safety-info-bg: #EFF6FF;
+  --safety-info-border: #BFDBFE;
+
+  --safety-safe: #16A34A;
+  --safety-safe-foreground: #166534;
+  --safety-safe-bg: #F0FDF4;
+  --safety-safe-border: #BBF7D0;
+}
