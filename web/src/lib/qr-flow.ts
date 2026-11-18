@@ -10,10 +10,19 @@ export interface SiteInfo {
   code: string
 }
 
+export interface AreaPicUserInfo {
+  id: number
+  name: string
+  email?: string
+  role?: string
+  job_title?: string | null
+}
+
 export interface AreaInfo {
   id: number
   name: string
   code: string
+  pic_user?: AreaPicUserInfo | null
 }
 
 export interface MachineRecord {
@@ -168,24 +177,52 @@ const AREA_PACK_A: AreaInfo = {
   id: 1,
   name: 'Lini Pengemasan A',
   code: 'PACK-A',
+  pic_user: {
+    id: 2,
+    name: 'Rina Wijaya',
+    email: 'supervisor@safetylog.test',
+    role: 'supervisor',
+    job_title: 'Supervisor Produksi',
+  },
 }
 
 const AREA_FILL_1: AreaInfo = {
   id: 2,
   name: 'Lini Filling & Mixing',
   code: 'FILL-1',
+  pic_user: {
+    id: 2,
+    name: 'Rina Wijaya',
+    email: 'supervisor@safetylog.test',
+    role: 'supervisor',
+    job_title: 'Supervisor Produksi',
+  },
 }
 
 const AREA_UTIL_1: AreaInfo = {
   id: 3,
   name: 'Utilitas & Boiler',
   code: 'UTIL-1',
+  pic_user: {
+    id: 2,
+    name: 'Rina Wijaya',
+    email: 'supervisor@safetylog.test',
+    role: 'supervisor',
+    job_title: 'Supervisor Produksi',
+  },
 }
 
 const AREA_WH_FG: AreaInfo = {
   id: 4,
   name: 'Gudang Bahan & Jadi',
   code: 'WH-FG',
+  pic_user: {
+    id: 2,
+    name: 'Rina Wijaya',
+    email: 'supervisor@safetylog.test',
+    role: 'supervisor',
+    job_title: 'Supervisor Produksi',
+  },
 }
 
 export const SEEDED_MACHINES: MachineRecord[] = [

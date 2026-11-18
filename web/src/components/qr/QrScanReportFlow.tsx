@@ -522,6 +522,11 @@ export function QrCaseReportFormView({
                     <span className="font-semibold text-off-white">
                       {lookupResult.machine.area.name} ({lookupResult.machine.area.code})
                     </span>
+                    {lookupResult.machine.area.pic_user && (
+                      <span className="text-[11px] text-steel-muted block">
+                        PIC Area: {lookupResult.machine.area.pic_user.name}
+                      </span>
+                    )}
                   </div>
                 </div>
 

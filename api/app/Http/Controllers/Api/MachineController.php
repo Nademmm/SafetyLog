@@ -30,7 +30,7 @@ class MachineController extends Controller
 
         $query = Machine::query()
             ->forOrganization($user->organization_id)
-            ->with(['site:id,name,code', 'area:id,name,code'])
+            ->with(['site:id,name,code', 'area:id,name,code,pic_user_id', 'area.picUser:id,name,email,role,job_title'])
             ->orderBy('name');
 
         if (! $request->boolean('include_archived')) {
@@ -62,7 +62,7 @@ class MachineController extends Controller
     {
         $machine = Machine::query()
             ->where('qr_token', $qrToken)
-            ->with(['site:id,name,code,is_active', 'area:id,name,code,is_active,archived_at'])
+            ->with(['site:id,name,code,is_active', 'area:id,name,code,pic_user_id,is_active,archived_at', 'area.picUser:id,name,email,role,job_title'])
             ->first();
 
         if (! $machine) {
@@ -293,6 +293,15 @@ class MachineController extends Controller
                 'id' => $machine->area->id,
                 'name' => $machine->area->name,
                 'code' => $machine->area->code,
+                'pic_user' => $machine->area->relationLoaded('picUser') && $machine->area->picUser ? [
+                    'id' => $machine->area->picUser->id,
+                    'name' => $machine->area->picUser->name,
+                    'email' => $machine->area->picUser->email,
+                    'role' => $machine->area->picUser->role instanceof \BackedEnum
+                        ? $machine->area->picUser->role->value
+                        : (string) $machine->area->picUser->role,
+                    'job_title' => $machine->area->picUser->job_title,
+                ] : null,
             ] : null,
         ];
     }
