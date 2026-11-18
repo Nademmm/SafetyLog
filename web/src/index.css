@@ -45,3 +45,17 @@
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-carbon;
   }
 }
+
+@media print {
+  html,
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    min-height: auto !important;
+  }
+
+  .qr-sticker-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

@@ -17,7 +17,6 @@ use App\Services\CaseWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 
 class MachineController extends Controller
 {
@@ -63,7 +62,7 @@ class MachineController extends Controller
     {
         $machine = Machine::query()
             ->where('qr_token', $qrToken)
-            ->with(['site:id,name,code,is_active', 'area:id,name,code,is_active'])
+            ->with(['site:id,name,code,is_active', 'area:id,name,code,is_active,archived_at'])
             ->first();
 
         if (! $machine) {
@@ -72,7 +71,13 @@ class MachineController extends Controller
 
         Gate::authorize('view', $machine);
 
-        if (! $machine->is_active || $machine->archived_at !== null) {
+        if (
+            ! $machine->is_active
+            || $machine->archived_at !== null
+            || ! $machine->site?->is_active
+            || ! $machine->area?->is_active
+            || $machine->area?->archived_at !== null
+        ) {
             return response()->json(['message' => 'Mesin ini sudah diarsipkan dan tidak dapat dipilih.'], 422);
         }
 
@@ -84,8 +89,11 @@ class MachineController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'code', 'name', 'is_incident']);
 
+        $formattedMachine = $this->formatMachine($machine);
+
         return response()->json([
-            'machine' => $this->formatMachine($machine),
+            'data' => $formattedMachine,
+            'machine' => $formattedMachine,
             'case_types' => $caseTypes,
             'open_cases_warning' => [
                 'has_open_cases' => $openCases->isNotEmpty(),
@@ -226,7 +234,7 @@ class MachineController extends Controller
         Gate::authorize('view', $machine);
 
         $machine->update([
-            'qr_token' => Str::random(24),
+            'qr_token' => Machine::generateUniqueQrToken(),
         ]);
 
         return response()->json([
@@ -239,7 +247,7 @@ class MachineController extends Controller
     {
         do {
             $next = (int) Machine::query()->forOrganization($organizationId)->count() + 1;
-            $code = 'MCH-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $code = 'MCH-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
         } while (Machine::query()->forOrganization($organizationId)->where('code', $code)->exists());
 
         return $code;
