@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+
 class StoreMachineRequest extends FormRequest
 {
     public function authorize(): bool

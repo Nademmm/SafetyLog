@@ -1,5 +1,5 @@
 /**
- * SafetyLog — Kelola Mesin (B-06), Admin only.
+ * SafetyLog | Kelola Mesin (B-06), Admin only.
  * Keamanan utama: qr_token dihasilkan oleh backend via Str::random(24),
  * bukan nomor urut yang bisa ditebak. Frontend tidak boleh men-input qr_token.
  */
@@ -8,13 +8,10 @@ import { apiJson } from './api.js';
 import { hasRole } from './auth.js';
 import { requireAccess } from './guard.js';
 
-requireAccess();
-if (!hasRole('admin')) {
-  document.body.innerHTML = '<div style="padding:2rem; text-align:center; font-family:sans-serif;">Akses ditolak. Hanya admin yang dapat kelola mesin.</div>';
+if (!requireAccess() || !hasRole('admin')) {
   throw new Error('Forbidden');
 }
 
-const tblBody = document.querySelector('#tblMachines tbody');
 const alertEl = document.getElementById('alert');
 const alertSuccess = document.getElementById('alertSuccess');
 
@@ -23,11 +20,18 @@ const btnAdd = document.getElementById('btnAddMachine');
 const btnClose = document.getElementById('btnCloseMachine');
 const btnCancel = document.getElementById('btnCancelMachine');
 const form = document.getElementById('formMachine');
+const container = document.getElementById('machinesContainer');
 const modalTitle = document.getElementById('modalMachineTitle');
 const btnSave = document.getElementById('btnSaveMachine');
 
-let areas = window.__MACHINES_AREAS || [];
 let machines = window.__MACHINES_INIT || [];
+if (container?.dataset.machines) {
+  try {
+    machines = JSON.parse(container.dataset.machines);
+  } catch (_) {
+    machines = [];
+  }
+}
 let editingId = null;
 
 function showAlert(msg, isSuccess = false) {
@@ -44,7 +48,7 @@ function showAlert(msg, isSuccess = false) {
 
 window.app = {
   editMachine(id) {
-    const m = machines.find(x => x.id === id);
+    const m = machines.find((x) => x.id === id);
     if (!m) return;
     editingId = id;
     modalTitle.textContent = 'Ubah Mesin';
@@ -68,6 +72,20 @@ window.app = {
   },
 };
 
+document.querySelectorAll('[data-edit-machine]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    window.app.editMachine(parseInt(btn.getAttribute('data-edit-machine'), 10));
+  });
+});
+
+document.querySelectorAll('[data-toggle-machine]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const id = parseInt(btn.getAttribute('data-toggle-machine'), 10);
+    const isActive = btn.getAttribute('data-active') === '1';
+    window.app.toggleArchive(id, isActive);
+  });
+});
+
 btnAdd.addEventListener('click', () => {
   editingId = null;
   modalTitle.textContent = 'Tambah Mesin';
@@ -75,12 +93,16 @@ btnAdd.addEventListener('click', () => {
   document.getElementById('machineCode').value = 'Dihasilkan otomatis';
   document.getElementById('machineActive').checked = true;
   document.getElementById('machineId').value = '';
-  // qr_token tidak ada di form — di-generate oleh backend saat create
   modal.classList.add('open');
 });
 
-[btnClose, btnCancel].forEach(b => b.addEventListener('click', () => modal.classList.remove('open')));
+[btnClose, btnCancel].forEach((b) => b.addEventListener('click', () => modal.classList.remove('open')));
 modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modal.classList.contains('open')) {
+    modal.classList.remove('open');
+  }
+});
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -98,13 +120,12 @@ form.addEventListener('submit', async (e) => {
     if (editingId) {
       await apiJson(`/machines/${editingId}`, { method: 'PATCH', body: JSON.stringify(payload) });
       showAlert('Mesin berhasil diperbarui.', true);
-      modal.classList.remove('open');
-      location.reload();
     } else {
       await apiJson('/machines', { method: 'POST', body: JSON.stringify(payload) });
       showAlert('Mesin berhasil ditambahkan.', true);
     }
     modal.classList.remove('open');
+    location.reload();
   } catch (err) {
     showAlert('Gagal menyimpan: ' + err.message);
   } finally {
@@ -112,10 +133,3 @@ form.addEventListener('submit', async (e) => {
     btnSave.textContent = 'Simpan';
   }
 });
-
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]));
-}
-
-// Data awal sudah di-render oleh Blade (@foreach). JS hanya menangani CRUD via API.

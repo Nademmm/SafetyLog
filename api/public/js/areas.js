@@ -1,5 +1,5 @@
 /**
- * SafetyLog — Kelola Area (B-06), Admin only.
+ * SafetyLog | Kelola Area (B-06), Admin only.
  * Logika & keamanan: role dicek di frontend (defense-in-depth),
  * backend juga menolak HTTP 403 untuk non-admin / organisasi lain.
  */
@@ -8,13 +8,11 @@ import { apiJson } from './api.js';
 import { hasRole } from './auth.js';
 import { requireAccess } from './guard.js';
 
-requireAccess();
-if (!hasRole('admin')) {
-  document.body.innerHTML = '<div style="padding:2rem; text-align:center; font-family:sans-serif;">Akses ditolak. Hanya admin yang dapat kelola area.</div>';
+if (!requireAccess() || !hasRole('admin')) {
   throw new Error('Forbidden');
 }
 
-const tblBody = document.querySelector('#tblAreas tbody');
+const container = document.getElementById('areasContainer');
 const alertEl = document.getElementById('alert');
 const alertSuccess = document.getElementById('alertSuccess');
 
@@ -26,8 +24,14 @@ const form = document.getElementById('formArea');
 const modalTitle = document.getElementById('modalAreaTitle');
 const btnSave = document.getElementById('btnSaveArea');
 
-let sites = [];
 let areas = window.__AREAS_INIT || [];
+if (container?.dataset.areas) {
+  try {
+    areas = JSON.parse(container.dataset.areas);
+  } catch (_) {
+    areas = [];
+  }
+}
 let editingId = null;
 
 function showAlert(msg, isSuccess = false) {
@@ -66,6 +70,20 @@ window.app = {
   },
 };
 
+document.querySelectorAll('[data-edit-area]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    window.app.editArea(parseInt(btn.getAttribute('data-edit-area'), 10));
+  });
+});
+
+document.querySelectorAll('[data-toggle-area]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = parseInt(btn.getAttribute('data-toggle-area'), 10);
+    const isActive = btn.getAttribute('data-active') === '1';
+    window.app.toggleArchive(id, isActive);
+  });
+});
+
 btnAdd.addEventListener('click', () => {
   editingId = null;
   modalTitle.textContent = 'Tambah Area';
@@ -77,6 +95,11 @@ btnAdd.addEventListener('click', () => {
 
 [btnClose, btnCancel].forEach(b => b.addEventListener('click', () => modal.classList.remove('open')));
 modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modal.classList.contains('open')) {
+    modal.classList.remove('open');
+  }
+});
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -106,10 +129,5 @@ form.addEventListener('submit', async (e) => {
     btnSave.textContent = 'Simpan';
   }
 });
-
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]));
-}
 
 // Data awal sudah di-render oleh Blade (@foreach). JS hanya menangani CRUD via API.

@@ -2,18 +2,24 @@ import { apiJson } from './api.js';
 import { hasRole } from './auth.js';
 import { requireAccess } from './guard.js';
 
-requireAccess();
-if (!hasRole('admin')) {
-  document.body.innerHTML = '<div style="padding:2rem;text-align:center;font-family:sans-serif;">Akses ditolak. Hanya admin yang dapat kelola pabrik.</div>';
+if (!requireAccess() || !hasRole('admin')) {
   throw new Error('Forbidden');
 }
 
+const container = document.getElementById('sitesContainer');
 const modal = document.getElementById('modalSite');
 const form = document.getElementById('formSite');
 const alertEl = document.getElementById('alert');
 const alertSuccess = document.getElementById('alertSuccess');
 const btnSave = document.getElementById('btnSaveSite');
 let sites = window.__SITES_INIT || [];
+if (container?.dataset.sites) {
+  try {
+    sites = JSON.parse(container.dataset.sites);
+  } catch (_) {
+    sites = [];
+  }
+}
 let editingId = null;
 
 function showAlert(message, success = false) {
@@ -47,6 +53,20 @@ window.app = {
   },
 };
 
+document.querySelectorAll('[data-edit-site]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    window.app.editSite(parseInt(btn.getAttribute('data-edit-site'), 10));
+  });
+});
+
+document.querySelectorAll('[data-toggle-site]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = parseInt(btn.getAttribute('data-toggle-site'), 10);
+    const isActive = btn.getAttribute('data-active') === '1';
+    window.app.toggleArchive(id, isActive);
+  });
+});
+
 document.getElementById('btnAddSite').addEventListener('click', () => {
   editingId = null;
   document.getElementById('modalSiteTitle').textContent = 'Tambah Pabrik';
@@ -59,6 +79,11 @@ document.getElementById('btnAddSite').addEventListener('click', () => {
 });
 modal.addEventListener('click', event => {
   if (event.target === modal) modal.classList.remove('open');
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && modal.classList.contains('open')) {
+    modal.classList.remove('open');
+  }
 });
 
 form.addEventListener('submit', async event => {

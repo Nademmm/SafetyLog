@@ -1,25 +1,24 @@
 /**
- * SafetyLog Auth (Blade version)
- * Token dibaca dari <meta name="sl-token"> yang diset oleh Blade layout setelah login.
- * Role & profil dibaca dari <meta name="sl-user">.
+ * SafetyLog Auth Helper
  */
-
 import { getToken } from './api.js';
 
 const ROLES = ['reporter', 'supervisor', 'hse', 'admin'];
 
-/** Ambil data user dari meta tag yang dirender Blade. */
 export function getUser() {
   const meta = document.querySelector('meta[name="sl-user"]');
-  return meta ? JSON.parse(meta.getAttribute('content')) : null;
+  if (!meta) return null;
+  try {
+    return JSON.parse(meta.getAttribute('content'));
+  } catch (_) {
+    return null;
+  }
 }
 
-/** Cek apakah pengguna sudah login (token ada di meta tag). */
 export function isAuthenticated() {
   return !!getToken() && !!getUser();
 }
 
-/** Cek apakah role user termasuk dalam daftar yang diizinkan. */
 export function hasRole(allowedRoles) {
   const user = getUser();
   if (!user) return false;
@@ -29,12 +28,10 @@ export function hasRole(allowedRoles) {
   return user.role === allowedRoles;
 }
 
-/** Daftar semua role yang tersedia. */
 export function allRoles() {
   return ROLES;
 }
 
-/** Logout: arahkan ke route logout yang dihandle PHP controller. */
 export function logout() {
   const csrfMeta = document.querySelector('meta[name="csrf-token"]');
   const form = document.createElement('form');

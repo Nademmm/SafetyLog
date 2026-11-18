@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Exceptions\DomainRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAreaRequest;
-use App\Http\Requests\Admin\UpdateAreaRequest;
 use App\Http\Requests\Admin\StoreSiteRequest;
+use App\Http\Requests\Admin\UpdateAreaRequest;
 use App\Http\Requests\Admin\UpdateSiteRequest;
 use App\Models\Area;
 use App\Models\Site;
@@ -190,7 +190,7 @@ class AreaController extends Controller
     {
         do {
             $next = (int) Site::query()->forOrganization($organizationId)->count() + 1;
-            $code = 'SITE-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $code = 'SITE-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
         } while (Site::query()->forOrganization($organizationId)->where('code', $code)->exists());
 
         return $code;
@@ -200,7 +200,7 @@ class AreaController extends Controller
     {
         do {
             $next = (int) Area::query()->forOrganization($organizationId)->count() + 1;
-            $code = 'AREA-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $code = 'AREA-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
         } while (Area::query()->forOrganization($organizationId)->where('code', $code)->exists());
 
         return $code;

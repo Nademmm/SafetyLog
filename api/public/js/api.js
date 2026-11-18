@@ -1,9 +1,9 @@
 /**
- * SafetyLog API Client (Blade version)
- * Membaca token Sanctum dari <meta name="sl-token"> yang dirender oleh Blade layout.
+ * SafetyLog API Client
+ * Membaca token Sanctum dari <meta name="sl-token"> yang dirender server setelah login.
  */
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = `${window.location.origin}/api`;
 
 function getToken() {
   const meta = document.querySelector('meta[name="sl-token"]');
@@ -12,11 +12,14 @@ function getToken() {
 
 async function apiRequest(endpoint, options = {}) {
   const token = getToken();
+  const isFormData = options.body instanceof FormData;
+
   const headers = {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...options.headers,
   };
+
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -27,22 +30,9 @@ async function apiRequest(endpoint, options = {}) {
   });
 
   if (res.status === 401) {
-    window.location.href = '/login';
-    throw new Error('Sesi habis, silakan login ulang.');
-  }
-
-  if (res.status === 403) {
-    const err = new Error('Anda tidak memiliki akses ke halaman ini.');
-    err.code = 403;
-    throw err;
-  }
-
-  if (res.status === 429) {
-    const retryAfter = res.headers.get('Retry-After') || 60;
-    const err = new Error(`Terlalu banyak percobaan. Coba lagi dalam ${retryAfter} detik.`);
-    err.code = 429;
-    err.retryAfter = retryAfter;
-    throw err;
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/login?return_url=${returnUrl}`;
+    throw new Error('Sesi Anda telah berakhir. Silakan login kembali.');
   }
 
   return res;
@@ -50,19 +40,27 @@ async function apiRequest(endpoint, options = {}) {
 
 async function apiJson(endpoint, options = {}) {
   const res = await apiRequest(endpoint, options);
-  let data;
+  let data = null;
+
   try {
     data = await res.json();
   } catch (_) {
-    throw new Error('Respons dari server tidak valid.');
+    if (!res.ok) {
+      throw new Error('Respons dari server tidak valid.');
+    }
+    return null;
   }
+
   if (!res.ok) {
-    const msg = data && data.message ? data.message : 'Terjadi kesalahan.';
+    const msg = data && data.message ? data.message : 'Terjadi kesalahan pada permintaan.';
     const err = new Error(msg);
     err.status = res.status;
+    err.code = res.status;
+    err.error_code = data && data.error_code ? data.error_code : null;
     err.errors = data && data.errors ? data.errors : null;
     throw err;
   }
+
   return data;
 }
 

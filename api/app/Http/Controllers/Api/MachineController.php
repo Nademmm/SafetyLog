@@ -239,7 +239,7 @@ class MachineController extends Controller
     {
         do {
             $next = (int) Machine::query()->forOrganization($organizationId)->count() + 1;
-            $code = 'MCH-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $code = 'MCH-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
         } while (Machine::query()->forOrganization($organizationId)->where('code', $code)->exists());
 
         return $code;
