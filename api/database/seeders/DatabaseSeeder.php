@@ -134,5 +134,13 @@ class DatabaseSeeder extends Seeder
                 ],
             );
         }
+
+        $supervisorUser = User::query()->where('email', 'supervisor@safetylog.test')->first();
+        if ($supervisorUser) {
+            Area::query()
+                ->where('organization_id', $organization->id)
+                ->whereNull('pic_user_id')
+                ->update(['pic_user_id' => $supervisorUser->id]);
+        }
     }
 }
