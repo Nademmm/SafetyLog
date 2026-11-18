@@ -46,8 +46,9 @@ interface QrStickerCardProps {
 }
 
 function QrStickerCard({ machine, compact = false }: QrStickerCardProps) {
-  const reportUrl = buildQrReportUrl(machine.qr_token)
-  const reportPath = buildQrReportPath(machine.qr_token)
+  const token = machine.qr_token ?? ''
+  const reportUrl = buildQrReportUrl(token)
+  const reportPath = buildQrReportPath(token)
 
   return (
     <div
@@ -193,7 +194,7 @@ export function MachineQrPrintView({
         m.name.toLowerCase().includes(q) ||
         m.code.toLowerCase().includes(q) ||
         m.area.name.toLowerCase().includes(q) ||
-        m.qr_token.toLowerCase().includes(q)
+        (m.qr_token ?? '').toLowerCase().includes(q)
       )
     })
   }, [machines, searchQuery, selectedAreaCode])
@@ -383,7 +384,7 @@ export function MachineQrPrintView({
                 <Button
                   variant="industrial"
                   className="w-full gap-2 justify-center"
-                  onClick={() => onSimulateScan(selectedMachine.qr_token, false)}
+                  onClick={() => onSimulateScan(selectedMachine.qr_token ?? '', false)}
                 >
                   <QrCode className="h-4 w-4 stroke-[2px]" />
                   {session
@@ -395,7 +396,7 @@ export function MachineQrPrintView({
                 <Button
                   variant="secondary"
                   className="w-full gap-2 justify-center"
-                  onClick={() => onSimulateScan(selectedMachine.qr_token, true)}
+                  onClick={() => onSimulateScan(selectedMachine.qr_token ?? '', true)}
                 >
                   <LogOut className="h-4 w-4 stroke-[2px]" />
                   Uji Scan Saat Belum Login (Redirect Login → Form Lapor)
@@ -404,10 +405,10 @@ export function MachineQrPrintView({
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <Button
                     variant="outline"
-                    onClick={() => handleCopyUrl(selectedMachine.qr_token)}
+                    onClick={() => handleCopyUrl(selectedMachine.qr_token ?? '')}
                     className="gap-1.5"
                   >
-                    {copiedToken === selectedMachine.qr_token ? (
+                    {copiedToken === (selectedMachine.qr_token ?? '') ? (
                       <>
                         <Check className="h-4 w-4 text-safety-safe stroke-[2px]" />
                         Tersalin
@@ -432,7 +433,7 @@ export function MachineQrPrintView({
                     <ExternalLink className="h-3.5 w-3.5 text-industrial-orange stroke-[2px]" />
                   </div>
                   <div className="font-mono text-[11px] text-industrial-orange break-all tabular-nums">
-                    {buildQrReportUrl(selectedMachine.qr_token)}
+                    {buildQrReportUrl(selectedMachine.qr_token ?? '')}
                   </div>
                 </div>
               </CardContent>

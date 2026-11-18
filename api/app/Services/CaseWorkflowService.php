@@ -7,6 +7,7 @@ use App\Enums\ActionType;
 use App\Enums\CaseStatus;
 use App\Enums\UserRole;
 use App\Exceptions\DomainRuleException;
+use App\Http\Resources\SafetyCaseSummaryResource;
 use App\Models\Attachment;
 use App\Models\CaseAction;
 use App\Models\CaseType;
@@ -16,12 +17,15 @@ use App\Models\Machine;
 use App\Models\SafetyCase;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class CaseWorkflowService
 {
+    public const DEFAULT_EMERGENCY_REMINDER = 'Ikuti prosedur darurat perusahaan terlebih dahulu. SafetyLog bukan pengganti prosedur resmi K3.';
+
     public function __construct(
         private readonly CaseNumberGenerator $caseNumberGenerator,
         private readonly AuditLogService $auditLogService,
@@ -42,9 +46,62 @@ class CaseWorkflowService
             ->where('machine_id', $machine->id)
             ->whereIn('status', CaseStatus::openValues())
             ->where('reported_at', '>=', now()->subDays(max(1, $windowDays)))
-            ->with(['caseType:id,code,name'])
+            ->with(['caseType:id,code,name', 'machine:id,code,name'])
             ->latest('reported_at')
             ->get();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function buildOpenCasesWarningPayload(?Machine $machine, ?int $organizationId = null, ?int $days = null): array
+    {
+        $orgId = $machine?->organization_id ?? $organizationId;
+        $windowDays = $days ?? ($orgId !== null
+            ? (int) Configuration::getValue($orgId, 'open_case_warning_days', 7)
+            : 7);
+
+        $openCases = $machine
+            ? $this->getOpenCasesForMachine($machine, $windowDays)
+            : new Collection;
+
+        return [
+            'has_open_cases' => $openCases->isNotEmpty(),
+            'count' => $openCases->count(),
+            'window_days' => $windowDays,
+            'cases' => SafetyCaseSummaryResource::collection($openCases),
+        ];
+    }
+
+    public function getEmergencyReminderText(int $organizationId): string
+    {
+        return (string) Configuration::getValue(
+            $organizationId,
+            'emergency_reminder_text',
+            self::DEFAULT_EMERGENCY_REMINDER,
+        );
+    }
+
+    /**
+     * Dynamic configuration metadata consumed by B-08 fast report forms.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildReportFormConfig(int $organizationId): array
+    {
+        return [
+            'required_fields' => ['machine_id', 'case_type_id', 'description'],
+            'optional_fields' => ['is_machine_stopped', 'has_affected_people', 'photos'],
+            'description_min_length' => 5,
+            'description_max_length' => 5000,
+            'max_photos' => 5,
+            'max_photo_size_mb' => 5,
+            'allowed_photo_types' => ['jpg', 'jpeg', 'png', 'webp'],
+            'target_completion_seconds' => 60,
+            'case_number_format' => 'SL-{KODE_SITE}-{TAHUN}-{0001}',
+            'emergency_reminder_text' => $this->getEmergencyReminderText($organizationId),
+            'open_case_warning_days' => (int) Configuration::getValue($organizationId, 'open_case_warning_days', 7),
+        ];
     }
 
     /**
@@ -54,17 +111,7 @@ class CaseWorkflowService
      */
     public function reportCase(User $reporter, array $data, array $photos = []): array
     {
-        $machine = Machine::query()
-            ->forOrganization($reporter->organization_id)
-            ->active()
-            ->with(['site', 'area'])
-            ->find($data['machine_id']);
-
-        if (! $machine || ! $machine->site || ! $machine->site->is_active) {
-            throw new DomainRuleException('Mesin tidak ditemukan atau sudah diarsipkan.', 'MACHINE_UNAVAILABLE', 422, [
-                'machine_id' => ['Mesin tidak ditemukan atau sudah diarsipkan.'],
-            ]);
-        }
+        $machine = $this->resolveOperationalMachineForReport($reporter, $data);
 
         $caseType = CaseType::query()
             ->forOrganization($reporter->organization_id)
@@ -102,16 +149,23 @@ class CaseWorkflowService
                 $this->attachmentService->storePhotos($case, $reporter->organization_id, $reporter, $photos);
             }
 
+            $auditMetadata = [
+                'machine_id' => $machine->id,
+                'case_type_id' => $caseType->id,
+                'reported_via' => ! empty($data['qr_token']) ? 'qr' : 'form',
+                'photo_count' => count($photos),
+            ];
+            if (isset($data['report_duration_seconds'])) {
+                $auditMetadata['report_duration_seconds'] = (int) $data['report_duration_seconds'];
+            }
+
             $this->auditLogService->record(
                 case: $case,
                 actor: $reporter,
                 fromStatus: null,
                 toStatus: CaseStatus::New,
                 actionName: 'case_reported',
-                metadata: [
-                    'machine_id' => $machine->id,
-                    'case_type_id' => $caseType->id,
-                ],
+                metadata: $auditMetadata,
             );
 
             $this->notificationService->notifyRole(
@@ -141,11 +195,7 @@ class CaseWorkflowService
 
         $emergencyReminder = null;
         if ($caseType->is_incident && $case->has_affected_people) {
-            $emergencyReminder = (string) Configuration::getValue(
-                $reporter->organization_id,
-                'emergency_reminder_text',
-                'Ikuti prosedur darurat perusahaan terlebih dahulu. SafetyLog bukan pengganti prosedur resmi K3.',
-            );
+            $emergencyReminder = $this->getEmergencyReminderText($reporter->organization_id);
         }
 
         return [
@@ -153,6 +203,52 @@ class CaseWorkflowService
             'emergency_reminder' => $emergencyReminder,
             'open_cases_warning' => $existingOpenCases,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveOperationalMachineForReport(User $reporter, array $data): Machine
+    {
+        $relations = Machine::SUMMARY_RELATIONS;
+
+        $machine = null;
+        if (! empty($data['machine_id'])) {
+            $machine = Machine::query()->with($relations)->find((int) $data['machine_id']);
+        }
+
+        $qrMachine = null;
+        if (! empty($data['qr_token'])) {
+            $qrMachine = Machine::query()
+                ->with($relations)
+                ->where('qr_token', (string) $data['qr_token'])
+                ->first();
+        }
+
+        if ($machine && $qrMachine && $machine->id !== $qrMachine->id) {
+            throw new DomainRuleException('Token QR dan mesin yang dipilih tidak cocok.', 'MACHINE_QR_MISMATCH', 422, [
+                'qr_token' => ['Token QR tidak sesuai dengan mesin yang dipilih.'],
+            ]);
+        }
+
+        $resolved = $machine ?? $qrMachine;
+        if (! $resolved) {
+            throw new DomainRuleException('Mesin tidak ditemukan atau sudah diarsipkan.', 'MACHINE_UNAVAILABLE', 422, [
+                'machine_id' => ['Mesin tidak ditemukan atau sudah diarsipkan.'],
+            ]);
+        }
+
+        if ($resolved->organization_id !== $reporter->organization_id) {
+            throw new AuthorizationException('Anda tidak memiliki akses ke mesin organisasi lain.');
+        }
+
+        if (! $resolved->isOperational()) {
+            throw new DomainRuleException('Mesin, area, atau pabrik sudah diarsipkan dan tidak dapat dipilih.', 'MACHINE_UNAVAILABLE', 422, [
+                'machine_id' => ['Mesin, area, atau pabrik sudah diarsipkan dan tidak dapat dipilih.'],
+            ]);
+        }
+
+        return $resolved;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\CaseStatus;
+use App\Exceptions\DomainRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attachments\StoreAttachmentRequest;
 use App\Http\Requests\Cases\ReopenSafetyCaseRequest;
@@ -16,7 +17,10 @@ use App\Http\Resources\CaseActionResource;
 use App\Http\Resources\CaseStatusHistoryResource;
 use App\Http\Resources\SafetyCaseResource;
 use App\Http\Resources\SafetyCaseSummaryResource;
+use App\Models\CaseType;
+use App\Models\Machine;
 use App\Models\SafetyCase;
+use App\Models\User;
 use App\Services\CaseSearchService;
 use App\Services\CaseWorkflowService;
 use Illuminate\Http\JsonResponse;
@@ -30,6 +34,40 @@ class SafetyCaseController extends Controller
         private readonly CaseWorkflowService $workflow,
         private readonly CaseSearchService $search,
     ) {}
+
+    public function reportForm(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $orgId = (int) $user->organization_id;
+
+        $selectedMachine = $this->resolveSelectedMachineForReportForm($request);
+
+        $canManageMasterData = $request->user()->role->canManageMasterData();
+
+        $machines = Machine::query()
+            ->forOrganization($orgId)
+            ->operational()
+            ->with(Machine::SUMMARY_RELATIONS)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Machine $machine) => $machine->toSummaryArray($canManageMasterData))
+            ->values();
+
+        $caseTypes = CaseType::query()
+            ->forOrganization($orgId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'code', 'name', 'is_incident']);
+
+        return response()->json([
+            'machines' => $machines,
+            'case_types' => $caseTypes,
+            'selected_machine' => $selectedMachine?->toSummaryArray($canManageMasterData || $request->filled('qr')),
+            'open_cases_warning' => $this->workflow->buildOpenCasesWarningPayload($selectedMachine, $orgId),
+            'form_config' => $this->workflow->buildReportFormConfig($orgId),
+        ]);
+    }
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -63,6 +101,7 @@ class SafetyCaseController extends Controller
 
         return response()->json([
             'message' => 'Laporan berhasil dikirim.',
+            'case_number' => $result['case']->case_number,
             'data' => new SafetyCaseResource($result['case']),
             'emergency_reminder' => $result['emergency_reminder'],
             'open_cases_warning' => [
@@ -202,5 +241,35 @@ class SafetyCaseController extends Controller
             'message' => 'Foto lampiran berhasil diunggah.',
             'data' => AttachmentResource::collection($attachments),
         ], 201);
+    }
+
+    private function resolveSelectedMachineForReportForm(Request $request): ?Machine
+    {
+        $qrToken = trim((string) $request->query('qr', ''));
+        $machineId = $request->filled('machine_id') ? (int) $request->query('machine_id') : null;
+
+        if ($qrToken === '' && $machineId === null) {
+            return null;
+        }
+
+        $relations = Machine::SUMMARY_RELATIONS;
+
+        $machine = $qrToken !== ''
+            ? Machine::query()->with($relations)->where('qr_token', $qrToken)->first()
+            : Machine::query()->with($relations)->find($machineId);
+
+        if (! $machine) {
+            abort(404, $qrToken !== '' ? 'Kode QR mesin tidak ditemukan.' : 'Mesin tidak ditemukan.');
+        }
+
+        Gate::authorize('view', $machine);
+
+        if (! $machine->isOperational()) {
+            throw new DomainRuleException('Mesin ini sudah diarsipkan dan tidak dapat dipilih.', 'MACHINE_UNAVAILABLE', 422, [
+                'machine_id' => ['Mesin ini sudah diarsipkan dan tidak dapat dipilih.'],
+            ]);
+        }
+
+        return $machine;
     }
 }

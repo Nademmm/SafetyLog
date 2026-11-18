@@ -56,12 +56,17 @@ enum UserRole: string
     {
         return [
             'report_case' => true,
+            'scan_qr' => true,
             'view_own_cases' => true,
+            'complete_assigned_actions' => true,
             'view_all_cases' => $this->canViewAllCases(),
             'triage_case' => $this->canTriage(),
             'manage_actions' => $this->canManageActions(),
             'verify_case' => $this->canVerify(),
+            'reopen_case' => $this->canVerify(),
             'view_dashboard' => $this->canViewDashboard(),
+            'view_audit_logs' => $this->canViewDashboard(),
+            'print_machine_qr' => $this->canManageMasterData(),
             'manage_master_data' => $this->canManageMasterData(),
         ];
     }

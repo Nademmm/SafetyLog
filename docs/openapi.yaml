@@ -106,10 +106,18 @@ paths:
         "200": { description: Token QR diperbarui }
   /machines/qr/{qrToken}:
     get:
-      summary: Lookup mesin via QR token + open_cases_warning (B-08, B-10)
+      summary: Lookup mesin via QR token + emergency_reminder_text + open_cases_warning (B-07, B-08, B-10)
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: Detail mesin dan peringatan kasus terbuka }
+  /report-form:
+    get:
+      summary: Konteks satu panggilan untuk Form Lapor cepat B-08 (opsional ?qr= atau ?machine_id=)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Mesin operasional, jenis kasus, form_config, dan peringatan kasus terbuka }
+        "403": { description: Ditolak bila mesin/QR milik organisasi lain }
+        "422": { description: Mesin, area, atau pabrik sudah diarsipkan }
   /machines/{machine}/open-cases:
     get:
       summary: Peringatan kasus terbuka 7 hari terakhir pada mesin (B-10)

@@ -27,14 +27,19 @@ class MachineController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $canManageMasterData = $user->role->canManageMasterData();
+
+        if ($request->boolean('include_archived') && ! $canManageMasterData) {
+            abort(403, 'Hanya Manajer/Admin yang dapat melihat mesin yang diarsipkan.');
+        }
 
         $query = Machine::query()
             ->forOrganization($user->organization_id)
-            ->with(['site:id,name,code', 'area:id,name,code,pic_user_id', 'area.picUser:id,name,email,role,job_title'])
+            ->with(Machine::SUMMARY_RELATIONS)
             ->orderBy('name');
 
         if (! $request->boolean('include_archived')) {
-            $query->active();
+            $query->operational();
         }
 
         if ($request->filled('site_id')) {
@@ -53,7 +58,9 @@ class MachineController extends Controller
             });
         }
 
-        $machines = $query->get()->map(fn (Machine $machine) => $this->formatMachine($machine));
+        $machines = $query->get()
+            ->map(fn (Machine $machine) => $machine->toSummaryArray($canManageMasterData))
+            ->values();
 
         return response()->json(['data' => $machines]);
     }
@@ -62,7 +69,7 @@ class MachineController extends Controller
     {
         $machine = Machine::query()
             ->where('qr_token', $qrToken)
-            ->with(['site:id,name,code,is_active', 'area:id,name,code,pic_user_id,is_active,archived_at', 'area.picUser:id,name,email,role,job_title'])
+            ->with(Machine::SUMMARY_RELATIONS)
             ->first();
 
         if (! $machine) {
@@ -71,36 +78,25 @@ class MachineController extends Controller
 
         Gate::authorize('view', $machine);
 
-        if (
-            ! $machine->is_active
-            || $machine->archived_at !== null
-            || ! $machine->site?->is_active
-            || ! $machine->area?->is_active
-            || $machine->area?->archived_at !== null
-        ) {
+        if (! $machine->isOperational()) {
             return response()->json(['message' => 'Mesin ini sudah diarsipkan dan tidak dapat dipilih.'], 422);
         }
 
-        $openCases = $this->workflow->getOpenCasesForMachine($machine);
-        $windowDays = (int) Configuration::getValue($machine->organization_id, 'open_case_warning_days', 7);
         $caseTypes = CaseType::query()
             ->forOrganization($machine->organization_id)
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get(['id', 'code', 'name', 'is_incident']);
 
-        $formattedMachine = $this->formatMachine($machine);
+        $formattedMachine = $machine->toSummaryArray();
 
         return response()->json([
             'data' => $formattedMachine,
             'machine' => $formattedMachine,
             'case_types' => $caseTypes,
-            'open_cases_warning' => [
-                'has_open_cases' => $openCases->isNotEmpty(),
-                'count' => $openCases->count(),
-                'window_days' => $windowDays,
-                'cases' => SafetyCaseSummaryResource::collection($openCases),
-            ],
+            'emergency_reminder_text' => $this->workflow->getEmergencyReminderText($machine->organization_id),
+            'form_config' => $this->workflow->buildReportFormConfig($machine->organization_id),
+            'open_cases_warning' => $this->workflow->buildOpenCasesWarningPayload($machine),
         ]);
     }
 
@@ -108,15 +104,11 @@ class MachineController extends Controller
     {
         Gate::authorize('view', $machine);
 
-        $windowDays = (int) Configuration::getValue($machine->organization_id, 'open_case_warning_days', 7);
-        $openCases = $this->workflow->getOpenCasesForMachine($machine, $windowDays);
+        $warning = $this->workflow->buildOpenCasesWarningPayload($machine);
 
         return response()->json([
             'machine_id' => $machine->id,
-            'has_open_cases' => $openCases->isNotEmpty(),
-            'count' => $openCases->count(),
-            'window_days' => $windowDays,
-            'cases' => SafetyCaseSummaryResource::collection($openCases),
+            ...$warning,
         ]);
     }
 
@@ -142,7 +134,7 @@ class MachineController extends Controller
             ->paginate(min(100, max(1, (int) $request->integer('per_page', 15))));
 
         return response()->json([
-            'machine' => $this->formatMachine($machine->loadMissing(['site:id,name,code', 'area:id,name,code'])),
+            'machine' => $machine->loadMissing(['site:id,name,code', 'area:id,name,code'])->toSummaryArray(),
             'is_recurring' => $recentCount >= $recurringThreshold,
             'recurring_label' => $recentCount >= $recurringThreshold ? 'Berulang' : null,
             'cases_last_90_days' => $recentCount,
@@ -173,7 +165,7 @@ class MachineController extends Controller
 
         return response()->json([
             'message' => 'Mesin berhasil ditambahkan.',
-            'data' => $this->formatMachine($machine->load(['site:id,name,code', 'area:id,name,code'])),
+            'data' => $machine->load(['site:id,name,code', 'area:id,name,code'])->toSummaryArray(),
         ], 201);
     }
 
@@ -206,7 +198,7 @@ class MachineController extends Controller
 
         return response()->json([
             'message' => 'Data mesin berhasil diperbarui.',
-            'data' => $this->formatMachine($machine->fresh(['site:id,name,code', 'area:id,name,code'])),
+            'data' => $machine->fresh(['site:id,name,code', 'area:id,name,code'])->toSummaryArray(),
         ]);
     }
 
@@ -225,7 +217,7 @@ class MachineController extends Controller
             'message' => $activate
                 ? 'Mesin berhasil diaktifkan kembali.'
                 : 'Mesin berhasil diarsipkan.',
-            'data' => $this->formatMachine($machine->fresh(['site:id,name,code', 'area:id,name,code'])),
+            'data' => $machine->fresh(['site:id,name,code', 'area:id,name,code'])->toSummaryArray(),
         ]);
     }
 
@@ -239,7 +231,7 @@ class MachineController extends Controller
 
         return response()->json([
             'message' => 'Token QR mesin berhasil diperbarui.',
-            'data' => $this->formatMachine($machine->fresh(['site:id,name,code', 'area:id,name,code'])),
+            'data' => $machine->fresh(['site:id,name,code', 'area:id,name,code'])->toSummaryArray(),
         ]);
     }
 
@@ -268,41 +260,5 @@ class MachineController extends Controller
         }
 
         return $area;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function formatMachine(Machine $machine): array
-    {
-        return [
-            'id' => $machine->id,
-            'code' => $machine->code,
-            'name' => $machine->name,
-            'qr_token' => $machine->qr_token,
-            'qr_report_path' => "/report?qr={$machine->qr_token}",
-            'description' => $machine->description,
-            'is_active' => $machine->is_active,
-            'archived_at' => $machine->archived_at?->toIso8601String(),
-            'site' => $machine->site ? [
-                'id' => $machine->site->id,
-                'name' => $machine->site->name,
-                'code' => $machine->site->code,
-            ] : null,
-            'area' => $machine->area ? [
-                'id' => $machine->area->id,
-                'name' => $machine->area->name,
-                'code' => $machine->area->code,
-                'pic_user' => $machine->area->relationLoaded('picUser') && $machine->area->picUser ? [
-                    'id' => $machine->area->picUser->id,
-                    'name' => $machine->area->picUser->name,
-                    'email' => $machine->area->picUser->email,
-                    'role' => $machine->area->picUser->role instanceof \BackedEnum
-                        ? $machine->area->picUser->role->value
-                        : (string) $machine->area->picUser->role,
-                    'job_title' => $machine->area->picUser->job_title,
-                ] : null,
-            ] : null,
-        ];
     }
 }

@@ -12,6 +12,12 @@ import {
   FileText,
   LogIn,
   LogOut,
+  BarChart3,
+  FolderKanban,
+  ClipboardCheck,
+  History,
+  Building2,
+  Bell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,7 +35,14 @@ import {
   QrLoginRedirectView,
   QrCaseReportFormView,
 } from '@/components/qr/QrScanReportFlow'
+import { ForbiddenView } from '@/components/workspace/ForbiddenView'
+import { CasesWorkspace } from '@/components/workspace/CasesWorkspace'
+import { MyActionsWorkspace } from '@/components/workspace/MyActionsWorkspace'
+import { DashboardAuditWorkspace } from '@/components/workspace/DashboardAuditWorkspace'
+import { AdminMasterWorkspace } from '@/components/workspace/AdminMasterWorkspace'
+import { NotificationsWorkspace } from '@/components/workspace/NotificationsWorkspace'
 import {
+  type AppTab,
   type AuthSession,
   type MachineRecord,
   type PendingQrRedirect,
@@ -42,19 +55,55 @@ import {
   extractQrTokenFromRedirectParam,
   fetchMachinesList,
   buildQrReportPath,
+  canAccessTab,
+  getAllowedRolesLabelForTab,
+  getDefaultTabForRole,
+  getPathForTab,
+  getUserPermissions,
 } from '@/lib/qr-flow'
 
-type AppTab = 'qr-print' | 'report' | 'login' | 'tokens'
+function resolveTabFromPathname(pathname: string): AppTab | null {
+  switch (pathname) {
+    case '/report':
+      return 'report'
+    case '/my-cases':
+      return 'my-cases'
+    case '/my-actions':
+      return 'my-actions'
+    case '/notifications':
+      return 'notifications'
+    case '/dashboard':
+      return 'dashboard'
+    case '/cases':
+      return 'cases'
+    case '/audit-logs':
+      return 'audit-logs'
+    case '/machines/qr':
+      return 'qr-print'
+    case '/admin':
+      return 'admin'
+    case '/design-tokens':
+      return 'tokens'
+    case '/login':
+      return 'login'
+    default:
+      return null
+  }
+}
 
 function resolveInitialRouteState(initialSession: AuthSession | null): {
   tab: AppTab
+  forbiddenForTab: AppTab | null
+  attemptedPath: string
   qrToken: string | null
   pendingRedirect: PendingQrRedirect | null
 } {
   if (typeof window === 'undefined') {
     return {
-      tab: 'qr-print',
-      qrToken: SEEDED_MACHINES[0].qr_token,
+      tab: initialSession ? getDefaultTabForRole(initialSession.user.role) : 'login',
+      forbiddenForTab: null,
+      attemptedPath: '/',
+      qrToken: null,
       pendingRedirect: null,
     }
   }
@@ -69,6 +118,8 @@ function resolveInitialRouteState(initialSession: AuthSession | null): {
     if (initialSession) {
       return {
         tab: 'report',
+        forbiddenForTab: null,
+        attemptedPath: url.pathname + url.search,
         qrToken: qrParam,
         pendingRedirect: null,
       }
@@ -78,68 +129,145 @@ function resolveInitialRouteState(initialSession: AuthSession | null): {
     window.history.replaceState({}, '', loginUrl)
     return {
       tab: 'login',
+      forbiddenForTab: null,
+      attemptedPath: loginUrl,
       qrToken: qrParam,
       pendingRedirect: saved,
     }
   }
 
-  // Jika berada di halaman /login dengan parameter redirect
+  // Halaman /login dengan atau tanpa ?redirect=
   if (url.pathname === '/login') {
     const redirectQr = extractQrTokenFromRedirectParam(redirectParam)
-    const pending =
-      redirectQr ? savePendingQrRedirect(redirectQr, redirectParam ?? undefined) : storedPending
+    const pending = redirectQr
+      ? savePendingQrRedirect(redirectQr, redirectParam ?? undefined)
+      : storedPending
 
     if (initialSession && pending) {
       clearPendingQrRedirect()
       window.history.replaceState({}, '', pending.redirectPath)
       return {
         tab: 'report',
+        forbiddenForTab: null,
+        attemptedPath: pending.redirectPath,
         qrToken: pending.qrToken,
+        pendingRedirect: null,
+      }
+    }
+
+    if (initialSession) {
+      const homeTab = getDefaultTabForRole(initialSession.user.role)
+      const homePath = getPathForTab(homeTab)
+      window.history.replaceState({}, '', homePath)
+      return {
+        tab: homeTab,
+        forbiddenForTab: null,
+        attemptedPath: homePath,
+        qrToken: null,
         pendingRedirect: null,
       }
     }
 
     return {
       tab: 'login',
-      qrToken: pending?.qrToken ?? SEEDED_MACHINES[0].qr_token,
+      forbiddenForTab: null,
+      attemptedPath: '/login',
+      qrToken: pending?.qrToken ?? null,
       pendingRedirect: pending,
     }
   }
 
-  if (url.pathname === '/report') {
-    if (!initialSession) {
-      const defaultQr = SEEDED_MACHINES[0].qr_token
-      const saved = savePendingQrRedirect(defaultQr)
-      window.history.replaceState(
-        {},
-        '',
-        `/login?redirect=${encodeURIComponent(saved.redirectPath)}`
-      )
-      return {
-        tab: 'login',
-        qrToken: defaultQr,
-        pendingRedirect: saved,
-      }
-    }
-    return {
-      tab: 'report',
-      qrToken: SEEDED_MACHINES[0].qr_token,
-      pendingRedirect: null,
-    }
-  }
+  const requestedTab = resolveTabFromPathname(url.pathname)
 
-  if (url.pathname === '/design-tokens') {
+  // Jika belum login dan membuka halaman privat apa pun -> arahkan ke /login
+  if (!initialSession) {
+    window.history.replaceState({}, '', '/login')
     return {
-      tab: 'tokens',
-      qrToken: SEEDED_MACHINES[0].qr_token,
+      tab: 'login',
+      forbiddenForTab: null,
+      attemptedPath: url.pathname,
+      qrToken: null,
       pendingRedirect: storedPending,
     }
   }
 
+  // Root '/' -> beranda resmi peran masing-masing
+  if (!requestedTab || url.pathname === '/') {
+    const homeTab = getDefaultTabForRole(initialSession.user.role)
+    const homePath = getPathForTab(homeTab)
+    window.history.replaceState({}, '', homePath)
+    return {
+      tab: homeTab,
+      forbiddenForTab: null,
+      attemptedPath: homePath,
+      qrToken: null,
+      pendingRedirect: null,
+    }
+  }
+
+  // Tolak akses jika rute bukan hak peran pengguna (403 - bukan sekadar disembunyikan)
+  if (!canAccessTab(initialSession, requestedTab)) {
+    return {
+      tab: requestedTab,
+      forbiddenForTab: requestedTab,
+      attemptedPath: url.pathname,
+      qrToken: null,
+      pendingRedirect: null,
+    }
+  }
+
   return {
-    tab: 'qr-print',
-    qrToken: SEEDED_MACHINES[0].qr_token,
-    pendingRedirect: storedPending,
+    tab: requestedTab,
+    forbiddenForTab: null,
+    attemptedPath: url.pathname,
+    qrToken: null,
+    pendingRedirect: null,
+  }
+}
+
+class WorkspaceErrorBoundary extends React.Component<
+  { children: React.ReactNode; resetKey: string },
+  { errorMessage: string | null }
+> {
+  constructor(props: { children: React.ReactNode; resetKey: string }) {
+    super(props)
+    this.state = { errorMessage: null }
+  }
+
+  static getDerivedStateFromError(error: Error): { errorMessage: string } {
+    return { errorMessage: error?.message || 'Terjadi kesalahan saat menampilkan halaman.' }
+  }
+
+  componentDidUpdate(prevProps: { resetKey: string }): void {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.errorMessage) {
+      this.setState({ errorMessage: null })
+    }
+  }
+
+  render(): React.ReactNode {
+    if (this.state.errorMessage) {
+      return (
+        <Card className="mx-auto max-w-lg border-safety-danger-border bg-graphite">
+          <CardHeader>
+            <CardTitle className="text-h3 text-safety-danger-foreground">
+              Gagal Memuat Tampilan Halaman
+            </CardTitle>
+            <CardDescription>{this.state.errorMessage}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              type="button"
+              variant="industrial"
+              onClick={() => this.setState({ errorMessage: null })}
+            >
+              Coba Muat Ulang
+            </Button>
+          </CardContent>
+        </Card>
+      )
+    }
+
+    return this.props.children
   }
 }
 
@@ -154,8 +282,17 @@ export default function App() {
   )
 
   const [activeTab, setActiveTab] = React.useState<AppTab>(initialRoute.tab)
+  const [forbiddenTab, setForbiddenTab] = React.useState<AppTab | null>(
+    initialRoute.forbiddenForTab
+  )
+  const [attemptedPath, setAttemptedPath] = React.useState<string>(
+    initialRoute.attemptedPath
+  )
   const [activeQrToken, setActiveQrToken] = React.useState<string | null>(
     initialRoute.qrToken
+  )
+  const [selectedReportMachineId, setSelectedReportMachineId] = React.useState<number | null>(
+    null
   )
   const [pendingRedirect, setPendingRedirect] =
     React.useState<PendingQrRedirect | null>(initialRoute.pendingRedirect)
@@ -166,21 +303,20 @@ export default function App() {
     React.useState<MachineRecord>(SEEDED_MACHINES[0])
   const [mobileSimulator, setMobileSimulator] = React.useState(false)
 
-  // Sinkronisasi daftar mesin dari API jika session aktif
-  React.useEffect(() => {
-    let mounted = true
-    fetchMachinesList(session).then(({ machines: list, source }) => {
-      if (!mounted) return
-      setMachines(list)
-      setDataSource(source)
-      setSelectedPrintMachine((prev) =>
-        list.find((m) => m.qr_token === prev.qr_token) ?? list[0]
-      )
-    })
-    return () => {
-      mounted = false
-    }
+  const refreshMachines = React.useCallback(async () => {
+    const { machines: list, source } = await fetchMachinesList(session)
+    setMachines(list)
+    setDataSource(source)
+    setSelectedPrintMachine((prev) =>
+      list.find((m) => m.id === prev?.id || (m.qr_token && m.qr_token === prev?.qr_token)) ??
+      list[0]
+    )
+    setSelectedReportMachineId((prev) => prev ?? list[0]?.id ?? null)
   }, [session])
+
+  React.useEffect(() => {
+    refreshMachines()
+  }, [refreshMachines])
 
   // Tangani navigasi browser back/forward (popstate)
   React.useEffect(() => {
@@ -189,6 +325,8 @@ export default function App() {
       setSession(currentSession)
       const next = resolveInitialRouteState(currentSession)
       setActiveTab(next.tab)
+      setForbiddenTab(next.forbiddenForTab)
+      setAttemptedPath(next.attemptedPath)
       setActiveQrToken(next.qrToken)
       setPendingRedirect(next.pendingRedirect)
     }
@@ -197,7 +335,7 @@ export default function App() {
   }, [])
 
   /**
-   * Alur inti B-07 saat QR Mesin di-scan di HP:
+   * Alur inti B-07 saat QR Mesin di-scan:
    * - Jika sudah login: langsung buka Form Lapor (B-08) dengan mesin otomatis terpilih sesuai qr_token.
    * - Jika belum login: simpan tujuan URL/token QR dan arahkan ke Login (B-05).
    */
@@ -215,6 +353,7 @@ export default function App() {
     if (currentSession) {
       clearPendingQrRedirect()
       setPendingRedirect(null)
+      setForbiddenTab(null)
       setActiveQrToken(cleanToken)
       setActiveTab('report')
       window.history.pushState({}, '', targetReportPath)
@@ -223,6 +362,7 @@ export default function App() {
 
     const saved = savePendingQrRedirect(cleanToken, targetReportPath)
     setPendingRedirect(saved)
+    setForbiddenTab(null)
     setActiveQrToken(cleanToken)
     setActiveTab('login')
     window.history.pushState(
@@ -234,6 +374,7 @@ export default function App() {
 
   const handleLoginSuccess = (newSession: AuthSession) => {
     setSession(newSession)
+    setForbiddenTab(null)
     const redirectTarget = pendingRedirect ?? getPendingQrRedirect()
 
     if (redirectTarget?.qrToken) {
@@ -245,32 +386,44 @@ export default function App() {
       return
     }
 
-    setActiveTab('qr-print')
-    window.history.replaceState({}, '', '/machines/qr')
+    const defaultTab = getDefaultTabForRole(newSession.user.role)
+    setActiveQrToken(null)
+    setActiveTab(defaultTab)
+    window.history.replaceState({}, '', getPathForTab(defaultTab))
   }
 
   const handleLogout = () => {
     clearAuthSession()
     setSession(null)
+    setForbiddenTab(null)
+    setActiveQrToken(null)
     setActiveTab('login')
     window.history.pushState({}, '', '/login')
   }
 
   const navigateToTab = (tab: AppTab) => {
-    if (tab === 'report') {
-      const tokenToUse = activeQrToken ?? selectedPrintMachine.qr_token
-      handleScanQrToken(tokenToUse, false)
+    if (!session && tab !== 'login') {
+      setActiveTab('login')
+      setForbiddenTab(null)
+      window.history.pushState({}, '', '/login')
       return
     }
-    setActiveTab(tab)
-    if (tab === 'qr-print') {
-      window.history.pushState({}, '', '/machines/qr')
-    } else if (tab === 'login') {
-      window.history.pushState({}, '', '/login')
-    } else if (tab === 'tokens') {
-      window.history.pushState({}, '', '/design-tokens')
+
+    const nextPath = getPathForTab(tab, tab === 'report' ? activeQrToken : null)
+    if (!canAccessTab(session, tab)) {
+      setActiveTab(tab)
+      setForbiddenTab(tab)
+      setAttemptedPath(nextPath)
+      window.history.pushState({}, '', nextPath)
+      return
     }
+
+    setForbiddenTab(null)
+    setActiveTab(tab)
+    window.history.pushState({}, '', nextPath)
   }
+
+  const perms = getUserPermissions(session?.user)
 
   return (
     <div className="min-h-screen bg-carbon text-off-white selection:bg-industrial-orange/30 selection:text-white print:bg-white print:text-black">
@@ -286,50 +439,146 @@ export default function App() {
                 <span className="text-h4 font-bold tracking-tight text-white">
                   SAFETYLOG
                 </span>
-                <span className="rounded bg-elevated px-1.5 py-0.5 font-mono text-[11px] text-industrial-orange border border-charcoal-border">
-                  B-07 · QR Mesin
-                </span>
+                {session && (
+                  <span className="rounded bg-elevated px-1.5 py-0.5 font-mono text-[11px] text-industrial-orange border border-charcoal-border">
+                    {session.user.role_label}
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-steel-muted">
-                Capture → Resolve → Learn → Prevent
+                Capture -&gt; Resolve -&gt; Learn -&gt; Prevent
               </p>
             </div>
           </div>
 
-          {/* Primary Navigation Tabs */}
+          {/* Role-Gated Primary Navigation Tabs */}
           <nav
             aria-label="Navigasi utama SafetyLog"
             className="flex flex-wrap items-center gap-2"
           >
-            <Button
-              variant={activeTab === 'qr-print' ? 'industrial' : 'outline'}
-              size="sm"
-              onClick={() => navigateToTab('qr-print')}
-              className="gap-1.5 min-h-touch"
-            >
-              <QrCode className="h-4 w-4 stroke-[2px]" />
-              <span>Cetak QR Mesin</span>
-            </Button>
+            {session && perms.view_dashboard && (
+              <Button
+                variant={activeTab === 'dashboard' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('dashboard')}
+                className="gap-1.5 min-h-touch"
+              >
+                <BarChart3 className="h-4 w-4 stroke-[2px]" />
+                <span>Dashboard</span>
+              </Button>
+            )}
 
-            <Button
-              variant={activeTab === 'report' ? 'industrial' : 'outline'}
-              size="sm"
-              onClick={() => navigateToTab('report')}
-              className="gap-1.5 min-h-touch"
-            >
-              <FileText className="h-4 w-4 stroke-[2px]" />
-              <span>Form Lapor QR</span>
-            </Button>
+            {session && perms.report_case && (
+              <Button
+                variant={activeTab === 'report' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setActiveQrToken(null)
+                  navigateToTab('report')
+                }}
+                className="gap-1.5 min-h-touch"
+              >
+                <FileText className="h-4 w-4 stroke-[2px]" />
+                <span>Form Lapor</span>
+              </Button>
+            )}
 
-            <Button
-              variant={activeTab === 'tokens' ? 'industrial' : 'outline'}
-              size="sm"
-              onClick={() => navigateToTab('tokens')}
-              className="gap-1.5 min-h-touch"
-            >
-              <Palette className="h-4 w-4 stroke-[2px]" />
-              <span className="hidden md:inline">Design System</span>
-            </Button>
+            {session && perms.view_own_cases && (
+              <Button
+                variant={activeTab === 'my-cases' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('my-cases')}
+                className="gap-1.5 min-h-touch"
+              >
+                <FolderKanban className="h-4 w-4 stroke-[2px]" />
+                <span>Laporan Saya</span>
+              </Button>
+            )}
+
+            {session && perms.complete_assigned_actions && (
+              <Button
+                variant={activeTab === 'my-actions' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('my-actions')}
+                className="gap-1.5 min-h-touch"
+              >
+                <ClipboardCheck className="h-4 w-4 stroke-[2px]" />
+                <span>Tindakan Saya</span>
+              </Button>
+            )}
+
+            {session && perms.view_all_cases && (
+              <Button
+                variant={activeTab === 'cases' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('cases')}
+                className="gap-1.5 min-h-touch"
+              >
+                <FolderKanban className="h-4 w-4 stroke-[2px]" />
+                <span>Semua Kasus</span>
+              </Button>
+            )}
+
+            {session && perms.view_audit_logs && (
+              <Button
+                variant={activeTab === 'audit-logs' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('audit-logs')}
+                className="gap-1.5 min-h-touch"
+              >
+                <History className="h-4 w-4 stroke-[2px]" />
+                <span className="hidden md:inline">Audit Log</span>
+              </Button>
+            )}
+
+            {session && perms.print_machine_qr && (
+              <Button
+                variant={activeTab === 'qr-print' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('qr-print')}
+                className="gap-1.5 min-h-touch"
+              >
+                <QrCode className="h-4 w-4 stroke-[2px]" />
+                <span>Cetak QR Mesin</span>
+              </Button>
+            )}
+
+            {session && perms.manage_master_data && (
+              <Button
+                variant={activeTab === 'admin' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('admin')}
+                className="gap-1.5 min-h-touch"
+              >
+                <Building2 className="h-4 w-4 stroke-[2px]" />
+                <span>Master Data</span>
+              </Button>
+            )}
+
+            {session && perms.manage_master_data && (
+              <Button
+                variant={activeTab === 'tokens' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('tokens')}
+                className="gap-1.5 min-h-touch"
+              >
+                <Palette className="h-4 w-4 stroke-[2px]" />
+                <span className="hidden lg:inline">Design System</span>
+              </Button>
+            )}
+
+            {session && (
+              <Button
+                variant={activeTab === 'notifications' && !forbiddenTab ? 'industrial' : 'outline'}
+                size="sm"
+                onClick={() => navigateToTab('notifications')}
+                className="gap-1.5 min-h-touch"
+                aria-label="Notifikasi"
+              >
+                <Bell className="h-4 w-4 stroke-[2px]" />
+                <span className="hidden md:inline">Notifikasi</span>
+              </Button>
+            )}
 
             <Button
               variant={mobileSimulator ? 'secondary' : 'outline'}
@@ -351,7 +600,7 @@ export default function App() {
               >
                 <LogOut className="h-4 w-4 stroke-[2px]" />
                 <span className="hidden sm:inline">
-                  Keluar ({session.user.role_label})
+                  Keluar ({session.user.name.split(' ')[0]})
                 </span>
               </Button>
             ) : (
@@ -377,8 +626,74 @@ export default function App() {
             : 'mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-10 print:max-w-none print:p-0'
         }
       >
-        {/* TAB 1: B-07 Halaman Cetak QR per Mesin */}
-        {activeTab === 'qr-print' && (
+        <WorkspaceErrorBoundary resetKey={`${session?.user.id ?? 'guest'}-${activeTab}`}>
+        {session && forbiddenTab && (
+          <ForbiddenView
+            currentRoleLabel={`${session.user.name} (${session.user.role_label})`}
+            attemptedPath={attemptedPath}
+            allowedRolesLabel={getAllowedRolesLabelForTab(forbiddenTab)}
+            onBackToHome={() => navigateToTab(getDefaultTabForRole(session.user.role))}
+          />
+        )}
+
+        {(!session || activeTab === 'login') && !forbiddenTab && (
+          <QrLoginRedirectView
+            pendingRedirect={pendingRedirect}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'dashboard' && (
+          <DashboardAuditWorkspace
+            mode="dashboard"
+            session={session}
+            onOpenCasesQueue={() => navigateToTab('cases')}
+          />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'report' && (
+          <QrCaseReportFormView
+            qrToken={activeQrToken}
+            selectedMachineId={selectedReportMachineId}
+            session={session}
+            machines={machines}
+            onSelectMachine={(m) => {
+              setActiveQrToken(m.qr_token)
+              setSelectedReportMachineId(m.id)
+              if (m.qr_token) {
+                window.history.replaceState({}, '', buildQrReportPath(m.qr_token))
+              } else {
+                window.history.replaceState({}, '', '/report')
+              }
+            }}
+            onBackToQrPrint={
+              perms.print_machine_qr ? () => navigateToTab('qr-print') : undefined
+            }
+            onViewMyCases={() => navigateToTab('my-cases')}
+          />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'my-cases' && (
+          <CasesWorkspace mode="my-cases" session={session} />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'my-actions' && (
+          <MyActionsWorkspace session={session} />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'cases' && (
+          <CasesWorkspace mode="all-cases" session={session} />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'audit-logs' && (
+          <DashboardAuditWorkspace mode="audit-logs" session={session} />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'notifications' && (
+          <NotificationsWorkspace session={session} />
+        )}
+
+        {session && !forbiddenTab && activeTab === 'qr-print' && perms.print_machine_qr && (
           <MachineQrPrintView
             machines={machines}
             selectedMachine={selectedPrintMachine}
@@ -394,35 +709,20 @@ export default function App() {
           />
         )}
 
-        {/* TAB 2: B-05 Login dengan penyimpanan tujuan Scan QR (B-07) */}
-        {activeTab === 'login' && (
-          <QrLoginRedirectView
-            pendingRedirect={pendingRedirect}
-            onLoginSuccess={handleLoginSuccess}
-            onBackToQrPrint={() => navigateToTab('qr-print')}
+        {session && !forbiddenTab && activeTab === 'admin' && perms.manage_master_data && (
+          <AdminMasterWorkspace
+            session={session}
+            machines={machines}
+            onMachinesChanged={refreshMachines}
+            onOpenQrPrintForMachine={(m) => {
+              setSelectedPrintMachine(m)
+              setActiveQrToken(m.qr_token)
+              navigateToTab('qr-print')
+            }}
           />
         )}
 
-        {/* TAB 3: B-08 Form Lapor dengan Mesin Otomatis Terpilih dari QR (B-07) */}
-        {activeTab === 'report' &&
-          (session ? (
-            <QrCaseReportFormView
-              qrToken={activeQrToken ?? selectedPrintMachine.qr_token}
-              session={session}
-              machines={machines}
-              onSelectQrToken={(nextToken) => handleScanQrToken(nextToken, false)}
-              onBackToQrPrint={() => navigateToTab('qr-print')}
-            />
-          ) : (
-            <QrLoginRedirectView
-              pendingRedirect={pendingRedirect}
-              onLoginSuccess={handleLoginSuccess}
-              onBackToQrPrint={() => navigateToTab('qr-print')}
-            />
-          ))}
-
-        {/* TAB 4: B-04 Design Tokens Showcase (Dipertahankan utuh) */}
-        {activeTab === 'tokens' && (
+        {session && !forbiddenTab && activeTab === 'tokens' && perms.manage_master_data && (
           <div className="space-y-12">
             {/* Intro Hero Card */}
             <section className="rounded-card border border-charcoal-border bg-graphite p-6 shadow-subtle">
@@ -688,6 +988,7 @@ export default function App() {
             </section>
           </div>
         )}
+        </WorkspaceErrorBoundary>
       </main>
     </div>
   )

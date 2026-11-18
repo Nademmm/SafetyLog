@@ -45,6 +45,7 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
         ->middleware('role:supervisor,hse,admin');
 
     // Cases: Capture, Triage Queue, Search, 5 Why/6M, Actions, Verify, Reopen, Similar (B-08..B-22)
+    Route::get('/report-form', [SafetyCaseController::class, 'reportForm']);
     Route::get('/my-cases', [SafetyCaseController::class, 'myCases']);
     Route::get('/cases', [SafetyCaseController::class, 'index'])
         ->middleware('role:supervisor,hse,admin');

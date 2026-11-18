@@ -8,10 +8,12 @@ import {
   ArrowLeft,
   RefreshCw,
   Send,
-  UserCheck,
   MapPin,
   Cpu,
   Info,
+  Camera,
+  FileText,
+  UserCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,22 +33,21 @@ import {
   type PendingQrRedirect,
   DEMO_USERS,
   DEFAULT_CASE_TYPES,
-  API_BASE_URL,
   loginWithApiOrDemo,
-  lookupMachineByQrToken,
+  lookupReportFormMachine,
+  submitCaseReport,
+  getUserPermissions,
   buildQrReportPath,
 } from '@/lib/qr-flow'
 
 export interface QrLoginRedirectViewProps {
   pendingRedirect: PendingQrRedirect | null
   onLoginSuccess: (session: AuthSession) => void
-  onBackToQrPrint: () => void
 }
 
 export function QrLoginRedirectView({
   pendingRedirect,
   onLoginSuccess,
-  onBackToQrPrint,
 }: QrLoginRedirectViewProps) {
   const [email, setEmail] = React.useState('pelapor@safetylog.test')
   const [password, setPassword] = React.useState('password123')
@@ -95,7 +96,7 @@ export function QrLoginRedirectView({
             <span>Tujuan Scan QR Mesin Tersimpan</span>
           </div>
           <p className="text-caption leading-relaxed">
-            Anda baru saja memindai QR mesin. Silakan masuk terlebih dahulu — setelah berhasil masuk, Anda akan{' '}
+            Anda baru saja memindai QR mesin. Silakan masuk terlebih dahulu, lalu Anda akan{' '}
             <span className="font-semibold underline">otomatis diarahkan kembali</span> ke Form Lapor dengan mesin otomatis terpilih.
           </p>
           <div className="rounded-sm border border-safety-info-border bg-carbon/80 px-2.5 py-1.5 font-mono text-caption text-off-white tabular-nums break-all">
@@ -211,16 +212,8 @@ export function QrLoginRedirectView({
             </div>
           </div>
 
-          <div className="pt-1">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onBackToQrPrint}
-              className="w-full gap-2"
-            >
-              <ArrowLeft className="h-4 w-4 stroke-[2px]" />
-              Kembali ke Halaman Cetak QR Mesin
-            </Button>
+          <div className="rounded-input border border-charcoal-border bg-carbon px-3 py-2 text-caption text-steel-muted">
+            Setelah masuk, menu akan menyesuaikan hak akses peran Anda (Pelapor, Supervisor, K3 / Verifikator, atau Manajer / Admin).
           </div>
         </CardContent>
       </Card>
@@ -230,20 +223,24 @@ export function QrLoginRedirectView({
 
 export interface QrCaseReportFormViewProps {
   qrToken: string | null
+  selectedMachineId: number | null
   session: AuthSession
   machines: MachineRecord[]
-  onSelectQrToken: (qrToken: string) => void
-  onBackToQrPrint: () => void
+  onSelectMachine: (machine: MachineRecord) => void
+  onBackToQrPrint?: () => void
+  onViewMyCases?: () => void
 }
 
 const CURRENT_REPORT_YEAR = new Date().getFullYear()
 
 export function QrCaseReportFormView({
   qrToken,
+  selectedMachineId,
   session,
   machines,
-  onSelectQrToken,
+  onSelectMachine,
   onBackToQrPrint,
+  onViewMyCases,
 }: QrCaseReportFormViewProps) {
   const [lookupResult, setLookupResult] = React.useState<QrLookupResult | null>(null)
   const [lookupLoading, setLookupLoading] = React.useState<boolean>(false)
@@ -254,6 +251,8 @@ export function QrCaseReportFormView({
   const [description, setDescription] = React.useState<string>('')
   const [isMachineStopped, setIsMachineStopped] = React.useState<boolean>(false)
   const [hasAffectedPeople, setHasAffectedPeople] = React.useState<boolean>(false)
+  const [photos, setPhotos] = React.useState<File[]>([])
+  const formStartedAtRef = React.useRef<number>(0)
 
   const [submitting, setSubmitting] = React.useState<boolean>(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
@@ -265,20 +264,29 @@ export function QrCaseReportFormView({
     emergencyReminder: string | null
   } | null>(null)
 
+  const canPrintQr = getUserPermissions(session.user).print_machine_qr
+  const isFromQrScan = Boolean(qrToken)
+
   React.useEffect(() => {
     let active = true
-    const tokenToResolve = qrToken ?? machines[0]?.qr_token ?? ''
+    const cleanQr = qrToken?.trim() || null
+    const fallbackMachineId = selectedMachineId ?? machines[0]?.id ?? null
 
     Promise.resolve()
       .then(() => {
         if (!active) return null
-        if (!tokenToResolve) {
+        if (!cleanQr && !fallbackMachineId) {
           throw new Error('Pilih mesin atau scan kode QR mesin terlebih dahulu.')
         }
         setLookupLoading(true)
         setLookupError(null)
         setSubmittedCase(null)
-        return lookupMachineByQrToken(tokenToResolve, session, machines)
+        formStartedAtRef.current = Date.now()
+        return lookupReportFormMachine(
+          { qrToken: cleanQr, machineId: fallbackMachineId },
+          session,
+          machines
+        )
       })
       .then((res) => {
         if (!active || !res) return
@@ -301,7 +309,7 @@ export function QrCaseReportFormView({
     return () => {
       active = false
     }
-  }, [qrToken, session, machines])
+  }, [qrToken, selectedMachineId, session, machines])
 
   const caseTypes = lookupResult?.case_types ?? DEFAULT_CASE_TYPES
   const activeCaseType =
@@ -323,90 +331,65 @@ export function QrCaseReportFormView({
     setSubmitError(null)
 
     const machine = lookupResult.machine
+    const elapsedSeconds = Math.max(
+      1,
+      Math.round((Date.now() - formStartedAtRef.current) / 1000)
+    )
 
-    if (session.mode === 'api') {
-      try {
-        const response = await fetch(`${API_BASE_URL}/cases`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.token}`,
-          },
-          body: JSON.stringify({
-            machine_id: machine.id,
-            case_type_id: selectedCaseTypeId,
-            description: trimmedDesc,
-            is_machine_stopped: isMachineStopped,
-            has_affected_people: hasAffectedPeople,
-          }),
-        })
-
-        const json = await response.json().catch(() => ({}))
-        if (!response.ok) {
-          throw new Error(
-            typeof json?.message === 'string'
-              ? json.message
-              : 'Gagal mengirim laporan ke server.'
-          )
-        }
-
-        const caseNumber = String(
-          json?.data?.case_number ?? `SL-${machine.site.code}-${new Date().getFullYear()}-0001`
-        )
-        setSubmittedCase({
-          caseNumber,
-          machineCode: machine.code,
-          machineName: machine.name,
-          caseTypeName: activeCaseType?.name ?? 'Laporan',
-          emergencyReminder:
-            typeof json?.emergency_reminder === 'string'
-              ? json.emergency_reminder
-              : showEmergencyReminder
-                ? 'PENTING: Ikuti prosedur tanggap darurat dan P3K perusahaan terlebih dahulu. SafetyLog bukan pengganti panggilan darurat resmi.'
-                : null,
-        })
-        setDescription('')
-        setSubmitting(false)
-        return
-      } catch (err) {
-        if (err instanceof Error && !(err instanceof TypeError)) {
-          setSubmitError(err.message)
-          setSubmitting(false)
-          return
-        }
-      }
+    try {
+      const result = await submitCaseReport(session, {
+        machine,
+        caseTypeId: selectedCaseTypeId,
+        caseTypeName: activeCaseType?.name ?? 'Laporan',
+        description: trimmedDesc,
+        isMachineStopped,
+        hasAffectedPeople,
+        qrToken: qrToken?.trim() || null,
+        photos,
+        reportDurationSeconds: elapsedSeconds,
+        showEmergencyFallback: showEmergencyReminder,
+      })
+      setSubmittedCase(result)
+      setDescription('')
+      setPhotos([])
+      formStartedAtRef.current = Date.now()
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Gagal mengirim laporan ke server.'
+      )
+    } finally {
+      setSubmitting(false)
     }
-
-    // Fallback simulasi lokal ketika server API belum dinyalakan
-    const year = new Date().getFullYear()
-    const randomSeq = String(Math.floor(10 + Math.random() * 89)).padStart(4, '0')
-    setSubmittedCase({
-      caseNumber: `SL-${machine.site.code}-${year}-${randomSeq}`,
-      machineCode: machine.code,
-      machineName: machine.name,
-      caseTypeName: activeCaseType?.name ?? 'Laporan',
-      emergencyReminder: showEmergencyReminder
-        ? 'PENTING: Ikuti prosedur tanggap darurat dan P3K perusahaan terlebih dahulu. SafetyLog bukan pengganti panggilan darurat resmi.'
-        : null,
-    })
-    setDescription('')
-    setSubmitting(false)
   }
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
       {/* Top Action Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onBackToQrPrint}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4 stroke-[2px]" />
-          Halaman Cetak QR
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canPrintQr && onBackToQrPrint && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBackToQrPrint}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4 stroke-[2px]" />
+              Halaman Cetak QR
+            </Button>
+          )}
+          {onViewMyCases && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onViewMyCases}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4 stroke-[2px]" />
+              Laporan Saya
+            </Button>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           <Badge variant="safe">
@@ -420,11 +403,13 @@ export function QrCaseReportFormView({
         <Card className="p-6 text-center space-y-2">
           <RefreshCw className="mx-auto h-6 w-6 animate-spin text-industrial-orange stroke-[2px]" />
           <div className="text-body font-medium text-off-white">
-            Memuat detail mesin dari token QR...
+            Memuat detail mesin...
           </div>
-          <div className="font-mono text-caption text-steel-muted tabular-nums">
-            GET /api/machines/qr/{qrToken}
-          </div>
+          {qrToken && (
+            <div className="font-mono text-caption text-steel-muted tabular-nums">
+              GET /api/machines/qr/{qrToken}
+            </div>
+          )}
         </Card>
       )}
 
@@ -451,15 +436,15 @@ export function QrCaseReportFormView({
               Pilih mesin aktif secara manual:
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {machines.slice(0, 4).map((m) => (
+              {machines.slice(0, 6).map((m) => (
                 <Button
                   key={m.id}
                   type="button"
                   variant="secondary"
-                  onClick={() => onSelectQrToken(m.qr_token)}
+                  onClick={() => onSelectMachine(m)}
                   className="justify-start font-mono text-xs"
                 >
-                  {m.code} — {m.name}
+                  {m.code} - {m.name}
                 </Button>
               ))}
             </div>
@@ -467,10 +452,10 @@ export function QrCaseReportFormView({
         </Card>
       )}
 
-      {/* Form Lapor with Auto-Selected Machine */}
+      {/* Form Lapor with Auto-Selected or Manual Machine */}
       {lookupResult && !lookupLoading && (
         <>
-          {/* Auto-Selected Machine Banner via QR Scan */}
+          {/* Selected Machine Banner */}
           <Card
             className="border-industrial-orange/60 bg-graphite"
             data-testid="selected-qr-machine-card"
@@ -480,11 +465,13 @@ export function QrCaseReportFormView({
                 <div className="flex items-center gap-2">
                   <Badge variant="safe" className="gap-1">
                     <CheckCircle2 className="h-3.5 w-3.5 stroke-[2px]" />
-                    Terpilih Otomatis via Scan QR
+                    {isFromQrScan ? 'Terpilih Otomatis via Scan QR' : 'Mesin Siap Dilaporkan'}
                   </Badge>
-                  <span className="font-mono text-caption text-steel-muted tabular-nums">
-                    {buildQrReportPath(lookupResult.machine.qr_token)}
-                  </span>
+                  {isFromQrScan && lookupResult.machine.qr_token && (
+                    <span className="font-mono text-caption text-steel-muted tabular-nums">
+                      {buildQrReportPath(lookupResult.machine.qr_token)}
+                    </span>
+                  )}
                 </div>
 
                 <Button
@@ -553,12 +540,12 @@ export function QrCaseReportFormView({
                         key={m.id}
                         type="button"
                         variant={
-                          m.qr_token === lookupResult.machine.qr_token
+                          m.id === lookupResult.machine.id
                             ? 'industrial'
                             : 'secondary'
                         }
                         onClick={() => {
-                          onSelectQrToken(m.qr_token)
+                          onSelectMachine(m)
                           setShowManualPicker(false)
                         }}
                         className="justify-between text-left"
@@ -633,12 +620,26 @@ export function QrCaseReportFormView({
                   {submittedCase.caseNumber}
                 </div>
                 <div className="text-caption text-industrial-orange">
-                  {submittedCase.machineCode} — {submittedCase.machineName} ({submittedCase.caseTypeName})
+                  {submittedCase.machineCode} - {submittedCase.machineName} ({submittedCase.caseTypeName})
                 </div>
               </div>
               {submittedCase.emergencyReminder && (
                 <div className="rounded-sm border border-safety-danger-border bg-safety-danger-bg p-3 text-caption text-safety-danger-foreground font-medium">
                   {submittedCase.emergencyReminder}
+                </div>
+              )}
+              {onViewMyCases && (
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={onViewMyCases}
+                    className="gap-2"
+                  >
+                    <FileText className="h-4 w-4 stroke-[2px]" />
+                    Lihat di Laporan Saya
+                  </Button>
                 </div>
               )}
             </Card>
@@ -657,26 +658,29 @@ export function QrCaseReportFormView({
                 Laporkan Kondisi Mesin / K3
               </CardTitle>
               <CardDescription>
-                Mesin sudah otomatis terisi dari hasil scan QR. Cukup pilih jenis kasus dan tulis deskripsi singkat.
+                Cukup isi 3 hal wajib: mesin, jenis kasus, dan deskripsi singkat.
               </CardDescription>
             </CardHeader>
 
             <CardContent>
               <form onSubmit={handleSubmitReport} className="space-y-4">
                 {submitError && (
-                  <div className="rounded-input border border-safety-danger-border bg-safety-danger-bg p-3 text-body text-safety-danger-foreground">
+                  <div
+                    role="alert"
+                    className="rounded-input border border-safety-danger-border bg-safety-danger-bg p-3 text-body text-safety-danger-foreground"
+                  >
                     {submitError}
                   </div>
                 )}
 
-                {/* Field 1: Mesin (Read-only, pre-selected via QR) */}
+                {/* Field 1: Mesin */}
                 <div className="space-y-1.5">
                   <label className="text-label text-off-white block">
-                    1. Mesin Terpilih (Otomatis dari QR) *
+                    1. Mesin Terpilih *
                   </label>
                   <Input
                     readOnly
-                    value={`${lookupResult.machine.code} — ${lookupResult.machine.name} (${lookupResult.machine.area.name})`}
+                    value={`${lookupResult.machine.code} - ${lookupResult.machine.name} (${lookupResult.machine.area.name})`}
                     className="font-mono tabular-nums bg-carbon text-off-white"
                     aria-label="Mesin terpilih"
                   />
@@ -785,6 +789,33 @@ export function QrCaseReportFormView({
                     required
                     className="flex w-full rounded-input border border-charcoal-border bg-[#151A20] px-3.5 py-2.5 text-body text-off-white placeholder:text-[#6F7782] focus-visible:outline-none focus-visible:border-industrial-orange focus-visible:ring-1 focus-visible:ring-industrial-orange"
                   />
+                </div>
+
+                {/* Optional Proof Photos */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="report-photos"
+                    className="text-label text-off-white flex items-center gap-2"
+                  >
+                    <Camera className="h-4 w-4 text-industrial-orange stroke-[2px]" />
+                    <span>Foto Kondisi / Bukti (Opsional, maks. 5 file)</span>
+                  </label>
+                  <input
+                    id="report-photos"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) =>
+                      setPhotos(Array.from(e.target.files ?? []).slice(0, 5))
+                    }
+                    className="block w-full rounded-input border border-charcoal-border bg-carbon px-3 py-2.5 text-caption text-steel-muted file:mr-3 file:rounded-sm file:border-0 file:bg-elevated file:px-3 file:py-1.5 file:text-label file:text-off-white"
+                  />
+                  {photos.length > 0 && (
+                    <div className="text-caption text-industrial-orange">
+                      {photos.length} foto siap diunggah:{' '}
+                      {photos.map((p) => p.name).join(', ')}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 rounded-sm border border-charcoal-border bg-carbon p-2.5 text-caption text-steel-muted">

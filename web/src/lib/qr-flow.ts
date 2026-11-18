@@ -30,8 +30,8 @@ export interface MachineRecord {
   organization_id: number
   code: string
   name: string
-  qr_token: string
-  qr_report_path: string
+  qr_token: string | null
+  qr_report_path: string | null
   description: string | null
   is_active: boolean
   archived_at: string | null
@@ -79,6 +79,35 @@ export interface QrLookupResult {
 
 export type UserRoleCode = 'reporter' | 'supervisor' | 'hse' | 'admin'
 
+export interface RolePermissions {
+  report_case: boolean
+  scan_qr: boolean
+  view_own_cases: boolean
+  complete_assigned_actions: boolean
+  view_all_cases: boolean
+  triage_case: boolean
+  manage_actions: boolean
+  verify_case: boolean
+  reopen_case: boolean
+  view_dashboard: boolean
+  view_audit_logs: boolean
+  print_machine_qr: boolean
+  manage_master_data: boolean
+}
+
+export type AppTab =
+  | 'dashboard'
+  | 'report'
+  | 'my-cases'
+  | 'my-actions'
+  | 'cases'
+  | 'audit-logs'
+  | 'qr-print'
+  | 'admin'
+  | 'notifications'
+  | 'tokens'
+  | 'login'
+
 export interface AuthUser {
   id: number
   organization_id: number
@@ -89,6 +118,124 @@ export interface AuthUser {
   job_title: string
   organization_name: string
   site_name: string
+  permissions?: RolePermissions
+}
+
+export function getDefaultPermissionsForRole(role: UserRoleCode): RolePermissions {
+  const isSupervisor = role === 'supervisor'
+  const isHse = role === 'hse'
+  const isAdmin = role === 'admin'
+  const canSeeOperations = isSupervisor || isHse || isAdmin
+
+  return {
+    report_case: true,
+    scan_qr: true,
+    view_own_cases: true,
+    complete_assigned_actions: true,
+    view_all_cases: canSeeOperations,
+    triage_case: isSupervisor || isAdmin,
+    manage_actions: canSeeOperations,
+    verify_case: isHse || isAdmin,
+    reopen_case: isHse || isAdmin,
+    view_dashboard: canSeeOperations,
+    view_audit_logs: canSeeOperations,
+    print_machine_qr: isAdmin,
+    manage_master_data: isAdmin,
+  }
+}
+
+export function getUserPermissions(user: AuthUser | null | undefined): RolePermissions {
+  if (!user) {
+    return getDefaultPermissionsForRole('reporter')
+  }
+  return {
+    ...getDefaultPermissionsForRole(user.role),
+    ...(user.permissions ?? {}),
+  }
+}
+
+export function getDefaultTabForRole(role: UserRoleCode): AppTab {
+  if (role === 'reporter') {
+    return 'report'
+  }
+  return 'dashboard'
+}
+
+export function canAccessTab(session: AuthSession | null, tab: AppTab): boolean {
+  if (tab === 'login') return true
+  if (!session) return false
+
+  const perms = getUserPermissions(session.user)
+  switch (tab) {
+    case 'report':
+      return perms.report_case
+    case 'my-cases':
+      return perms.view_own_cases
+    case 'my-actions':
+      return perms.complete_assigned_actions
+    case 'notifications':
+      return true
+    case 'dashboard':
+      return perms.view_dashboard
+    case 'cases':
+      return perms.view_all_cases
+    case 'audit-logs':
+      return perms.view_audit_logs
+    case 'qr-print':
+      return perms.print_machine_qr
+    case 'admin':
+    case 'tokens':
+      return perms.manage_master_data
+    default:
+      return false
+  }
+}
+
+export function getAllowedRolesLabelForTab(tab: AppTab): string {
+  switch (tab) {
+    case 'dashboard':
+    case 'cases':
+    case 'audit-logs':
+      return 'Supervisor, K3 / Verifikator, Manajer / Admin'
+    case 'qr-print':
+    case 'admin':
+    case 'tokens':
+      return 'Manajer / Admin'
+    case 'report':
+    case 'my-cases':
+    case 'my-actions':
+    case 'notifications':
+      return 'Seluruh peran yang sudah masuk'
+    default:
+      return 'Terbuka'
+  }
+}
+
+export function getPathForTab(tab: AppTab, qrToken?: string | null): string {
+  switch (tab) {
+    case 'dashboard':
+      return '/dashboard'
+    case 'report':
+      return qrToken ? buildQrReportPath(qrToken) : '/report'
+    case 'my-cases':
+      return '/my-cases'
+    case 'my-actions':
+      return '/my-actions'
+    case 'cases':
+      return '/cases'
+    case 'audit-logs':
+      return '/audit-logs'
+    case 'qr-print':
+      return '/machines/qr'
+    case 'admin':
+      return '/admin'
+    case 'notifications':
+      return '/notifications'
+    case 'tokens':
+      return '/design-tokens'
+    case 'login':
+      return '/login'
+  }
 }
 
 export interface AuthSession {
@@ -431,7 +578,13 @@ export function getStoredAuthSession(): AuthSession | null {
     if (!raw) return null
     const parsed = JSON.parse(raw) as AuthSession
     if (!parsed?.token || !parsed?.user?.email) return null
-    return parsed
+    return {
+      ...parsed,
+      user: {
+        ...parsed.user,
+        permissions: getUserPermissions(parsed.user),
+      },
+    }
   } catch {
     return null
   }
@@ -541,6 +694,12 @@ export async function loginWithApiOrDemo(
             apiUser.organization?.name ?? 'PT Pangan Nusantara Sejahtera'
           ),
           site_name: String(apiUser.site?.name ?? 'Pabrik Sidoarjo 1'),
+          permissions: {
+            ...getDefaultPermissionsForRole(roleCode),
+            ...(apiUser.permissions && typeof apiUser.permissions === 'object'
+              ? (apiUser.permissions as Partial<RolePermissions>)
+              : {}),
+          },
         },
       }
       saveAuthSession(session)
@@ -575,6 +734,7 @@ export async function loginWithApiOrDemo(
       job_title: demoMatch.job_title,
       organization_name: demoMatch.organization_name,
       site_name: demoMatch.site_name,
+      permissions: getDefaultPermissionsForRole(demoMatch.role),
     },
   }
 
@@ -587,7 +747,10 @@ export async function fetchMachinesList(
 ): Promise<{ machines: MachineRecord[]; source: 'api' | 'demo' }> {
   if (session?.token && session.mode === 'api') {
     try {
-      const response = await fetch(`${API_BASE_URL}/machines`, {
+      const includeArchivedQuery = getUserPermissions(session.user).manage_master_data
+        ? '?include_archived=1'
+        : ''
+      const response = await fetch(`${API_BASE_URL}/machines${includeArchivedQuery}`, {
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${session.token}`,
@@ -602,10 +765,12 @@ export async function fetchMachinesList(
             organization_id: session.user.organization_id,
             code: String(m.code),
             name: String(m.name),
-            qr_token: String(m.qr_token),
-            qr_report_path: String(
-              m.qr_report_path ?? buildQrReportPath(String(m.qr_token))
-            ),
+            qr_token: m.qr_token ? String(m.qr_token) : null,
+            qr_report_path: m.qr_report_path
+              ? String(m.qr_report_path)
+              : m.qr_token
+                ? buildQrReportPath(String(m.qr_token))
+                : null,
             description: m.description ? String(m.description) : null,
             is_active: Boolean(m.is_active ?? true),
             archived_at: m.archived_at ? String(m.archived_at) : null,
@@ -734,5 +899,206 @@ export async function lookupMachineByQrToken(
       cases: openCases,
     },
     source: 'demo',
+  }
+}
+
+export async function lookupReportFormMachine(
+  params: { qrToken?: string | null; machineId?: number | null },
+  session: AuthSession | null,
+  localMachines: MachineRecord[] = SEEDED_MACHINES
+): Promise<QrLookupResult> {
+  const cleanQr = params.qrToken?.trim() || null
+  const machineId = params.machineId ?? null
+
+  if (cleanQr) {
+    return lookupMachineByQrToken(cleanQr, session, localMachines)
+  }
+
+  if (!machineId) {
+    throw new Error('Pilih mesin atau scan kode QR mesin terlebih dahulu.')
+  }
+
+  if (session?.token && session.mode === 'api') {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/report-form?machine_id=${encodeURIComponent(String(machineId))}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${session.token}`,
+          },
+        }
+      )
+
+      const json = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        const message =
+          typeof json?.message === 'string'
+            ? json.message
+            : 'Gagal memuat data mesin untuk pelaporan.'
+        throw new Error(message)
+      }
+
+      const rawMachine = json.selected_machine as Record<string, unknown> | null
+      if (!rawMachine) {
+        throw new Error('Mesin tidak ditemukan atau sudah diarsipkan.')
+      }
+
+      const machine: MachineRecord = {
+        id: Number(rawMachine.id),
+        organization_id: session.user.organization_id,
+        code: String(rawMachine.code),
+        name: String(rawMachine.name),
+        qr_token: rawMachine.qr_token ? String(rawMachine.qr_token) : null,
+        qr_report_path: rawMachine.qr_report_path
+          ? String(rawMachine.qr_report_path)
+          : rawMachine.qr_token
+            ? buildQrReportPath(String(rawMachine.qr_token))
+            : null,
+        description: rawMachine.description ? String(rawMachine.description) : null,
+        is_active: Boolean(rawMachine.is_active ?? true),
+        archived_at: rawMachine.archived_at ? String(rawMachine.archived_at) : null,
+        site: (rawMachine.site as SiteInfo) ?? SITE_SBY1,
+        area: (rawMachine.area as AreaInfo) ?? AREA_PACK_A,
+      }
+
+      const caseTypes: CaseTypeRecord[] =
+        Array.isArray(json.case_types) && json.case_types.length > 0
+          ? json.case_types
+          : DEFAULT_CASE_TYPES
+
+      const warning: OpenCasesWarning = json.open_cases_warning ?? {
+        has_open_cases: false,
+        count: 0,
+        window_days: 7,
+        cases: [],
+      }
+
+      return {
+        machine,
+        case_types: caseTypes,
+        open_cases_warning: warning,
+        source: 'api',
+      }
+    } catch (err) {
+      if (err instanceof Error && !(err instanceof TypeError)) {
+        throw err
+      }
+    }
+  }
+
+  const machine = localMachines.find((m) => m.id === machineId)
+  if (!machine) {
+    throw new Error('Mesin tidak ditemukan.')
+  }
+  const openCases = DEMO_OPEN_CASES_BY_CODE[machine.code] ?? []
+  return {
+    machine,
+    case_types: DEFAULT_CASE_TYPES,
+    open_cases_warning: {
+      has_open_cases: openCases.length > 0,
+      count: openCases.length,
+      window_days: 7,
+      cases: openCases,
+    },
+    source: 'demo',
+  }
+}
+
+export interface SubmitCaseReportPayload {
+  machine: MachineRecord
+  caseTypeId: number
+  caseTypeName: string
+  description: string
+  isMachineStopped: boolean
+  hasAffectedPeople: boolean
+  qrToken?: string | null
+  photos?: File[]
+  reportDurationSeconds?: number
+  showEmergencyFallback: boolean
+}
+
+export interface SubmitCaseReportResult {
+  caseNumber: string
+  machineCode: string
+  machineName: string
+  caseTypeName: string
+  emergencyReminder: string | null
+}
+
+export async function submitCaseReport(
+  session: AuthSession,
+  payload: SubmitCaseReportPayload
+): Promise<SubmitCaseReportResult> {
+  const { machine } = payload
+
+  if (session.mode === 'api') {
+    const formData = new FormData()
+    formData.append('machine_id', String(machine.id))
+    if (payload.qrToken) {
+      formData.append('qr_token', payload.qrToken)
+    }
+    formData.append('case_type_id', String(payload.caseTypeId))
+    formData.append('description', payload.description)
+    formData.append('is_machine_stopped', payload.isMachineStopped ? 'true' : 'false')
+    formData.append('has_affected_people', payload.hasAffectedPeople ? 'true' : 'false')
+    if (typeof payload.reportDurationSeconds === 'number') {
+      formData.append(
+        'report_duration_seconds',
+        String(Math.max(0, Math.round(payload.reportDurationSeconds)))
+      )
+    }
+    for (const file of payload.photos ?? []) {
+      formData.append('photos[]', file)
+    }
+
+    const response = await fetch(`${API_BASE_URL}/cases`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${session.token}`,
+      },
+      body: formData,
+    })
+
+    const json = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(
+        typeof json?.message === 'string'
+          ? json.message
+          : 'Gagal mengirim laporan ke server.'
+      )
+    }
+
+    const caseNumber = String(
+      json?.case_number ??
+        json?.data?.case_number ??
+        `SL-${machine.site.code}-${new Date().getFullYear()}-0001`
+    )
+
+    return {
+      caseNumber,
+      machineCode: machine.code,
+      machineName: machine.name,
+      caseTypeName: payload.caseTypeName,
+      emergencyReminder:
+        typeof json?.emergency_reminder === 'string'
+          ? json.emergency_reminder
+          : payload.showEmergencyFallback
+            ? 'Ikuti prosedur darurat perusahaan terlebih dahulu! SafetyLog bukan pengganti prosedur resmi.'
+            : null,
+    }
+  }
+
+  const year = new Date().getFullYear()
+  const randomSeq = String(Math.floor(10 + Math.random() * 89)).padStart(4, '0')
+  return {
+    caseNumber: `SL-${machine.site.code}-${year}-${randomSeq}`,
+    machineCode: machine.code,
+    machineName: machine.name,
+    caseTypeName: payload.caseTypeName,
+    emergencyReminder: payload.showEmergencyFallback
+      ? 'Ikuti prosedur darurat perusahaan terlebih dahulu! SafetyLog bukan pengganti prosedur resmi.'
+      : null,
   }
 }

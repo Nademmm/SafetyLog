@@ -15,14 +15,20 @@ class SafetyCaseSummaryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $excerpt = Str::limit($this->description, 140);
+        $riskLabel = $this->risk_level?->label();
+
         return [
             'id' => $this->id,
             'case_number' => $this->case_number,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'risk_level' => $this->risk_level?->value,
-            'risk_level_label' => $this->risk_level?->label(),
-            'short_description' => Str::limit($this->description, 140),
+            'risk_level_label' => $riskLabel,
+            'risk_label' => $riskLabel,
+            'risk_score' => $this->risk_score,
+            'short_description' => $excerpt,
+            'description_excerpt' => $excerpt,
             'is_machine_stopped' => $this->is_machine_stopped,
             'has_affected_people' => $this->has_affected_people,
             'case_type' => $this->whenLoaded('caseType', fn () => $this->caseType ? [

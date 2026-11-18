@@ -42,9 +42,15 @@ class SafetyCasePolicy
 
     public function viewSummary(User $user, SafetyCase $case): Response
     {
-        return $user->organization_id === $case->organization_id
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses ke kasus organisasi lain.');
+        if ($user->organization_id !== $case->organization_id) {
+            return Response::deny('Anda tidak memiliki akses ke kasus organisasi lain.');
+        }
+
+        if ($case->status->isOpen() || $user->role->canViewAllCases() || $case->reported_by === $user->id) {
+            return Response::allow();
+        }
+
+        return Response::deny('Ringkasan kasus tertutup hanya dapat diakses oleh pihak terkait atau tim penanganan.');
     }
 
     public function triage(User $user, SafetyCase $case): Response

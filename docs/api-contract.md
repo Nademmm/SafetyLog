@@ -36,14 +36,15 @@ Catatan demo seeder:
 
 ### Data Referensi & Mesin (`B-06`, `B-08`, `B-10`, `B-20`)
 - `GET /api/reference-data` — Master dinamis organisasi (`case_types`, `categories`, `risk_configs`, `configurations`, enum labels).
+- `GET /api/report-form` — Konteks 1 panggilan cepat untuk Form Lapor B-08 (`machines` aktif dengan hierarki site/area aktif, `case_types`, `selected_machine`, `open_cases_warning`, dan `form_config` termasuk `emergency_reminder_text`; opsional `?qr=` atau `?machine_id=`).
 - `GET /api/users/assignable` — Daftar user aktif di organisasi untuk dropdown PIC (`Supervisor`, `K3`, `Admin`).
 - `GET /api/machines` — Daftar mesin aktif (`?site_id=`, `?area_id=`, `?q=`, `?include_archived=1`).
-- `GET /api/machines/qr/{qrToken}` — Lookup mesin via QR + `case_types` + `open_cases_warning`.
+- `GET /api/machines/qr/{qrToken}` — Lookup mesin via QR + `case_types` + `emergency_reminder_text` + `form_config` + `open_cases_warning`.
 - `GET /api/machines/{machine}/open-cases` — Peringatan kasus terbuka dalam 7 hari terakhir (`B-10`).
 - `GET /api/machines/{machine}/cases` — Riwayat kasus mesin + penanda `is_recurring` (`"Berulang"` bila >= 3 kasus dalam 90 hari, `C-01`) (`Supervisor`, `K3`, `Admin`).
 
 ### Kasus: Capture, Search, Triage, 5 Why/6M, Actions, Verify, Reopen (`B-08`–`B-22`)
-- `POST /api/cases` — Buat laporan (`machine_id`, `case_type_id`, `description`, opsional `is_machine_stopped`, `has_affected_people`, `photos[]`/`photo`). Mengembalikan `data`, `emergency_reminder`, dan `open_cases_warning`.
+- `POST /api/cases` — Buat laporan (3 wajib: `machine_id` atau `qr_token`, `case_type_id`, `description`; opsional `is_machine_stopped`, `has_affected_people`, `photos[]`/`photo`, `report_duration_seconds`). Mengembalikan `case_number` (`SL-{KODE_SITE}-{TAHUN}-{0001}`), `data`, `emergency_reminder`, dan `open_cases_warning`.
 - `GET /api/my-cases` — Kasus milik pelapor (mendukung pencarian & filter).
 - `GET /api/cases` — Pencarian & antrean seluruh kasus (`Supervisor`, `K3`, `Admin`; `Pelapor` ditolak `403`). Pencarian `q` toleran salah ketik (contoh: `"konvayor"` menemukan `"konveyor"`). Filter: `status`, `risk_level`, `machine_id`, `site_id`, `area_id`, `case_type_id`, `category_id`, `is_machine_stopped`, `has_affected_people`, `date_from`, `date_to`, `per_page`.
 - `GET /api/cases/{case}` — Detail lengkap satu layar (foto, risiko, 5 Why/6M, tindakan, riwayat status, `available_actions`).

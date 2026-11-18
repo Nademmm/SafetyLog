@@ -89,9 +89,20 @@ class AuthAndRbacTest extends TestCase
 
         $caseId = $created->json('data.id');
 
-        // Pelapor cannot access triage queue, triage, add action, verify, or assignable users (U8a)
+        // Pelapor cannot access triage queue, triage, add action, verify, reopen, dashboard, audit logs, archived machines, or master data
         $this->getJson('/api/cases')->assertForbidden();
         $this->getJson('/api/users/assignable')->assertForbidden();
+        $this->getJson('/api/dashboard')->assertForbidden();
+        $this->getJson('/api/audit-logs')->assertForbidden();
+        $this->getJson('/api/machines?include_archived=1')->assertForbidden();
+        $this->postJson('/api/machines', [
+            'site_id' => $fx['site']->id,
+            'area_id' => $fx['area']->id,
+            'code' => 'MCH-FORBID',
+            'name' => 'Mesin Terlarang',
+        ])->assertForbidden();
+        $this->postJson("/api/machines/{$fx['machine']->id}/regenerate-qr")->assertForbidden();
+        $this->getJson('/api/users')->assertForbidden();
         $this->postJson("/api/cases/{$caseId}/triage", [
             'decision' => 'assess',
             'severity' => 3,
@@ -106,20 +117,63 @@ class AuthAndRbacTest extends TestCase
             'decision' => 'approve',
             'learning_summary' => 'Sudah dicek.',
         ])->assertForbidden();
+        $this->postJson("/api/cases/{$caseId}/reopen", [
+            'reason' => 'Pelapor tidak boleh membuka ulang kasus.',
+        ])->assertForbidden();
 
-        // K3/Verifikator cannot triage cases
+        // Pelapor CAN scan QR token directly and read permissions matrix
+        $this->getJson("/api/machines/qr/{$fx['machine']->qr_token}")
+            ->assertOk()
+            ->assertJsonPath('data.qr_token', $fx['machine']->qr_token);
+
+        $this->getJson('/api/machines')
+            ->assertOk()
+            ->assertJsonMissingPath('data.0.qr_token')
+            ->assertJsonMissingPath('data.0.qr_report_path');
+
+        $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('user.permissions.scan_qr', true)
+            ->assertJsonPath('user.permissions.print_machine_qr', false)
+            ->assertJsonPath('user.permissions.view_all_cases', false)
+            ->assertJsonPath('user.permissions.complete_assigned_actions', true);
+
+        // K3/Verifikator cannot triage cases or manage master data
         Sanctum::actingAs($fx['hse']);
         $this->postJson("/api/cases/{$caseId}/triage", [
             'decision' => 'assess',
             'severity' => 3,
             'likelihood' => 3,
         ])->assertForbidden();
+        $this->getJson('/api/machines?include_archived=1')->assertForbidden();
+        $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('user.permissions.verify_case', true)
+            ->assertJsonPath('user.permissions.reopen_case', true)
+            ->assertJsonPath('user.permissions.triage_case', false)
+            ->assertJsonPath('user.permissions.print_machine_qr', false);
 
-        // Supervisor can triage, cannot verify
+        // Supervisor can triage and view dashboard/audit, cannot verify, reopen, or manage master data
         Sanctum::actingAs($fx['supervisor']);
+        $this->getJson('/api/dashboard')->assertOk();
+        $this->getJson('/api/audit-logs')->assertOk();
         $this->postJson("/api/cases/{$caseId}/verify", [
             'decision' => 'approve',
             'learning_summary' => 'Sudah dicek.',
         ])->assertForbidden();
+        $this->postJson("/api/cases/{$caseId}/reopen", [
+            'reason' => 'Supervisor tidak boleh membuka ulang kasus.',
+        ])->assertForbidden();
+        $this->getJson('/api/machines?include_archived=1')->assertForbidden();
+
+        // Admin sees machine QR print tokens and archived query
+        Sanctum::actingAs($fx['admin']);
+        $this->getJson('/api/machines?include_archived=1')
+            ->assertOk()
+            ->assertJsonPath('data.0.qr_token', $fx['machine']->qr_token);
+        $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('user.permissions.print_machine_qr', true)
+            ->assertJsonPath('user.permissions.manage_master_data', true);
     }
 }
