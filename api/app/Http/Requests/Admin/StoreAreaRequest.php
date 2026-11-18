@@ -19,7 +19,6 @@ class StoreAreaRequest extends FormRequest
         return [
             'site_id' => ['required', 'integer'],
             'name' => ['required', 'string', 'min:2', 'max:255'],
-            'code' => ['nullable', 'string', 'max:32'],
         ];
     }
 

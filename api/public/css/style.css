@@ -1,0 +1,76 @@
+/* SafetyLog Boilerplate — Minimal CSS (B-05 + B-06) */
+* { box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #f8fafc; color: #1e293b; }
+
+.container { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+
+/* Header / Navbar */
+.topbar { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.topbar h1 { font-size: 1.1rem; margin: 0; color: #0f172a; }
+.topbar .nav-links { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.topbar a.btn { text-decoration: none; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; }
+.topbar a.btn-outline { color: #475569; border: 1px solid #cbd5e1; background: transparent; }
+.topbar a.btn-outline:hover { background: #f1f5f9; }
+.topbar a.btn-danger { color: #fff; background: #dc2626; }
+.topbar a.btn-danger:hover { background: #b91c1c; }
+.topbar a.btn-primary { color: #fff; background: #2563eb; }
+.topbar a.btn-primary:hover { background: #1d4ed8; }
+.topbar .user-chip { font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #e2e8f0; }
+
+/* Card */
+.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.card h2 { margin-top: 0; font-size: 1.25rem; color: #0f172a; }
+.card p.muted { color: #64748b; font-size: 0.9rem; }
+
+/* Form */
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.35rem; color: #334155; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; font-size: 0.95rem; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+.form-group small { color: #64748b; font-size: 0.8rem; }
+.form-group .error { color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem; display: block; }
+
+button.btn { padding: 0.55rem 1.1rem; border: none; border-radius: 0.5rem; font-size: 0.95rem; cursor: pointer; font-weight: 500; }
+button.btn-primary { background: #2563eb; color: #fff; }
+button.btn-primary:hover { background: #1d4ed8; }
+button.btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
+button.btn-outline:hover { background: #f1f5f9; }
+button.btn-danger { background: #dc2626; color: #fff; }
+button.btn-danger:hover { background: #b91c1c; }
+button.btn-sm { padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+table th, table td { text-align: left; padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+table th { background: #f8fafc; font-weight: 600; color: #475569; }
+table tr:hover { background: #f8fafc; }
+table .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+table .badge-active { background: #dcfce7; color: #166534; }
+table .badge-archived { background: #fee2e2; color: #991b1b; }
+
+/* Alert */
+.alert { padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; }
+.alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.alert-info { background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; }
+
+/* Modal sederhana */
+.modal { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.4); }
+.modal.open { display: flex; align-items: center; justify-content: center; }
+.modal-content { background: #fff; border-radius: 0.75rem; padding: 1.5rem; width: 90%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.modal-title { font-size: 1.1rem; font-weight: 600; color: #0f172a; margin: 0; }
+.close-btn { background: none; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; line-height: 1; }
+.close-btn:hover { color: #0f172a; }
+
+/* Footer */
+.footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: #64748b; text-align: center; }
+
+/* Login page */
+.login-wrap { max-width: 400px; margin: 8vh auto; }
+.login-card .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+.login-card .card-header h2 { margin: 0; }
+
+/* Rate limit / error hint */
+.hint { font-size: 0.8rem; color: #64748b; margin-top: 0.5rem; }

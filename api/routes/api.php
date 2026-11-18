@@ -92,6 +92,9 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
     // Admin Master Data & Dynamic Configuration (B-06, Section 9)
     Route::middleware('role:admin')->group(function (): void {
         Route::get('/sites', [AreaController::class, 'sites']);
+        Route::post('/sites', [AreaController::class, 'storeSite']);
+        Route::patch('/sites/{site}', [AreaController::class, 'updateSite']);
+        Route::post('/sites/{site}/archive', [AreaController::class, 'archiveSite']);
         Route::get('/areas', [AreaController::class, 'index']);
         Route::post('/areas', [AreaController::class, 'store']);
         Route::patch('/areas/{area}', [AreaController::class, 'update']);

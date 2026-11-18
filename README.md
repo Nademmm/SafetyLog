@@ -16,7 +16,7 @@ Platform closed-loop untuk keselamatan kerja (K3) dan keandalan mesin di industr
 ## Struktur Repositori
 
 - `api/` - Backend REST API (Laravel + Sanctun)
-- `web/` - Frontend PWA (React + Vite, disiapkan oleh tim frontend)
+- `resources/views/` - Tampilan Blade MVP yang dilayani backend Laravel
 - `docs/` - Rincian tugas backend (`docs/backend-tasks.md`), kontrak API (`docs/api-contract.md`, `docs/openapi.yaml`)
 - `AGENTS.md` - Aturan kerja tim dan coding agent
 

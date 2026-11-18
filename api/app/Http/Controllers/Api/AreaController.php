@@ -6,6 +6,8 @@ use App\Exceptions\DomainRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAreaRequest;
 use App\Http\Requests\Admin\UpdateAreaRequest;
+use App\Http\Requests\Admin\StoreSiteRequest;
+use App\Http\Requests\Admin\UpdateSiteRequest;
 use App\Models\Area;
 use App\Models\Site;
 use Illuminate\Http\JsonResponse;
@@ -17,11 +19,63 @@ class AreaController extends Controller
     {
         $sites = Site::query()
             ->forOrganization($request->user()->organization_id)
-            ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'code', 'address', 'is_active']);
 
         return response()->json(['data' => $sites]);
+    }
+
+    public function storeSite(StoreSiteRequest $request): JsonResponse
+    {
+        $orgId = $request->user()->organization_id;
+        $site = Site::query()->create([
+            'organization_id' => $orgId,
+            'name' => trim((string) $request->validated('name')),
+            'code' => $this->generateSiteCode($orgId),
+            'address' => $request->validated('address'),
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'message' => 'Pabrik berhasil ditambahkan.',
+            'data' => $site,
+        ], 201);
+    }
+
+    public function updateSite(UpdateSiteRequest $request, Site $site): JsonResponse
+    {
+        $this->ensureSameOrganization($request->user()->organization_id, $site->organization_id);
+
+        $updates = [];
+        if ($request->has('name')) {
+            $updates['name'] = trim((string) $request->validated('name'));
+        }
+        if ($request->has('address')) {
+            $updates['address'] = $request->validated('address');
+        }
+        if ($request->has('is_active')) {
+            $active = (bool) $request->validated('is_active');
+            $updates['is_active'] = $active;
+        }
+
+        $site->update($updates);
+
+        return response()->json([
+            'message' => 'Pabrik berhasil diperbarui.',
+            'data' => $site->fresh(),
+        ]);
+    }
+
+    public function archiveSite(Request $request, Site $site): JsonResponse
+    {
+        $this->ensureSameOrganization($request->user()->organization_id, $site->organization_id);
+        $activate = ! $site->is_active;
+        $site->update(['is_active' => $activate]);
+
+        return response()->json([
+            'message' => $activate ? 'Pabrik berhasil diaktifkan kembali.' : 'Pabrik berhasil diarsipkan.',
+            'data' => $site->fresh(),
+        ]);
     }
 
     public function index(Request $request): JsonResponse
@@ -52,7 +106,7 @@ class AreaController extends Controller
             'organization_id' => $orgId,
             'site_id' => $site->id,
             'name' => trim((string) $request->validated('name')),
-            'code' => $request->filled('code') ? strtoupper(trim((string) $request->validated('code'))) : null,
+            'code' => $this->generateAreaCode($orgId),
             'is_active' => true,
         ]);
 
@@ -76,10 +130,6 @@ class AreaController extends Controller
             $updates['name'] = trim((string) $request->validated('name'));
         }
 
-        if ($request->has('code')) {
-            $updates['code'] = $request->filled('code') ? strtoupper(trim((string) $request->validated('code'))) : null;
-        }
-
         if ($request->has('is_active')) {
             $active = (bool) $request->validated('is_active');
             $updates['is_active'] = $active;
@@ -98,13 +148,17 @@ class AreaController extends Controller
     {
         $this->ensureSameOrganization($request->user()->organization_id, $area->organization_id);
 
+        $activate = ! $area->is_active || $area->archived_at !== null;
+
         $area->update([
-            'is_active' => false,
-            'archived_at' => now(),
+            'is_active' => $activate,
+            'archived_at' => $activate ? null : now(),
         ]);
 
         return response()->json([
-            'message' => 'Area produksi berhasil diarsipkan.',
+            'message' => $activate
+                ? 'Area produksi berhasil diaktifkan kembali.'
+                : 'Area produksi berhasil diarsipkan.',
             'data' => $area->fresh('site:id,name,code'),
         ]);
     }
@@ -130,5 +184,25 @@ class AreaController extends Controller
         if ($userOrgId !== $resourceOrgId) {
             abort(403, 'Anda tidak memiliki akses ke area organisasi lain.');
         }
+    }
+
+    private function generateSiteCode(int $organizationId): string
+    {
+        do {
+            $next = (int) Site::query()->forOrganization($organizationId)->count() + 1;
+            $code = 'SITE-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        } while (Site::query()->forOrganization($organizationId)->where('code', $code)->exists());
+
+        return $code;
+    }
+
+    private function generateAreaCode(int $organizationId): string
+    {
+        do {
+            $next = (int) Area::query()->forOrganization($organizationId)->count() + 1;
+            $code = 'AREA-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        } while (Area::query()->forOrganization($organizationId)->where('code', $code)->exists());
+
+        return $code;
     }
 }

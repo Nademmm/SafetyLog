@@ -26,24 +26,47 @@ class AdminMasterAndConfigTest extends TestCase
 
         // Admin creates area, machine, regenerates QR, archives machine
         Sanctum::actingAs($fx['admin']);
+        $siteResp = $this->postJson('/api/sites', [
+            'name' => 'Pabrik Pengolahan Kedua',
+            'address' => 'Jl. Industri 10',
+        ])->assertCreated();
+        $siteId = (int) $siteResp->json('data.id');
+        $this->assertMatchesRegularExpression('/^SITE-\d{3}$/', $siteResp->json('data.code'));
+
+        $this->patchJson("/api/sites/{$siteId}", [
+            'name' => 'Pabrik Pengolahan Kedua Baru',
+            'address' => 'Jl. Industri 11',
+        ])->assertOk();
+
+        $this->postJson("/api/sites/{$siteId}/archive")
+            ->assertOk()
+            ->assertJsonPath('data.is_active', false);
+
+        $this->postJson("/api/sites/{$siteId}/archive")
+            ->assertOk()
+            ->assertJsonPath('data.is_active', true);
+
         $areaId = (int) $this->postJson('/api/areas', [
             'site_id' => $fx['site']->id,
             'name' => 'Lini Pengolahan Susu',
-            'code' => 'milk-1',
         ])->assertCreated()
-            ->assertJsonPath('data.code', 'MILK-1')
             ->json('data.id');
+
+        $areaCode = $this->getJson('/api/areas')
+            ->json('data.0.code');
+        $this->assertNotEmpty($areaCode);
 
         $machineResp = $this->postJson('/api/machines', [
             'area_id' => $areaId,
-            'code' => 'mch-hom-01',
             'name' => 'Mesin Homogenizer 01',
+            'description' => 'Mesin untuk proses homogenisasi susu.',
         ])->assertCreated();
 
         $machineId = (int) $machineResp->json('data.id');
         $oldQr = $machineResp->json('data.qr_token');
         $this->assertNotEmpty($oldQr);
-        $this->assertSame('MCH-HOM-01', $machineResp->json('data.code'));
+        $this->assertMatchesRegularExpression('/^MCH-\d{3}$/', $machineResp->json('data.code'));
+        $this->assertSame('Mesin untuk proses homogenisasi susu.', $machineResp->json('data.description'));
 
         $newQr = $this->postJson("/api/machines/{$machineId}/regenerate-qr")
             ->assertOk()
@@ -56,6 +79,18 @@ class AdminMasterAndConfigTest extends TestCase
 
         // Archived machine cannot be scanned via QR
         $this->getJson("/api/machines/qr/{$newQr}")->assertStatus(422);
+
+        $this->postJson("/api/machines/{$machineId}/archive")
+            ->assertOk()
+            ->assertJsonPath('data.is_active', true);
+
+        $this->postJson("/api/areas/{$areaId}/archive")
+            ->assertOk()
+            ->assertJsonPath('data.is_active', false);
+
+        $this->postJson("/api/areas/{$areaId}/archive")
+            ->assertOk()
+            ->assertJsonPath('data.is_active', true);
 
         // Admin creates a new operator user and updates risk config dynamically
         $newUserId = (int) $this->postJson('/api/users', [

@@ -157,7 +157,7 @@ class MachineController extends Controller
             'organization_id' => $orgId,
             'site_id' => $area->site_id,
             'area_id' => $area->id,
-            'code' => strtoupper(trim((string) $request->validated('code'))),
+            'code' => $this->generateMachineCode($orgId),
             'name' => trim((string) $request->validated('name')),
             'description' => $request->validated('description'),
             'is_active' => true,
@@ -178,10 +178,6 @@ class MachineController extends Controller
             $area = $this->findActiveArea((int) $request->validated('area_id'), $machine->organization_id);
             $updates['area_id'] = $area->id;
             $updates['site_id'] = $area->site_id;
-        }
-
-        if ($request->has('code')) {
-            $updates['code'] = strtoupper(trim((string) $request->validated('code')));
         }
 
         if ($request->has('name')) {
@@ -210,13 +206,17 @@ class MachineController extends Controller
     {
         Gate::authorize('view', $machine);
 
+        $activate = ! $machine->is_active || $machine->archived_at !== null;
+
         $machine->update([
-            'is_active' => false,
-            'archived_at' => now(),
+            'is_active' => $activate,
+            'archived_at' => $activate ? null : now(),
         ]);
 
         return response()->json([
-            'message' => 'Mesin berhasil diarsipkan.',
+            'message' => $activate
+                ? 'Mesin berhasil diaktifkan kembali.'
+                : 'Mesin berhasil diarsipkan.',
             'data' => $this->formatMachine($machine->fresh(['site:id,name,code', 'area:id,name,code'])),
         ]);
     }
@@ -233,6 +233,16 @@ class MachineController extends Controller
             'message' => 'Token QR mesin berhasil diperbarui.',
             'data' => $this->formatMachine($machine->fresh(['site:id,name,code', 'area:id,name,code'])),
         ]);
+    }
+
+    private function generateMachineCode(int $organizationId): string
+    {
+        do {
+            $next = (int) Machine::query()->forOrganization($organizationId)->count() + 1;
+            $code = 'MCH-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        } while (Machine::query()->forOrganization($organizationId)->where('code', $code)->exists());
+
+        return $code;
     }
 
     private function findActiveArea(int $areaId, int $organizationId): Area

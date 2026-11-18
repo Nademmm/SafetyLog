@@ -19,7 +19,6 @@ class UpdateAreaRequest extends FormRequest
         return [
             'site_id' => ['sometimes', 'required', 'integer'],
             'name' => ['sometimes', 'required', 'string', 'min:2', 'max:255'],
-            'code' => ['nullable', 'string', 'max:32'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
