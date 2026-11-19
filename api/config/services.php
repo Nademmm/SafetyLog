@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'nexusrouter' => [
+        'base_url' => env('NEXUSROUTER_BASE_URL'),
+        'virtual_key' => env('NEXUSROUTER_VIRTUAL_KEY'),
+        'model' => env('NEXUSROUTER_MODEL', 'auto'),
+        'timeout' => env('NEXUSROUTER_TIMEOUT', 30),
+    ],
+
 ];
