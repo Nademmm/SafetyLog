@@ -17,16 +17,20 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  html.light {
+    color-scheme: light;
+  }
+
   body {
-    background-color: var(--surface-base);
-    color: var(--text-primary);
+    background-color: var(--ground);
+    color: var(--text);
     min-height: 100vh;
     min-width: 360px;
     margin: 0;
     padding: 0;
+    transition: background-color 150ms ease, color 150ms ease;
   }
 
-  /* Consistent tabular numerals for metrics, case IDs, and timestamps */
   .tnum,
   .tabular-nums {
     font-variant-numeric: tabular-nums;
@@ -34,14 +38,8 @@
 }
 
 @layer utilities {
-  /* Minimal industrial touch target helper for touchscreens */
   .touch-target {
     min-height: var(--touch-target-min, 44px);
     min-width: var(--touch-target-min, 44px);
-  }
-
-  /* Industrial subtle outline/glow effects */
-  .industrial-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-carbon;
   }
 }
