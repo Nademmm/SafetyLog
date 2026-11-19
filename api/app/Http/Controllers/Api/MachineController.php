@@ -17,7 +17,6 @@ use App\Services\CaseWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 
 class MachineController extends Controller
 {
@@ -31,7 +30,7 @@ class MachineController extends Controller
 
         $query = Machine::query()
             ->forOrganization($user->organization_id)
-            ->with(['site:id,name,code', 'area:id,name,code'])
+            ->with(['site:id,name,code', 'area:id,name,code,pic_user_id', 'area.picUser:id,name,email,role,job_title'])
             ->orderBy('name');
 
         if (! $request->boolean('include_archived')) {
@@ -63,7 +62,7 @@ class MachineController extends Controller
     {
         $machine = Machine::query()
             ->where('qr_token', $qrToken)
-            ->with(['site:id,name,code,is_active', 'area:id,name,code,is_active'])
+            ->with(['site:id,name,code,is_active', 'area:id,name,code,pic_user_id,is_active,archived_at', 'area.picUser:id,name,email,role,job_title'])
             ->first();
 
         if (! $machine) {
@@ -72,7 +71,13 @@ class MachineController extends Controller
 
         Gate::authorize('view', $machine);
 
-        if (! $machine->is_active || $machine->archived_at !== null) {
+        if (
+            ! $machine->is_active
+            || $machine->archived_at !== null
+            || ! $machine->site?->is_active
+            || ! $machine->area?->is_active
+            || $machine->area?->archived_at !== null
+        ) {
             return response()->json(['message' => 'Mesin ini sudah diarsipkan dan tidak dapat dipilih.'], 422);
         }
 
@@ -84,8 +89,11 @@ class MachineController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'code', 'name', 'is_incident']);
 
+        $formattedMachine = $this->formatMachine($machine);
+
         return response()->json([
-            'machine' => $this->formatMachine($machine),
+            'data' => $formattedMachine,
+            'machine' => $formattedMachine,
             'case_types' => $caseTypes,
             'open_cases_warning' => [
                 'has_open_cases' => $openCases->isNotEmpty(),
@@ -226,7 +234,7 @@ class MachineController extends Controller
         Gate::authorize('view', $machine);
 
         $machine->update([
-            'qr_token' => Str::random(24),
+            'qr_token' => Machine::generateUniqueQrToken(),
         ]);
 
         return response()->json([
@@ -285,6 +293,15 @@ class MachineController extends Controller
                 'id' => $machine->area->id,
                 'name' => $machine->area->name,
                 'code' => $machine->area->code,
+                'pic_user' => $machine->area->relationLoaded('picUser') && $machine->area->picUser ? [
+                    'id' => $machine->area->picUser->id,
+                    'name' => $machine->area->picUser->name,
+                    'email' => $machine->area->picUser->email,
+                    'role' => $machine->area->picUser->role instanceof \BackedEnum
+                        ? $machine->area->picUser->role->value
+                        : (string) $machine->area->picUser->role,
+                    'job_title' => $machine->area->picUser->job_title,
+                ] : null,
             ] : null,
         ];
     }

@@ -124,6 +124,18 @@ class CaseWorkflowService
                 excludeUserIds: [$reporter->id],
             );
 
+            $areaPic = $machine->area?->picUser;
+            if ($areaPic && $areaPic->is_active && $areaPic->id !== $reporter->id && $areaPic->role !== UserRole::Supervisor) {
+                $this->notificationService->notifyUser(
+                    userId: $areaPic->id,
+                    organizationId: $reporter->organization_id,
+                    type: 'case_reported',
+                    title: "Laporan baru di area Anda {$caseNumber}",
+                    body: "{$machine->name}: {$caseType->name}",
+                    case: $case,
+                );
+            }
+
             return $case;
         });
 
@@ -659,7 +671,8 @@ class CaseWorkflowService
     {
         return [
             'site:id,name,code',
-            'area:id,site_id,name,code',
+            'area:id,site_id,name,code,pic_user_id',
+            'area.picUser:id,name,email,role,job_title',
             'machine:id,site_id,area_id,code,name,qr_token',
             'reporter:id,name,email,role,job_title',
             'caseType:id,code,name,is_incident',

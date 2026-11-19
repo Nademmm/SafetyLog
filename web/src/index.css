@@ -43,3 +43,17 @@
     min-width: var(--touch-target-min, 44px);
   }
 }
+
+@media print {
+  html,
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    min-height: auto !important;
+  }
+
+  .qr-sticker-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

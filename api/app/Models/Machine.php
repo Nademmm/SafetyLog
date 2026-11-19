@@ -38,9 +38,18 @@ class Machine extends Model
     {
         static::creating(function (Machine $machine): void {
             if (empty($machine->qr_token)) {
-                $machine->qr_token = Str::random(24);
+                $machine->qr_token = static::generateUniqueQrToken();
             }
         });
+    }
+
+    public static function generateUniqueQrToken(): string
+    {
+        do {
+            $token = Str::random(24);
+        } while (static::query()->withoutGlobalScopes()->where('qr_token', $token)->exists());
+
+        return $token;
     }
 
     public function scopeActive(Builder $query): Builder
