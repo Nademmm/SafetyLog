@@ -31,7 +31,7 @@ class CaseActionController extends Controller
             ->forOrganization($user->organization_id)
             ->where('pic_user_id', $user->id)
             ->with([
-                'safetyCase:id,case_number,status,risk_level,is_locked,machine_id',
+                'safetyCase:id,case_number,status,risk_level,is_locked,machine_id,root_cause_category,five_whys,root_cause_summary',
                 'safetyCase.machine:id,code,name',
                 'pic:id,name,email,role,job_title',
                 'creator:id,name,role',

@@ -33,25 +33,30 @@ class DashboardService
             ->forOrganization($organizationId)
             ->when($siteId !== null, fn ($q) => $q->where('site_id', $siteId));
 
-        $openCasesCount = (clone $baseCaseQuery)
-            ->whereIn('status', CaseStatus::openValues())
-            ->count();
+        $openList = array_map(fn (string $v) => "'".$v."'", CaseStatus::openValues());
+        $openInSql = implode(', ', $openList);
 
-        $pendingVerificationCount = (clone $baseCaseQuery)
-            ->where('status', CaseStatus::PendingVerification->value)
-            ->count();
+        $summaryRow = (clone $baseCaseQuery)
+            ->selectRaw(
+                "COUNT(*) as total_cases_count,
+                SUM(CASE WHEN status IN ({$openInSql}) THEN 1 ELSE 0 END) as open_cases_count,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending_verification_count,
+                SUM(CASE WHEN status IN ({$openInSql}) AND risk_level = ? THEN 1 ELSE 0 END) as high_risk_open_count,
+                SUM(CASE WHEN status = ? AND closed_at >= ? THEN 1 ELSE 0 END) as closed_this_month_count",
+                [
+                    CaseStatus::PendingVerification->value,
+                    RiskLevel::High->value,
+                    CaseStatus::Closed->value,
+                    $monthStart->toDateTimeString(),
+                ],
+            )
+            ->first();
 
-        $highRiskOpenCount = (clone $baseCaseQuery)
-            ->whereIn('status', CaseStatus::openValues())
-            ->where('risk_level', RiskLevel::High->value)
-            ->count();
-
-        $closedThisMonthCount = (clone $baseCaseQuery)
-            ->where('status', CaseStatus::Closed->value)
-            ->where('closed_at', '>=', $monthStart)
-            ->count();
-
-        $totalCasesCount = (clone $baseCaseQuery)->count();
+        $totalCasesCount = (int) ($summaryRow->total_cases_count ?? 0);
+        $openCasesCount = (int) ($summaryRow->open_cases_count ?? 0);
+        $pendingVerificationCount = (int) ($summaryRow->pending_verification_count ?? 0);
+        $highRiskOpenCount = (int) ($summaryRow->high_risk_open_count ?? 0);
+        $closedThisMonthCount = (int) ($summaryRow->closed_this_month_count ?? 0);
 
         $overdueActionsQuery = CaseAction::query()
             ->forOrganization($organizationId)
@@ -134,32 +139,30 @@ class DashboardService
             ->with(['area:id,name'])
             ->get(['id', 'code', 'name', 'area_id']);
 
-        $totalCounts = SafetyCase::query()
+        $openList = array_map(fn (string $v) => "'".$v."'", CaseStatus::openValues());
+        $openInSql = implode(', ', $openList);
+
+        $machineAggs = SafetyCase::query()
             ->forOrganization($organizationId)
             ->when($siteId !== null, fn ($q) => $q->where('site_id', $siteId))
-            ->select('machine_id', DB::raw('COUNT(*) as total'))
+            ->select('machine_id')
+            ->selectRaw(
+                "COUNT(*) as total_cases,
+                SUM(CASE WHEN status IN ({$openInSql}) THEN 1 ELSE 0 END) as open_cases,
+                SUM(CASE WHEN status NOT IN (?, ?) AND reported_at >= ? THEN 1 ELSE 0 END) as recent_cases",
+                [
+                    CaseStatus::Rejected->value,
+                    CaseStatus::Duplicate->value,
+                    $windowStart->toDateTimeString(),
+                ],
+            )
             ->groupBy('machine_id')
-            ->pluck('total', 'machine_id');
+            ->get()
+            ->keyBy('machine_id');
 
-        $openCounts = SafetyCase::query()
-            ->forOrganization($organizationId)
-            ->when($siteId !== null, fn ($q) => $q->where('site_id', $siteId))
-            ->whereIn('status', CaseStatus::openValues())
-            ->select('machine_id', DB::raw('COUNT(*) as total'))
-            ->groupBy('machine_id')
-            ->pluck('total', 'machine_id');
-
-        $recentCounts = SafetyCase::query()
-            ->forOrganization($organizationId)
-            ->when($siteId !== null, fn ($q) => $q->where('site_id', $siteId))
-            ->whereNotIn('status', [CaseStatus::Rejected->value, CaseStatus::Duplicate->value])
-            ->where('reported_at', '>=', $windowStart)
-            ->select('machine_id', DB::raw('COUNT(*) as total'))
-            ->groupBy('machine_id')
-            ->pluck('total', 'machine_id');
-
-        return $machines->map(function (Machine $machine) use ($totalCounts, $openCounts, $recentCounts, $recurringThreshold): array {
-            $casesLast90Days = (int) ($recentCounts[$machine->id] ?? 0);
+        return $machines->map(function (Machine $machine) use ($machineAggs, $recurringThreshold): array {
+            $agg = $machineAggs->get($machine->id);
+            $casesLast90Days = (int) ($agg->recent_cases ?? 0);
             $isRecurring = $casesLast90Days >= $recurringThreshold;
 
             return [
@@ -167,8 +170,8 @@ class DashboardService
                 'machine_code' => $machine->code,
                 'machine_name' => $machine->name,
                 'area_name' => $machine->area?->name,
-                'total_cases' => (int) ($totalCounts[$machine->id] ?? 0),
-                'open_cases' => (int) ($openCounts[$machine->id] ?? 0),
+                'total_cases' => (int) ($agg->total_cases ?? 0),
+                'open_cases' => (int) ($agg->open_cases ?? 0),
                 'cases_last_90_days' => $casesLast90Days,
                 'is_recurring' => $isRecurring,
                 'recurring_label' => $isRecurring ? 'Berulang' : null,

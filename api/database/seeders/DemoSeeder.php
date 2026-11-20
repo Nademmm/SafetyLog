@@ -32,9 +32,10 @@ class DemoSeeder extends Seeder
         $packagingArea = Area::query()->where('organization_id', $org->id)->where('code', 'PACK-A')->firstOrFail();
         $fillingArea = Area::query()->where('organization_id', $org->id)->where('code', 'FILL-1')->firstOrFail();
         $utilityArea = Area::query()->where('organization_id', $org->id)->where('code', 'UTIL-1')->firstOrFail();
+        $supervisorUser = User::query()->where('email', 'supervisor@safetylog.test')->first();
         $warehouseArea = Area::query()->firstOrCreate(
             ['organization_id' => $org->id, 'site_id' => $site->id, 'code' => 'WH-FG'],
-            ['name' => 'Gudang Bahan & Jadi', 'is_active' => true],
+            ['name' => 'Gudang Bahan & Jadi', 'pic_user_id' => $supervisorUser?->id, 'is_active' => true],
         );
 
         $extraMachines = [
@@ -178,7 +179,7 @@ class DemoSeeder extends Seeder
                 CaseStatusHistory::query()->create([
                     'organization_id' => $org->id,
                     'safety_case_id' => $case->id,
-                    'changed_by' => $supervisor->id,
+                    'changed_by' => $isClosed ? $hse->id : $supervisor->id,
                     'from_status' => CaseStatus::New->value,
                     'to_status' => $status->value,
                     'action_name' => $isClosed ? 'verification_approved' : 'case_triaged',

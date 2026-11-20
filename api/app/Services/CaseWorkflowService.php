@@ -60,7 +60,14 @@ class CaseWorkflowService
             ->with(['site', 'area'])
             ->find($data['machine_id']);
 
-        if (! $machine || ! $machine->site || ! $machine->site->is_active) {
+        if (
+            ! $machine
+            || ! $machine->site
+            || ! $machine->site->is_active
+            || ! $machine->area
+            || ! $machine->area->is_active
+            || $machine->area->archived_at !== null
+        ) {
             throw new DomainRuleException('Mesin tidak ditemukan atau sudah diarsipkan.', 'MACHINE_UNAVAILABLE', 422, [
                 'machine_id' => ['Mesin tidak ditemukan atau sudah diarsipkan.'],
             ]);
@@ -200,6 +207,13 @@ class CaseWorkflowService
             );
         }
 
+        if ($case->status === CaseStatus::PendingVerification) {
+            throw new DomainRuleException(
+                'Analisis akar penyebab tidak dapat diubah ketika kasus sedang menunggu verifikasi K3.',
+                'INVALID_CASE_STATUS',
+            );
+        }
+
         $allowedCategories = (array) Configuration::getValue(
             $case->organization_id,
             'root_cause_categories',
@@ -275,9 +289,12 @@ class CaseWorkflowService
             : $this->riskAssessmentService->suggestActionDueAt($case, $actionType);
 
         return DB::transaction(function () use ($actor, $case, $actionType, $pic, $dueAt, $data): CaseAction {
+            $lockedCase = SafetyCase::query()->whereKey($case->id)->lockForUpdate()->firstOrFail();
+            $this->ensureCaseIsEditable($lockedCase);
+
             $action = CaseAction::query()->create([
-                'organization_id' => $case->organization_id,
-                'safety_case_id' => $case->id,
+                'organization_id' => $lockedCase->organization_id,
+                'safety_case_id' => $lockedCase->id,
                 'action_type' => $actionType,
                 'title' => trim((string) $data['title']),
                 'description' => isset($data['description']) ? trim((string) $data['description']) : null,
@@ -287,14 +304,14 @@ class CaseWorkflowService
                 'status' => ActionStatus::Open,
             ]);
 
-            $previousStatus = $case->status;
+            $previousStatus = $lockedCase->status;
             if ($previousStatus !== CaseStatus::InProgress) {
-                $case->status = CaseStatus::InProgress;
-                $case->save();
+                $lockedCase->status = CaseStatus::InProgress;
+                $lockedCase->save();
             }
 
             $this->auditLogService->record(
-                case: $case,
+                case: $lockedCase,
                 actor: $actor,
                 fromStatus: $previousStatus,
                 toStatus: CaseStatus::InProgress,
@@ -310,11 +327,11 @@ class CaseWorkflowService
             if ($pic->id !== $actor->id) {
                 $this->notificationService->notifyUser(
                     userId: $pic->id,
-                    organizationId: $case->organization_id,
+                    organizationId: $lockedCase->organization_id,
                     type: 'action_assigned',
-                    title: "Tindakan baru pada {$case->case_number}",
+                    title: "Tindakan baru pada {$lockedCase->case_number}",
                     body: "{$actionType->label()}: {$action->title}",
-                    case: $case,
+                    case: $lockedCase,
                     action: $action,
                 );
             }
@@ -426,7 +443,15 @@ class CaseWorkflowService
         }
 
         return DB::transaction(function () use ($actor, $action, $case, $note, $photos): CaseAction {
-            $action->update([
+            $lockedCase = SafetyCase::query()->whereKey($case->id)->lockForUpdate()->firstOrFail();
+            $this->ensureCaseIsEditable($lockedCase);
+
+            $lockedAction = CaseAction::query()->whereKey($action->id)->lockForUpdate()->firstOrFail();
+            if ($lockedAction->status === ActionStatus::Completed) {
+                throw new DomainRuleException('Tindakan ini sudah ditandai selesai sebelumnya.', 'ACTION_ALREADY_COMPLETED');
+            }
+
+            $lockedAction->update([
                 'status' => ActionStatus::Completed,
                 'completion_note' => $note,
                 'completed_at' => now(),
@@ -434,49 +459,49 @@ class CaseWorkflowService
             ]);
 
             if ($photos !== []) {
-                $this->attachmentService->storePhotos($action, $actor->organization_id, $actor, $photos);
+                $this->attachmentService->storePhotos($lockedAction, $actor->organization_id, $actor, $photos);
             }
 
-            $hasOpenActions = $case->actions()
+            $hasOpenActions = $lockedCase->actions()
                 ->where('status', ActionStatus::Open->value)
                 ->exists();
 
-            $fromStatus = $case->status;
+            $fromStatus = $lockedCase->status;
             if (! $hasOpenActions) {
-                $case->status = CaseStatus::PendingVerification;
-                $case->save();
+                $lockedCase->status = CaseStatus::PendingVerification;
+                $lockedCase->save();
 
                 $this->auditLogService->record(
-                    case: $case,
+                    case: $lockedCase,
                     actor: $actor,
                     fromStatus: $fromStatus,
                     toStatus: CaseStatus::PendingVerification,
                     actionName: 'all_actions_completed',
-                    metadata: ['completed_action_id' => $action->id],
+                    metadata: ['completed_action_id' => $lockedAction->id],
                 );
 
-                $picIds = $case->actions()->pluck('pic_user_id')->push($case->assigned_pic_id)->filter()->unique()->values()->all();
+                $picIds = $lockedCase->actions()->pluck('pic_user_id')->push($lockedCase->assigned_pic_id)->filter()->unique()->values()->all();
                 $this->notificationService->notifyRole(
-                    organizationId: $case->organization_id,
+                    organizationId: $lockedCase->organization_id,
                     role: UserRole::Hse,
                     type: 'case_pending_verification',
-                    title: "{$case->case_number} siap diverifikasi",
+                    title: "{$lockedCase->case_number} siap diverifikasi",
                     body: 'Semua tindakan telah selesai dikerjakan.',
-                    case: $case,
+                    case: $lockedCase,
                     excludeUserIds: array_map('intval', $picIds),
                 );
             } else {
                 $this->auditLogService->record(
-                    case: $case,
+                    case: $lockedCase,
                     actor: $actor,
                     fromStatus: $fromStatus,
                     toStatus: $fromStatus,
                     actionName: 'action_completed',
-                    metadata: ['completed_action_id' => $action->id],
+                    metadata: ['completed_action_id' => $lockedAction->id],
                 );
             }
 
-            return $action->fresh(['pic:id,name,email,role,job_title', 'completer:id,name,email,role', 'attachments', 'safetyCase']);
+            return $lockedAction->fresh(['pic:id,name,email,role,job_title', 'completer:id,name,email,role', 'attachments', 'safetyCase']);
         });
     }
 
@@ -533,27 +558,30 @@ class CaseWorkflowService
      */
     public function verifyCase(User $actor, SafetyCase $case, array $data): SafetyCase
     {
-        $this->ensureCaseIsEditable($case);
-
-        if ($case->status !== CaseStatus::PendingVerification) {
-            throw new DomainRuleException(
-                'Verifikasi hanya dapat dilakukan ketika status kasus Menunggu verifikasi.',
-                'INVALID_CASE_STATUS',
-            );
-        }
-
-        $this->ensureVerifierIsNotPic($actor, $case);
-
         $decision = (string) ($data['decision'] ?? '');
         if (! in_array($decision, ['approve', 'reject'], true)) {
             throw new DomainRuleException('Keputusan verifikasi harus berupa approve atau reject.', 'INVALID_VERIFY_DECISION');
         }
 
-        if ($decision === 'approve') {
-            return $this->approveVerification($actor, $case, $data);
-        }
+        return DB::transaction(function () use ($actor, $case, $data, $decision): SafetyCase {
+            $lockedCase = SafetyCase::query()->whereKey($case->id)->lockForUpdate()->firstOrFail();
+            $this->ensureCaseIsEditable($lockedCase);
 
-        return $this->rejectVerification($actor, $case, $data);
+            if ($lockedCase->status !== CaseStatus::PendingVerification) {
+                throw new DomainRuleException(
+                    'Verifikasi hanya dapat dilakukan ketika status kasus Menunggu verifikasi.',
+                    'INVALID_CASE_STATUS',
+                );
+            }
+
+            $this->ensureVerifierIsNotPic($actor, $lockedCase);
+
+            if ($decision === 'approve') {
+                return $this->approveVerification($actor, $lockedCase, $data);
+            }
+
+            return $this->rejectVerification($actor, $lockedCase, $data);
+        });
     }
 
     /**
@@ -579,9 +607,27 @@ class CaseWorkflowService
 
         $reopenActionIds = $this->validateBelongingActionIds($case, (array) ($data['reopen_action_ids'] ?? []));
 
+        // Cegah workflow deadlock: jika K3 menolak verifikasi tanpa memilih tindakan tertentu,
+        // buka kembali seluruh tindakan yang sudah selesai agar PIC dapat memperbaiki & menyelesaikan ulang.
+        if ($reopenActionIds === []) {
+            $reopenActionIds = $case->actions()
+                ->where('status', ActionStatus::Completed->value)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+
         return DB::transaction(function () use ($actor, $case, $reason, $reopenActionIds): SafetyCase {
+            $lockedCase = SafetyCase::query()->whereKey($case->id)->lockForUpdate()->firstOrFail();
+            if ($lockedCase->status !== CaseStatus::Closed) {
+                throw new DomainRuleException(
+                    'Hanya kasus berstatus Selesai yang dapat dibuka ulang.',
+                    'INVALID_CASE_STATUS',
+                );
+            }
+
             if ($reopenActionIds !== []) {
-                $case->actions()
+                $lockedCase->actions()
                     ->whereIn('id', $reopenActionIds)
                     ->update([
                         'status' => ActionStatus::Open->value,
@@ -590,7 +636,7 @@ class CaseWorkflowService
                     ]);
             }
 
-            $case->update([
+            $lockedCase->update([
                 'status' => CaseStatus::InProgress,
                 'is_locked' => false,
                 'reopened_by' => $actor->id,
@@ -599,7 +645,7 @@ class CaseWorkflowService
             ]);
 
             $this->auditLogService->record(
-                case: $case,
+                case: $lockedCase,
                 actor: $actor,
                 fromStatus: CaseStatus::Closed,
                 toStatus: CaseStatus::InProgress,
@@ -608,8 +654,8 @@ class CaseWorkflowService
                 metadata: $reopenActionIds !== [] ? ['reopened_action_ids' => $reopenActionIds] : [],
             );
 
-            $notifyIds = collect([$case->triaged_by, $case->assigned_pic_id])
-                ->merge($case->actions()->pluck('pic_user_id'))
+            $notifyIds = collect([$lockedCase->triaged_by, $lockedCase->assigned_pic_id])
+                ->merge($lockedCase->actions()->pluck('pic_user_id'))
                 ->filter()
                 ->unique()
                 ->reject(fn ($id) => (int) $id === $actor->id);
@@ -617,15 +663,15 @@ class CaseWorkflowService
             foreach ($notifyIds as $userId) {
                 $this->notificationService->notifyUser(
                     userId: (int) $userId,
-                    organizationId: $case->organization_id,
+                    organizationId: $lockedCase->organization_id,
                     type: 'case_reopened',
-                    title: "Kasus {$case->case_number} dibuka ulang",
+                    title: "Kasus {$lockedCase->case_number} dibuka ulang",
                     body: $reason,
-                    case: $case,
+                    case: $lockedCase,
                 );
             }
 
-            return $case->fresh($this->caseDetailRelations());
+            return $lockedCase->fresh($this->caseDetailRelations());
         });
     }
 
@@ -727,7 +773,9 @@ class CaseWorkflowService
             }
         }
 
-        $assignedPicId = $data['assigned_pic_id'] ?? null;
+        $assignedPicId = array_key_exists('assigned_pic_id', $data)
+            ? $data['assigned_pic_id']
+            : $case->assigned_pic_id;
         if ($assignedPicId !== null) {
             $this->findActiveOrganizationUser((int) $assignedPicId, $case->organization_id, 'assigned_pic_id');
         }
@@ -815,6 +863,17 @@ class CaseWorkflowService
                 reason: $reason,
             );
 
+            if ($case->reporter_id !== $actor->id) {
+                $this->notificationService->notifyUser(
+                    userId: $case->reporter_id,
+                    organizationId: $case->organization_id,
+                    type: 'case_rejected',
+                    title: "Laporan {$case->case_number} ditolak",
+                    body: $reason,
+                    case: $case,
+                );
+            }
+
             return $case->fresh($this->caseDetailRelations());
         });
     }
@@ -841,11 +900,12 @@ class CaseWorkflowService
         $targetExists = SafetyCase::query()
             ->forOrganization($case->organization_id)
             ->whereKey($duplicateOfId)
+            ->whereNotIn('status', [CaseStatus::Rejected->value, CaseStatus::Duplicate->value])
             ->exists();
 
         if (! $targetExists) {
-            throw new DomainRuleException('Kasus rujukan duplikat tidak ditemukan pada organisasi Anda.', 'INVALID_DUPLICATE_TARGET', 422, [
-                'duplicate_of_case_id' => ['Kasus rujukan duplikat tidak ditemukan pada organisasi Anda.'],
+            throw new DomainRuleException('Kasus rujukan duplikat tidak ditemukan atau tidak valid pada organisasi Anda.', 'INVALID_DUPLICATE_TARGET', 422, [
+                'duplicate_of_case_id' => ['Kasus rujukan duplikat harus merupakan kasus aktif/selesai pada organisasi Anda.'],
             ]);
         }
 
@@ -870,6 +930,17 @@ class CaseWorkflowService
                 reason: $reason,
                 metadata: ['duplicate_of_case_id' => $duplicateOfId],
             );
+
+            if ($case->reporter_id !== $actor->id) {
+                $this->notificationService->notifyUser(
+                    userId: $case->reporter_id,
+                    organizationId: $case->organization_id,
+                    type: 'case_duplicate',
+                    title: "Laporan {$case->case_number} ditandai duplikat",
+                    body: $reason,
+                    case: $case,
+                );
+            }
 
             return $case->fresh($this->caseDetailRelations());
         });
@@ -952,6 +1023,16 @@ class CaseWorkflowService
         }
 
         $reopenActionIds = $this->validateBelongingActionIds($case, (array) ($data['reopen_action_ids'] ?? []));
+
+        // Cegah workflow deadlock: jika K3 menolak verifikasi tanpa memilih tindakan tertentu,
+        // buka kembali seluruh tindakan yang sudah selesai agar PIC dapat memperbaiki & menyelesaikan ulang.
+        if ($reopenActionIds === []) {
+            $reopenActionIds = $case->actions()
+                ->where('status', ActionStatus::Completed->value)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
 
         return DB::transaction(function () use ($actor, $case, $reason, $reopenActionIds): SafetyCase {
             if ($reopenActionIds !== []) {

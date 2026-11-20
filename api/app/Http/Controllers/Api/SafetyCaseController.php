@@ -165,6 +165,7 @@ class SafetyCaseController extends Controller
 
     public function similar(Request $request, SafetyCase $case): JsonResponse
     {
+        Gate::authorize('viewAny', SafetyCase::class);
         Gate::authorize('view', $case);
 
         $limit = min(10, max(1, (int) $request->integer('limit', 5)));

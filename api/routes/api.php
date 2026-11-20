@@ -27,7 +27,8 @@ Route::prefix('auth')->group(function (): void {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         Route::get('/me', [AuthController::class, 'me']);
-        Route::post('/change-password', [AuthController::class, 'changePassword']);
+        Route::post('/change-password', [AuthController::class, 'changePassword'])
+            ->middleware('throttle:10,1');
     });
 });
 
@@ -51,7 +52,8 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
     Route::post('/cases', [SafetyCaseController::class, 'store']);
     Route::get('/cases/{case}', [SafetyCaseController::class, 'show']);
     Route::get('/cases/{case}/summary', [SafetyCaseController::class, 'summary']);
-    Route::get('/cases/{case}/similar', [SafetyCaseController::class, 'similar']);
+    Route::get('/cases/{case}/similar', [SafetyCaseController::class, 'similar'])
+        ->middleware('role:supervisor,hse,admin');
     Route::get('/cases/{case}/histories', [SafetyCaseController::class, 'histories']);
     Route::post('/cases/{case}/attachments', [SafetyCaseController::class, 'storeAttachments']);
     Route::post('/cases/{case}/triage', [SafetyCaseController::class, 'triage'])

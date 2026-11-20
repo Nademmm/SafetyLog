@@ -126,8 +126,12 @@ class AreaController extends Controller
         $this->ensureSameOrganization($request->user()->organization_id, $area->organization_id);
 
         $updates = [];
+        $siteChanged = false;
+        $newSiteId = $area->site_id;
         if ($request->filled('site_id')) {
             $site = $this->findActiveSite((int) $request->validated('site_id'), $area->organization_id);
+            $siteChanged = $site->id !== $area->site_id;
+            $newSiteId = $site->id;
             $updates['site_id'] = $site->id;
         }
 
@@ -149,6 +153,10 @@ class AreaController extends Controller
         }
 
         $area->update($updates);
+
+        if ($siteChanged) {
+            $area->machines()->update(['site_id' => $newSiteId]);
+        }
 
         return response()->json([
             'message' => 'Area produksi berhasil diperbarui.',
@@ -216,9 +224,11 @@ class AreaController extends Controller
 
     private function generateSiteCode(int $organizationId): string
     {
+        $next = (int) Site::query()->forOrganization($organizationId)->count() + 1;
+
         do {
-            $next = (int) Site::query()->forOrganization($organizationId)->count() + 1;
             $code = 'SITE-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $next++;
         } while (Site::query()->forOrganization($organizationId)->where('code', $code)->exists());
 
         return $code;
@@ -226,9 +236,11 @@ class AreaController extends Controller
 
     private function generateAreaCode(int $organizationId): string
     {
+        $next = (int) Area::query()->forOrganization($organizationId)->count() + 1;
+
         do {
-            $next = (int) Area::query()->forOrganization($organizationId)->count() + 1;
             $code = 'AREA-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $next++;
         } while (Area::query()->forOrganization($organizationId)->where('code', $code)->exists());
 
         return $code;

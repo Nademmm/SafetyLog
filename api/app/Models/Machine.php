@@ -55,7 +55,9 @@ class Machine extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where($this->qualifyColumn('is_active'), true)
-            ->whereNull($this->qualifyColumn('archived_at'));
+            ->whereNull($this->qualifyColumn('archived_at'))
+            ->whereHas('site', fn (Builder $q) => $q->where('is_active', true))
+            ->whereHas('area', fn (Builder $q) => $q->where('is_active', true)->whereNull('archived_at'));
     }
 
     public function site(): BelongsTo

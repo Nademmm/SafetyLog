@@ -46,7 +46,8 @@ class MachineController extends Controller
         }
 
         if ($request->filled('q')) {
-            $keyword = '%'.mb_strtolower(trim((string) $request->query('q'))).'%';
+            $escaped = addcslashes(mb_strtolower(trim((string) $request->query('q'))), '\\%_');
+            $keyword = '%'.$escaped.'%';
             $query->where(function ($sub) use ($keyword): void {
                 $sub->whereRaw('LOWER(name) LIKE ?', [$keyword])
                     ->orWhereRaw('LOWER(code) LIKE ?', [$keyword]);
@@ -161,11 +162,14 @@ class MachineController extends Controller
         $orgId = $request->user()->organization_id;
         $area = $this->findActiveArea((int) $request->validated('area_id'), $orgId);
 
+        $requestedCode = trim((string) ($request->validated('code') ?? ''));
+        $code = $requestedCode !== '' ? strtoupper($requestedCode) : $this->generateMachineCode($orgId);
+
         $machine = Machine::query()->create([
             'organization_id' => $orgId,
             'site_id' => $area->site_id,
             'area_id' => $area->id,
-            'code' => $this->generateMachineCode($orgId),
+            'code' => $code,
             'name' => trim((string) $request->validated('name')),
             'description' => $request->validated('description'),
             'is_active' => true,
@@ -173,7 +177,7 @@ class MachineController extends Controller
 
         return response()->json([
             'message' => 'Mesin berhasil ditambahkan.',
-            'data' => $this->formatMachine($machine->load(['site:id,name,code', 'area:id,name,code'])),
+            'data' => $this->formatMachine($machine->load(['site:id,name,code', 'area:id,name,code,pic_user_id', 'area.picUser:id,name,email,role,job_title'])),
         ], 201);
     }
 
@@ -245,9 +249,11 @@ class MachineController extends Controller
 
     private function generateMachineCode(int $organizationId): string
     {
+        $next = (int) Machine::query()->forOrganization($organizationId)->count() + 1;
+
         do {
-            $next = (int) Machine::query()->forOrganization($organizationId)->count() + 1;
             $code = 'MCH-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $next++;
         } while (Machine::query()->forOrganization($organizationId)->where('code', $code)->exists());
 
         return $code;

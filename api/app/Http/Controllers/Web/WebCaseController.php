@@ -56,14 +56,20 @@ class WebCaseController extends Controller
         if ($qrToken !== '') {
             $qrMachine = Machine::query()
                 ->where('qr_token', $qrToken)
-                ->with(['site:id,name,code', 'area:id,name,code'])
+                ->with(['site:id,name,code,is_active', 'area:id,name,code,is_active,archived_at'])
                 ->first();
 
             if (! $qrMachine) {
                 $qrError = 'Kode QR mesin tidak ditemukan.';
             } elseif ($qrMachine->organization_id !== $orgId) {
                 abort(403, 'Anda tidak memiliki akses ke mesin organisasi lain.');
-            } elseif (! $qrMachine->is_active || $qrMachine->archived_at !== null) {
+            } elseif (
+                ! $qrMachine->is_active
+                || $qrMachine->archived_at !== null
+                || ! $qrMachine->site?->is_active
+                || ! $qrMachine->area?->is_active
+                || $qrMachine->area?->archived_at !== null
+            ) {
                 $qrError = 'Mesin dari QR ini sudah diarsipkan dan tidak dapat dipilih.';
             } else {
                 $selectedMachine = $qrMachine;
@@ -158,7 +164,9 @@ class WebCaseController extends Controller
             ? SafetyCase::query()->forOrganization($orgId)->whereKeyNot($case->id)->latest('reported_at')->limit(30)->get(['id', 'case_number', 'description'])
             : collect();
 
-        $similarCases = $this->search->findSimilarCases($case, 5);
+        $similarCases = $user->role->canViewAllCases()
+            ? $this->search->findSimilarCases($case, 5)
+            : collect();
 
         $isPicOnCase = $case->assigned_pic_id === $user->id
             || $case->actions->contains('pic_user_id', $user->id);

@@ -16,6 +16,13 @@ class CaseStatusHistoryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'safety_case_id' => $this->safety_case_id,
+            'safety_case' => $this->whenLoaded('safetyCase', fn () => $this->safetyCase ? [
+                'id' => $this->safetyCase->id,
+                'case_number' => $this->safetyCase->case_number,
+                'status' => $this->safetyCase->status->value,
+                'status_label' => $this->safetyCase->status->label(),
+            ] : null),
             'from_status' => $this->from_status?->value,
             'from_status_label' => $this->from_status?->label(),
             'to_status' => $this->to_status->value,

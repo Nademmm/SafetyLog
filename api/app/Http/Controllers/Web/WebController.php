@@ -106,7 +106,7 @@ class WebController extends Controller
                 ->withInput($request->only('email'));
         }
 
-        if (! $user->is_active || ($user->organization && ! $user->organization->is_active)) {
+        if (! $user->is_active || ! $user->organization || ! $user->organization->is_active) {
             return back()
                 ->withErrors(['email' => 'Akun atau organisasi Anda sedang tidak aktif.'])
                 ->withInput($request->only('email'));
@@ -278,6 +278,9 @@ class WebController extends Controller
     {
         return str_starts_with($url, '/')
             && ! str_starts_with($url, '//')
+            && ! str_starts_with($url, '/\\')
+            && ! str_contains($url, '\\')
+            && parse_url($url, PHP_URL_HOST) === null
             && ! str_starts_with($url, '/login');
     }
 }

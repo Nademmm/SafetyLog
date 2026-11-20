@@ -20,7 +20,8 @@ class CaseSearchService
     {
         $query = SafetyCase::query()
             ->forOrganization($user->organization_id)
-            ->with($this->listRelations());
+            ->with($this->listRelations())
+            ->withExists(['actions as is_user_action_pic' => fn (Builder $q) => $q->where('pic_user_id', $user->id)]);
 
         if ($onlyOwnReports) {
             $query->where('reporter_id', $user->id);
@@ -127,7 +128,8 @@ class CaseSearchService
     {
         return [
             'site:id,name,code',
-            'area:id,name,code',
+            'area:id,name,code,pic_user_id',
+            'area.picUser:id,name,email,role,job_title',
             'machine:id,code,name,qr_token',
             'reporter:id,name,email,role,job_title',
             'caseType:id,code,name,is_incident',
@@ -175,11 +177,11 @@ class CaseSearchService
             $query->where('has_affected_people', filter_var($filters['has_affected_people'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        if (! empty($filters['date_from'])) {
+        if (! empty($filters['date_from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $filters['date_from'])) {
             $query->whereDate('reported_at', '>=', (string) $filters['date_from']);
         }
 
-        if (! empty($filters['date_to'])) {
+        if (! empty($filters['date_to']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $filters['date_to'])) {
             $query->whereDate('reported_at', '<=', (string) $filters['date_to']);
         }
     }
@@ -189,7 +191,8 @@ class CaseSearchService
         $driver = $query->getConnection()->getDriverName();
 
         if ($driver === 'pgsql') {
-            $like = '%'.$keyword.'%';
+            $escaped = addcslashes($keyword, '\\%_');
+            $like = '%'.$escaped.'%';
             $query->where(function (Builder $sub) use ($keyword, $like): void {
                 $sub->where('case_number', 'ILIKE', $like)
                     ->orWhere('description', 'ILIKE', $like)
@@ -210,8 +213,8 @@ class CaseSearchService
 
         // Cross-engine fuzzy scoring for SQLite / MySQL (handles typos like "konvayor" -> "konveyor")
         $candidates = $query
-            ->with(['machine:id,code,name', 'category:id,name', 'caseType:id,name'])
             ->latest('reported_at')
+            ->limit(1000)
             ->get();
 
         $matched = $candidates

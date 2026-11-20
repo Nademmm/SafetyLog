@@ -19,6 +19,7 @@ class SafetyCaseResource extends JsonResource
         $isEditable = ! $this->is_locked && ! $this->status->isTerminal();
         $isPicOnCase = $user !== null && (
             $this->assigned_pic_id === $user->id
+            || (bool) ($this->is_user_action_pic ?? false)
             || ($this->relationLoaded('actions') && $this->actions->contains('pic_user_id', $user->id))
         );
 
@@ -132,7 +133,11 @@ class SafetyCaseResource extends JsonResource
             ],
 
             'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
-            'actions' => CaseActionResource::collection($this->whenLoaded('actions')),
+            'actions' => CaseActionResource::collection($this->whenLoaded('actions', function () {
+                $this->actions->each->setRelation('safetyCase', $this->resource);
+
+                return $this->actions;
+            })),
             'status_histories' => CaseStatusHistoryResource::collection($this->whenLoaded('statusHistories')),
 
             'available_actions' => $user ? [

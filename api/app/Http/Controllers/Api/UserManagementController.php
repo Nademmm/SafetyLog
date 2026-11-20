@@ -28,7 +28,7 @@ class UserManagementController extends Controller
             $query->where('role', (string) $request->query('role'));
         }
 
-        if ($request->has('is_active')) {
+        if ($request->filled('is_active')) {
             $query->where('is_active', $request->boolean('is_active'));
         }
 
@@ -99,6 +99,7 @@ class UserManagementController extends Controller
 
         if ($request->filled('password')) {
             $updates['password'] = Hash::make((string) $request->validated('password'));
+            $user->tokens()->delete();
         }
 
         $user->update($updates);

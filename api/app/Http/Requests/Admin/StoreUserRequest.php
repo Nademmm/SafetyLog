@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
@@ -11,6 +12,15 @@ class StoreUserRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge([
+                'email' => Str::lower(trim((string) $this->input('email'))),
+            ]);
+        }
     }
 
     /**
@@ -22,7 +32,7 @@ class StoreUserRequest extends FormRequest
             'site_id' => ['nullable', 'integer'],
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', 'min:8', 'max:128'],
             'role' => ['required', Rule::enum(UserRole::class)],
             'job_title' => ['nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],

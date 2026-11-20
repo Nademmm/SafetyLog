@@ -27,9 +27,17 @@ class EnsureWebAuthenticated
 
         $accessToken = PersonalAccessToken::findToken($token);
         $user = $accessToken?->tokenable;
+        $expirationMinutes = config('sanctum.expiration');
+        $isExpired = $accessToken && (
+            ($accessToken->expires_at !== null && $accessToken->expires_at->isPast())
+            || (is_numeric($expirationMinutes) && $accessToken->created_at?->lte(now()->subMinutes((int) $expirationMinutes)))
+        );
 
-        if (! $accessToken || ! $user instanceof User) {
+        if (! $accessToken || $isExpired || ! $user instanceof User) {
             Auth::forgetGuards();
+            if ($accessToken && $isExpired) {
+                $accessToken->delete();
+            }
             $request->session()->forget(['sl_token', 'sl_user']);
 
             return $this->redirectToLogin($request);

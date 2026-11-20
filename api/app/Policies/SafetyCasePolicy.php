@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\UserRole;
+use App\Models\Configuration;
 use App\Models\SafetyCase;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
@@ -48,9 +49,26 @@ class SafetyCasePolicy
 
     public function viewSummary(User $user, SafetyCase $case): Response
     {
-        return $user->organization_id === $case->organization_id
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses ke kasus organisasi lain.');
+        if ($user->organization_id !== $case->organization_id) {
+            return Response::deny('Anda tidak memiliki akses ke kasus organisasi lain.');
+        }
+
+        if ($user->role === UserRole::Reporter) {
+            if ($this->view($user, $case)->allowed()) {
+                return Response::allow();
+            }
+
+            $windowDays = max(1, (int) Configuration::getValue($case->organization_id, 'open_case_warning_days', 7));
+            $isRecentOpenCase = $case->status->isOpen()
+                && $case->reported_at !== null
+                && $case->reported_at->greaterThanOrEqualTo(now()->subDays($windowDays));
+
+            if (! $isRecentOpenCase) {
+                return Response::deny('Pelapor hanya dapat melihat ringkasan kasus terbuka terbaru pada mesin terkait.');
+            }
+        }
+
+        return Response::allow();
     }
 
     public function triage(User $user, SafetyCase $case): Response

@@ -55,7 +55,7 @@ enum UserRole: string
     public function permissions(): array
     {
         return [
-            'report_case' => true,
+            'report_case' => $this === self::Reporter,
             'view_own_cases' => true,
             'view_all_cases' => $this->canViewAllCases(),
             'triage_case' => $this->canTriage(),

@@ -33,11 +33,11 @@ class AuditLogController extends Controller
             $query->where('action_name', (string) $request->query('action_name'));
         }
 
-        if ($request->filled('date_from')) {
+        if ($request->filled('date_from') && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->query('date_from'))) {
             $query->whereDate('created_at', '>=', (string) $request->query('date_from'));
         }
 
-        if ($request->filled('date_to')) {
+        if ($request->filled('date_to') && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->query('date_to'))) {
             $query->whereDate('created_at', '<=', (string) $request->query('date_to'));
         }
 

@@ -27,7 +27,7 @@ class AttachmentPolicy
             return app(SafetyCasePolicy::class)->view($user, $attachable->safetyCase);
         }
 
-        return Response::allow();
+        return Response::deny('Lampiran tidak terkait dengan kasus yang dapat Anda akses.');
     }
 
     public function delete(User $user, Attachment $attachment): Response

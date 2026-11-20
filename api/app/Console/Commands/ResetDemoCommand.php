@@ -12,6 +12,12 @@ class ResetDemoCommand extends Command
 
     public function handle(): int
     {
+        if (app()->isProduction()) {
+            $this->error('Perintah safetylog:reset-demo dilarang dijalankan di lingkungan production.');
+
+            return self::FAILURE;
+        }
+
         if (! $this->option('force') && ! $this->confirm('Reset seluruh database lokal/staging dan isi ulang data demo?')) {
             $this->info('Dibatalkan.');
 

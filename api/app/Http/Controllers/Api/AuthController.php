@@ -127,6 +127,11 @@ class AuthController extends Controller
             'password' => Hash::make((string) $request->validated('password')),
         ]);
 
+        $currentTokenId = $user->currentAccessToken()?->id;
+        $user->tokens()
+            ->when($currentTokenId !== null, fn ($q) => $q->where('id', '!=', $currentTokenId))
+            ->delete();
+
         return response()->json([
             'message' => 'Password berhasil diperbarui.',
         ]);
