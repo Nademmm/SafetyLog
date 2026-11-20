@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Services\Ai;
+
+use App\Exceptions\AiUnavailableException;
+
+/**
+ * Parses free-form model output into a JSON object and normalises common
+ * code-fence wrappers. Never trusts the payload before feature-level validation.
+ */
+class AiResponseParser
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function parseObject(string $content): array
+    {
+        $text = trim($content);
+
+        if (str_starts_with($text, '```')) {
+            $text = preg_replace('/^```(?:json)?\s*/i', '', $text) ?? $text;
+            $text = preg_replace('/\s*```$/', '', $text) ?? $text;
+            $text = trim($text);
+        }
+
+        try {
+            $decoded = json_decode($text, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new AiUnavailableException('Respons AI tidak dapat dibaca.');
+        }
+
+        if (! is_array($decoded) || array_is_list($decoded)) {
+            throw new AiUnavailableException('Respons AI tidak sesuai dengan format yang diharapkan.');
+        }
+
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function stringList(mixed $value, int $maxItems, int $maxLength): array
+    {
+        if (! is_array($value) || array_is_list($value) === false) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($value as $item) {
+            if (! is_string($item)) {
+                continue;
+            }
+
+            $clean = trim(strip_tags($item));
+            if ($clean === '') {
+                continue;
+            }
+
+            $items[] = mb_substr($clean, 0, $maxLength);
+
+            if (count($items) >= $maxItems) {
+                break;
+            }
+        }
+
+        return $items;
+    }
+
+    public function text(mixed $value, int $maxLength, ?string $fallback = null): ?string
+    {
+        if (! is_string($value)) {
+            return $fallback;
+        }
+
+        $clean = trim(strip_tags($value));
+
+        if ($clean === '') {
+            return $fallback;
+        }
+
+        return mb_substr($clean, 0, $maxLength);
+    }
+}

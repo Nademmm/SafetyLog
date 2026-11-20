@@ -43,12 +43,14 @@ class CaseSearchService
      */
     public function findSimilarCases(SafetyCase $targetCase, int $limit = 5): Collection
     {
-        $targetCase->loadMissing(['machine:id,code,name', 'category:id,name', 'caseType:id,name']);
+        if ($targetCase->exists) {
+            $targetCase->loadMissing(['machine:id,code,name', 'category:id,name', 'caseType:id,name']);
+        }
         $targetBlob = $this->buildCaseSearchBlob($targetCase);
 
         $candidates = SafetyCase::query()
             ->forOrganization($targetCase->organization_id)
-            ->whereKeyNot($targetCase->id)
+            ->when($targetCase->exists, fn (Builder $query) => $query->whereKeyNot($targetCase->id))
             ->whereNotIn('status', [CaseStatus::Rejected->value, CaseStatus::Duplicate->value])
             ->with(['machine:id,code,name', 'category:id,name', 'caseType:id,name'])
             ->latest('reported_at')
