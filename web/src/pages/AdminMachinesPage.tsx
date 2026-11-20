@@ -98,7 +98,7 @@ export function AdminMachinesPage() {
             {errMsg}
           </div>
         )}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <select
             value={newMachineAreaId}
             onChange={(e) => setNewMachineAreaId(e.target.value)}
@@ -168,14 +168,14 @@ export function AdminMachinesPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   to={`/machines/${m.id}/cases`}
-                  className="inline-flex h-10 items-center rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                  className="inline-flex h-11 sm:h-10 items-center rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
                 >
                   Riwayat Kasus
                 </Link>
                 <button
                   type="button"
                   onClick={() => setQrModalMachine(m)}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+                  className="inline-flex h-11 sm:h-10 items-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
                 >
                   <QrCode className="h-4 w-4" />
                   <span>Cetak QR</span>

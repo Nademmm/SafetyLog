@@ -368,15 +368,15 @@ export function CaseDetailPage() {
           {/* Triage Panel (B-12, U3) */}
           {available?.can_triage && (
             <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-[16px] font-semibold text-[var(--text)]">Penilaian Risiko &amp; Triase</h2>
-                <div className="flex gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5 sm:flex">
                   {(['assess', 'reject', 'duplicate'] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => setTriageMode(m)}
-                      className={`h-8 rounded-[4px] px-3 text-[12px] font-medium ${
+                      className={`h-10 sm:h-8 rounded-[6px] sm:rounded-[4px] px-3 text-[13px] sm:text-[12px] font-medium ${
                         triageMode === m
                           ? 'bg-[var(--primary)] text-[var(--primary-ink)]'
                           : 'bg-[var(--raised)] text-[var(--muted)] hover:text-[var(--text)]'
@@ -613,7 +613,7 @@ export function CaseDetailPage() {
                         <button
                           type="button"
                           onClick={() => setCompletingAction(act)}
-                          className="h-9 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+                          className="h-11 sm:h-9 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
                         >
                           Selesaikan Tindakan
                         </button>
@@ -692,12 +692,12 @@ export function CaseDetailPage() {
                     onChange={(e) => setActionTitle(e.target.value)}
                     placeholder="Judul tindakan perbaikan atau pencegahan..."
                     required
-                    className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)]"
+                    className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)]"
                   />
                   <button
                     type="submit"
                     disabled={actionBusy}
-                    className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                    className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
                   >
                     {actionBusy ? 'Menambah...' : 'Tambah Tindakan'}
                   </button>
@@ -756,13 +756,13 @@ export function CaseDetailPage() {
                         value={verifyRejectReason}
                         onChange={(e) => setVerifyRejectReason(e.target.value)}
                         placeholder="Alasan dikembalikan ke Tindakan berjalan..."
-                        className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                        className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                       />
                       <button
                         type="button"
                         disabled={verifyBusy}
                         onClick={() => handleVerify('reject')}
-                        className="h-11 rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-4 text-[13px] font-medium text-[var(--safety-danger-foreground)]"
+                        className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-4 text-[13px] font-medium text-[var(--safety-danger-foreground)]"
                       >
                         Tolak Verifikasi
                       </button>
@@ -803,12 +803,12 @@ export function CaseDetailPage() {
                       onChange={(e) => setReopenReason(e.target.value)}
                       placeholder="Alasan membuka ulang kasus..."
                       required
-                      className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                      className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                     />
                     <button
                       type="submit"
                       disabled={reopenBusy}
-                      className="h-11 rounded-[6px] border border-[var(--control)] px-4 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]"
+                      className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--control)] px-4 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]"
                     >
                       Buka Ulang
                     </button>

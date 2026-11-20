@@ -16,9 +16,15 @@ class SafetyCasePolicy
             : Response::deny('Anda tidak memiliki akses ke antrean seluruh kasus.');
     }
 
-    public function create(User $user): bool
+    public function create(User $user): Response
     {
-        return $user->is_active;
+        if (! $user->is_active) {
+            return Response::deny('Akun Anda tidak aktif.');
+        }
+
+        return $user->role === UserRole::Reporter
+            ? Response::allow()
+            : Response::deny('Hanya peran Pelapor yang dapat membuat laporan kasus baru.');
     }
 
     public function view(User $user, SafetyCase $case): Response
@@ -67,6 +73,20 @@ class SafetyCasePolicy
         return $user->role->canManageActions()
             ? Response::allow()
             : Response::deny('Anda tidak memiliki hak akses untuk mengelola tindakan.');
+    }
+
+    public function analyzeRootCause(User $user, SafetyCase $case): Response
+    {
+        if ($user->organization_id !== $case->organization_id) {
+            return Response::deny('Anda tidak memiliki akses ke kasus organisasi lain.');
+        }
+
+        $isAssignedPic = $case->assigned_pic_id === $user->id
+            || $case->actions()->where('pic_user_id', $user->id)->exists();
+
+        return $isAssignedPic
+            ? Response::allow()
+            : Response::deny('Hanya PIC yang ditugaskan pada kasus ini yang dapat mengisi analisis akar penyebab (5 Why & 6M).');
     }
 
     public function verify(User $user, SafetyCase $case): Response

@@ -57,29 +57,29 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Divided KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Kasus terbuka</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--text)] tabular-nums">
+      {/* Divided KPI Strip (crisp 1px hairlines across phone 2x2 & desktop 4-col) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Kasus terbuka</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {summary ? summary.open_cases_count : '—'}
           </div>
         </div>
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Tindakan terlambat</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Tindakan terlambat</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.overdue_actions_count : '—'}
           </div>
         </div>
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Selesai bulan ini</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Selesai bulan ini</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
             {summary ? summary.closed_this_month_count : '—'}
           </div>
         </div>
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Mesin berulang (90h)</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--accent)] tabular-nums">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Mesin berulang (90h)</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
           </div>
         </div>
@@ -87,8 +87,8 @@ export function DashboardPage() {
 
       {/* Charts Row: Single Data Hue (#F97316) horizontal bar lists */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4">
-          <div className="flex items-center justify-between">
+        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus per Mesin</h2>
             <span className="text-[12px] text-[var(--faint)]">Ambang berulang: ≥ 3 / 90 hari</span>
           </div>
@@ -134,8 +134,8 @@ export function DashboardPage() {
           )}
         </section>
 
-        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4">
-          <div className="flex items-center justify-between">
+        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus per Kategori</h2>
             <span className="text-[12px] text-[var(--faint)]">Total: {summary?.total_cases_count ?? '—'}</span>
           </div>
@@ -156,7 +156,7 @@ export function DashboardPage() {
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-[var(--raised)] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[#b4b4b4]"
+                        className="h-full rounded-full bg-[var(--muted)]"
                         style={{ width: `${widthPct}%` }}
                       />
                     </div>

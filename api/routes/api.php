@@ -56,8 +56,7 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
     Route::post('/cases/{case}/attachments', [SafetyCaseController::class, 'storeAttachments']);
     Route::post('/cases/{case}/triage', [SafetyCaseController::class, 'triage'])
         ->middleware('role:supervisor,admin');
-    Route::post('/cases/{case}/root-cause', [SafetyCaseController::class, 'analyzeRootCause'])
-        ->middleware('role:supervisor,hse,admin');
+    Route::post('/cases/{case}/root-cause', [SafetyCaseController::class, 'analyzeRootCause']);
     Route::post('/cases/{case}/actions', [SafetyCaseController::class, 'storeAction'])
         ->middleware('role:supervisor,hse,admin');
     Route::post('/cases/{case}/verify', [SafetyCaseController::class, 'verify'])

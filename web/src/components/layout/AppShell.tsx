@@ -47,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
     shortLabel: 'Lapor',
     to: '/report',
     icon: FilePlus2,
-    roles: ['reporter', 'supervisor', 'hse', 'admin'],
+    roles: ['reporter'],
     group: 'Utama',
   },
   {
@@ -55,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
     shortLabel: 'Kasus Saya',
     to: '/my-cases',
     icon: ClipboardList,
-    roles: ['reporter', 'supervisor', 'hse', 'admin'],
+    roles: ['reporter'],
     group: 'Utama',
   },
   {
@@ -63,7 +63,7 @@ const NAV_ITEMS: NavItem[] = [
     shortLabel: 'Tindakan',
     to: '/my-actions',
     icon: CheckSquare,
-    roles: ['reporter', 'supervisor', 'hse', 'admin'],
+    roles: ['reporter', 'supervisor'],
     group: 'Utama',
   },
   {
@@ -206,18 +206,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await logout()
   }
 
-  const mobileBottomItems =
+  const mobileBottomItems = (
     user.role === 'reporter'
       ? visibleItems.slice(0, 4)
-      : [
-          visibleItems[0],
-          visibleItems.find((i) => i.to === '/cases') || visibleItems[1],
-          visibleItems.find((i) => i.to === '/my-actions') || visibleItems[3],
-          visibleItems.find((i) => i.to === '/dashboard') || visibleItems[2],
-        ]
+      : user.role === 'supervisor'
+        ? [
+            visibleItems[0],
+            visibleItems.find((i) => i.to === '/cases'),
+            visibleItems.find((i) => i.to === '/my-actions'),
+            visibleItems.find((i) => i.to === '/dashboard'),
+          ]
+        : user.role === 'hse'
+          ? [
+              visibleItems[0],
+              visibleItems.find((i) => i.to === '/cases'),
+              visibleItems.find((i) => i.to === '/dashboard'),
+              visibleItems.find((i) => i.to === '/audit-logs'),
+            ]
+          : [
+              visibleItems[0],
+              visibleItems.find((i) => i.to === '/cases'),
+              visibleItems.find((i) => i.to === '/dashboard'),
+              visibleItems.find((i) => i.to === '/admin/machines'),
+            ]
+  ).filter((item): item is (typeof visibleItems)[number] => Boolean(item))
 
   return (
-    <div className="min-h-screen bg-[var(--ground)] text-[var(--text)] flex flex-col lg:flex-row">
+    <div className="min-h-screen overflow-x-clip bg-[var(--ground)] text-[var(--text)] flex flex-col lg:flex-row">
       {/* Desktop Ruled T-Frame Sidebar (lg: 232px; folds on phone & tablet per app-screens.md §12) */}
       <aside className="hidden lg:flex lg:w-[232px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[var(--rule)] lg:bg-[var(--ground)]">
         <div className="flex h-16 items-center gap-2.5 border-b border-[var(--rule)] px-5">
@@ -515,10 +530,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Phone & Tablet Bottom Navigation Bar (4 destinations, 56px height) */}
+      {/* Phone & Tablet Bottom Navigation Bar (4 destinations, 56px + safe area) */}
       <nav
         aria-label="Navigasi bawah mobile"
-        className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-[var(--rule)] bg-[var(--ground)] lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-[var(--rule)] bg-[var(--ground)] pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {mobileBottomItems.map((item) => {
           const Icon = item.icon
@@ -528,10 +543,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.to}
               to={item.to}
               className={cn(
-                'flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px]',
-                active ? 'text-[var(--text)] font-medium' : 'text-[var(--faint)]',
+                'relative flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] transition-colors',
+                active ? 'text-[var(--text)] font-medium' : 'text-[var(--faint)] hover:text-[var(--muted)]',
               )}
             >
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0 left-1/2 h-[2px] w-8 -translate-x-1/2 rounded-full bg-[var(--accent)]"
+                />
+              )}
               <Icon className="h-5 w-5 stroke-[1.75px]" />
               <span className="truncate max-w-[84px]">{item.shortLabel}</span>
             </Link>

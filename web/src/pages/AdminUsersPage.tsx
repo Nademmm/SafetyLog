@@ -119,7 +119,7 @@ export function AdminUsersPage() {
           <button
             type="submit"
             disabled={busy}
-            className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+            className="h-11 sm:col-span-2 lg:col-span-1 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
           >
             {busy ? 'Menyimpan...' : 'Tambah'}
           </button>
@@ -155,7 +155,7 @@ export function AdminUsersPage() {
               <button
                 type="button"
                 onClick={() => toggleActive(u)}
-                className="h-9 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)] self-start sm:self-auto"
+                className="h-11 sm:h-9 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] text-[var(--muted)] hover:text-[var(--text)] self-start sm:self-auto"
               >
                 {u.is_active ? 'Nonaktifkan' : 'Aktifkan'}
               </button>

@@ -68,6 +68,11 @@ class CaseActionResource extends JsonResource
                     'code' => $this->safetyCase->machine->code,
                     'name' => $this->safetyCase->machine->name,
                 ] : null,
+                'root_cause' => [
+                    'root_cause_category' => $this->safetyCase->root_cause_category,
+                    'five_whys' => $this->safetyCase->five_whys,
+                    'root_cause_summary' => $this->safetyCase->root_cause_summary,
+                ],
             ] : null),
             'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
             'created_at' => $this->created_at?->toIso8601String(),

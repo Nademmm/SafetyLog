@@ -72,7 +72,7 @@ export function AdminConfigPage() {
                 e.preventDefault()
                 void handleSaveRisk(rc, e.currentTarget)
               }}
-              className="lg:col-span-8 rounded-[12px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4"
+              className="lg:col-span-8 rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4"
             >
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1.5">
@@ -81,7 +81,7 @@ export function AdminConfigPage() {
                     name="min_score"
                     type="number"
                     defaultValue={rc.min_score}
-                    className="h-10 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -90,7 +90,7 @@ export function AdminConfigPage() {
                     name="max_score"
                     type="number"
                     defaultValue={rc.max_score}
-                    className="h-10 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -99,7 +99,7 @@ export function AdminConfigPage() {
                     name="first_response_hours"
                     type="number"
                     defaultValue={rc.first_response_hours}
-                    className="h-10 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -108,7 +108,7 @@ export function AdminConfigPage() {
                     name="permanent_action_hours"
                     type="number"
                     defaultValue={rc.permanent_action_hours}
-                    className="h-10 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
                   />
                 </div>
               </div>
@@ -124,7 +124,7 @@ export function AdminConfigPage() {
                   type="checkbox"
                   name="requires_preventive_action"
                   defaultChecked={rc.requires_preventive_action}
-                  className="h-4 w-4 accent-[#22c55e]"
+                  className="h-4 w-4 accent-[var(--accent)]"
                 />
                 <span>Wajib tindakan Preventif sebelum kasus ditutup</span>
               </label>
@@ -136,7 +136,7 @@ export function AdminConfigPage() {
                 <button
                   type="submit"
                   disabled={savingId === rc.id}
-                  className="h-10 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                  className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
                 >
                   {savingId === rc.id ? 'Menyimpan...' : 'Simpan'}
                 </button>

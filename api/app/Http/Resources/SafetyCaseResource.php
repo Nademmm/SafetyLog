@@ -132,8 +132,8 @@ class SafetyCaseResource extends JsonResource
                     && $user->role->canTriage()
                     && in_array($this->status, [CaseStatus::New, CaseStatus::Assessed], true),
                 'can_analyze_root_cause' => $isEditable
-                    && $user->role->canManageActions()
-                    && $this->status !== CaseStatus::New,
+                    && $this->status !== CaseStatus::New
+                    && $isPicOnCase,
                 'can_manage_actions' => $isEditable
                     && $user->role->canManageActions()
                     && $this->status !== CaseStatus::New,

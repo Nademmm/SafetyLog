@@ -110,7 +110,7 @@ class SafetyCaseController extends Controller
 
     public function analyzeRootCause(StoreRootCauseRequest $request, SafetyCase $case): JsonResponse
     {
-        Gate::authorize('manageActions', $case);
+        Gate::authorize('analyzeRootCause', $case);
 
         $updated = $this->workflow->analyzeRootCause($request->user(), $case, $request->validated());
 

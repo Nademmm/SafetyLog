@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { SlidersHorizontal } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { useReferenceData } from '@/lib/reference'
@@ -22,6 +23,8 @@ export function CasesQueuePage() {
   const [status, setStatus] = React.useState(searchParams.get('status') || '')
   const [riskLevel, setRiskLevel] = React.useState(searchParams.get('risk_level') || '')
   const [machineId, setMachineId] = React.useState(searchParams.get('machine_id') || '')
+  const [showMobileFilters, setShowMobileFilters] = React.useState(false)
+  const activeFilterCount = (riskLevel ? 1 : 0) + (machineId ? 1 : 0)
 
   const refQuery = useReferenceData()
   const machinesQuery = useQuery({
@@ -93,43 +96,70 @@ export function CasesQueuePage() {
         })}
       </div>
 
-      {/* Search & Filter Row */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari kasus, mesin, deskripsi..."
-          className="h-11 sm:col-span-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
-        />
+      {/* Search & Filter Row (1 compact row on phone, full 4-column inline on tablet/desktop) */}
+      <div className="space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-4 sm:gap-3">
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari kasus, mesin, deskripsi..."
+            className="h-11 min-w-0 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((v) => !v)}
+            aria-expanded={showMobileFilters}
+            aria-label="Filter risiko dan mesin"
+            className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-[6px] border px-3 text-[13px] font-medium sm:hidden ${
+              showMobileFilters || activeFilterCount > 0
+                ? 'border-[var(--accent)] bg-[var(--raised)] text-[var(--text)]'
+                : 'border-[var(--control)] bg-[var(--surface)] text-[var(--muted)]'
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            <span>Filter</span>
+            {activeFilterCount > 0 && (
+              <span className="flex h-4 min-w-[16px] items-center justify-center rounded-[4px] bg-[var(--accent)] px-1 font-mono text-[11px] font-semibold text-black tabular-nums">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
 
-        <select
-          value={riskLevel}
-          onChange={(e) => setRiskLevel(e.target.value)}
-          aria-label="Filter level risiko"
-          className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+        <div
+          className={`${
+            showMobileFilters ? 'grid' : 'hidden'
+          } grid-cols-2 gap-2.5 sm:contents`}
         >
-          <option value="">Semua Risiko</option>
-          {riskLevels.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
+          <select
+            value={riskLevel}
+            onChange={(e) => setRiskLevel(e.target.value)}
+            aria-label="Filter level risiko"
+            className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+          >
+            <option value="">Semua Risiko</option>
+            {riskLevels.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
 
-        <select
-          value={machineId}
-          onChange={(e) => setMachineId(e.target.value)}
-          aria-label="Filter mesin"
-          className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
-        >
-          <option value="">Semua Mesin</option>
-          {machines.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.code} — {m.name}
-            </option>
-          ))}
-        </select>
+          <select
+            value={machineId}
+            onChange={(e) => setMachineId(e.target.value)}
+            aria-label="Filter mesin"
+            className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+          >
+            <option value="">Semua Mesin</option>
+            {machines.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.code} — {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Cases List */}

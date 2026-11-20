@@ -49,30 +49,30 @@ export function K3HomePage() {
       </div>
 
       {/* Divided KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Menunggu verifikasi</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--accent)] tabular-nums">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Menunggu verifikasi</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {pendingVerifyQuery.isLoading
               ? '—'
               : (pendingVerifyQuery.data?.meta?.total ?? pendingCases.length)}
           </div>
         </div>
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Risiko tinggi terbuka</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Risiko tinggi terbuka</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.high_risk_open_count : '—'}
           </div>
         </div>
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Selesai bulan ini</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Selesai bulan ini</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
             {summary ? summary.closed_this_month_count : '—'}
           </div>
         </div>
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Mesin berulang (90h)</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--text)] tabular-nums">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Mesin berulang (90h)</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
           </div>
         </div>

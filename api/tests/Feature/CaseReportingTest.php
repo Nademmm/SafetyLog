@@ -153,4 +153,19 @@ class CaseReportingTest extends TestCase
         ])->assertCreated()
             ->assertJsonPath('open_cases_warning.has_open_cases', true);
     }
+
+    public function test_non_reporter_roles_cannot_submit_new_case(): void
+    {
+        $fx = $this->createOrganizationFixture();
+
+        foreach (['supervisor', 'hse', 'admin'] as $roleKey) {
+            Sanctum::actingAs($fx[$roleKey]);
+
+            $this->postJson('/api/cases', [
+                'machine_id' => $fx['machine']->id,
+                'case_type_id' => $fx['abnormalityType']->id,
+                'description' => "Percobaan lapor oleh {$roleKey}.",
+            ])->assertForbidden();
+        }
+    }
 }

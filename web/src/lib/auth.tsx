@@ -45,7 +45,14 @@ export function isRedirectAllowedForRole(path: string | null, role: UserRole): b
     return role === 'supervisor' || role === 'hse' || role === 'admin'
   }
 
-  // Routes accessible to all authenticated roles (/report, /qr/:token, /my-cases, /my-actions, /cases/:id)
+  if (clean === '/report' || clean.startsWith('/qr/') || clean === '/my-cases') {
+    return role === 'reporter'
+  }
+  if (clean === '/my-actions') {
+    return role === 'reporter' || role === 'supervisor'
+  }
+
+  // Case detail routes (/cases/:id)
   return true
 }
 

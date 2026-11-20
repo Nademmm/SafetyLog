@@ -193,10 +193,10 @@ export function ReportCasePage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               to={`/cases/${createdResult.caseData.id}`}
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+              className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[15px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] sm:h-11 sm:min-h-[44px] sm:flex-1 sm:text-[14px]"
             >
               Lihat Detail Kasus
             </Link>
@@ -210,7 +210,7 @@ export function ReportCasePage() {
                 setHasAffectedPeople(false)
                 setSearchParams({}, { replace: true })
               }}
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-4 text-[14px] font-medium text-[var(--text)] hover:bg-[var(--raised)]"
+              className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-4 text-[15px] font-medium text-[var(--text)] hover:bg-[var(--raised)] sm:h-11 sm:min-h-[44px] sm:flex-1 sm:text-[14px]"
             >
               Pindai Mesin Lain
             </button>
@@ -485,9 +485,9 @@ export function ReportCasePage() {
             <p className="text-[12px] text-[var(--safety-danger-foreground)]">{photoError}</p>
           )}
 
-          <div className="flex flex-col gap-2.5 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row">
             {photos.length < 5 && (
-              <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-4 text-[14px] font-medium text-[var(--text)] hover:border-[var(--accent)] sm:w-auto">
+              <label className="inline-flex h-12 min-h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-4 text-[15px] font-medium text-[var(--text)] hover:border-[var(--accent)] sm:h-11 sm:min-h-[44px] sm:w-auto sm:text-[14px]">
                 <Camera className="h-4 w-4 text-[var(--accent)]" />
                 <span>Foto ({photos.length}/5)</span>
                 <input
@@ -504,7 +504,7 @@ export function ReportCasePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="h-11 flex-1 rounded-[6px] bg-[var(--primary)] px-6 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+              className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-[6px] bg-[var(--primary)] px-6 text-[15px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 sm:h-11 sm:min-h-[44px] sm:flex-1 sm:text-[14px]"
             >
               {submitting ? 'Mengirim Laporan...' : 'Kirim Laporan'}
             </button>

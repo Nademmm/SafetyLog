@@ -99,11 +99,11 @@ export default function App() {
               }
             />
 
-            {/* Capture & Personal Workflows (All Roles) */}
+            {/* Capture & Personal Workflows (Role-Specific) */}
             <Route
               path="/report"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['reporter']}>
                   <AppShell>
                     <ReportCasePage />
                   </AppShell>
@@ -113,7 +113,7 @@ export default function App() {
             <Route
               path="/my-cases"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['reporter']}>
                   <AppShell>
                     <MyCasesPage />
                   </AppShell>
@@ -123,7 +123,7 @@ export default function App() {
             <Route
               path="/my-actions"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['reporter', 'supervisor']}>
                   <AppShell>
                     <MyActionsPage />
                   </AppShell>

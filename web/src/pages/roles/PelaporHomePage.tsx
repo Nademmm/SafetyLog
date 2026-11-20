@@ -47,24 +47,24 @@ export function PelaporHomePage() {
         </Link>
       </div>
 
-      {/* Divided KPI Strip (group, don't box) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y md:divide-y-0 md:divide-x divide-[var(--border)]">
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Laporan aktif saya</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--text)] tabular-nums">
+      {/* Divided KPI Strip (crisp 1px hairlines; 3rd cell spans full width on phone to avoid orphan) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Laporan aktif saya</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {myCasesQuery.isLoading ? '—' : openCasesCount}
           </div>
         </div>
-        <div className="p-5">
-          <div className="text-[13px] text-[var(--faint)]">Tindakan ditugaskan</div>
-          <div className="mt-1.5 text-[28px] font-semibold text-[var(--text)] tabular-nums">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Tindakan ditugaskan</div>
+          <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {myActionsQuery.isLoading ? '—' : openActionsCount}
           </div>
         </div>
-        <div className="col-span-2 md:col-span-1 p-5 border-t border-[#1f1f1f] md:border-t-0">
-          <div className="text-[13px] text-[var(--faint)]">Tindakan terlambat</div>
+        <div className="col-span-2 md:col-span-1 bg-[var(--surface)] p-4 sm:p-5">
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Tindakan terlambat</div>
           <div
-            className={`mt-1.5 text-[28px] font-semibold tabular-nums ${
+            className={`mt-1.5 text-[24px] sm:text-[28px] font-semibold tabular-nums ${
               overdueActionsCount > 0 ? 'text-[var(--safety-danger-foreground)]' : 'text-[var(--text)]'
             }`}
           >
