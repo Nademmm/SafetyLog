@@ -352,15 +352,20 @@ export function CaseDetailPage() {
             </div>
 
             {(caseData.attachments?.length ?? 0) > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                {caseData.attachments!.map((att) => (
-                  <AuthorizedImage
-                    key={att.id}
-                    attachmentId={att.id}
-                    alt={att.file_name}
-                    className="h-32 w-full rounded-[6px] object-cover border border-[var(--control)]"
-                  />
-                ))}
+              <div className="space-y-2 pt-2">
+                <div className="text-[12px] text-[var(--faint)]">
+                  Foto Lampiran ({caseData.attachments!.length}) · Ketuk foto untuk membuka ukuran penuh
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {caseData.attachments!.map((att) => (
+                    <AuthorizedImage
+                      key={att.id}
+                      attachmentId={att.id}
+                      alt={att.file_name}
+                      className="h-32 w-full rounded-[6px] object-cover border border-[var(--control)]"
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </section>

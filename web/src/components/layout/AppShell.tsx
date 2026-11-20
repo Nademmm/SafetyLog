@@ -147,6 +147,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [notifOpen, setNotifOpen] = React.useState(false)
   const [quickQuery, setQuickQuery] = React.useState('')
 
+  React.useEffect(() => {
+    if (!mobileMenuOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [mobileMenuOpen])
+
   const notifQuery = useQuery({
     queryKey: ['notifications'],
     queryFn: () =>
@@ -172,6 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!user) return <>{children}</>
 
   const homeUrl = roleHomePath(user.role)
+  const canAccessReport = user.role === 'reporter'
   const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(user.role)).map((item) => ({
     ...item,
     to: item.to === '__HOME__' ? homeUrl : item.to,
@@ -233,9 +243,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[var(--ground)] text-[var(--text)] flex flex-col lg:flex-row">
-      {/* Desktop Ruled T-Frame Sidebar (lg: 232px; folds on phone & tablet per app-screens.md §12) */}
-      <aside className="hidden lg:flex lg:w-[232px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[var(--rule)] lg:bg-[var(--ground)]">
-        <div className="flex h-16 items-center gap-2.5 border-b border-[var(--rule)] px-5">
+      {/* Desktop Ruled T-Frame Sidebar (fixed viewport height, non-scrollable to prevent scroll UI bugs) */}
+      <aside className="hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:overflow-hidden lg:w-[232px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[var(--rule)] lg:bg-[var(--ground)]">
+        <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-[var(--rule)] px-5">
           <SafetyLogMark />
           <div className="min-w-0">
             <div className="text-[15px] font-semibold tracking-tight text-[var(--text)]">
@@ -247,10 +257,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6" aria-label="Navigasi utama">
+        <nav className="flex-1 overflow-hidden px-3 py-3 space-y-4" aria-label="Navigasi utama">
           {groups.map((group) => (
             <div key={group} className="space-y-1">
-              <div className="px-3 pb-1.5 text-[12px] font-normal text-[var(--faint)]">{group}</div>
+              <div className="px-3 pb-1 text-[12px] font-normal text-[var(--faint)]">{group}</div>
               {visibleItems
                 .filter((item) => item.group === group)
                 .map((item) => {
@@ -276,7 +286,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-[var(--rule)] p-4 space-y-3">
+        <div className="shrink-0 border-t border-[var(--rule)] p-4 space-y-3">
           <div className="min-w-0">
             <div className="truncate text-[14px] font-medium text-[var(--text)]">{user.name}</div>
             <div className="truncate text-[12px] text-[var(--faint)]">
@@ -415,13 +425,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Quick Report Button on Phone/Tablet & Role Switcher on Desktop */}
-            <Link
-              to="/report"
-              className="inline-flex h-10 items-center rounded-[6px] bg-[var(--primary)] px-3 sm:px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] lg:hidden"
-            >
-              Lapor
-            </Link>
+            {/* Quick Report Button (hanya ditampilkan untuk peran yang berhak mengakses /report) */}
+            {canAccessReport && (
+              <Link
+                to="/report"
+                className="inline-flex h-10 items-center rounded-[6px] bg-[var(--primary)] px-3 sm:px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] lg:hidden"
+              >
+                Lapor
+              </Link>
+            )}
 
             <div className="hidden lg:flex h-full items-center border-l border-[var(--rule)] pl-4 ml-2 gap-3">
               <div className="text-right">
@@ -430,12 +442,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {user.site?.name || 'Site Utama'}
                 </div>
               </div>
-              <Link
-                to="/report"
-                className="inline-flex h-10 items-center rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
-              >
-                Lapor Kasus
-              </Link>
+              {canAccessReport && (
+                <Link
+                  to="/report"
+                  className="inline-flex h-10 items-center rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+                >
+                  Lapor Kasus
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -446,10 +460,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Mobile & Tablet Slide-Over Navigation Sheet */}
+      {/* Mobile & Tablet Slide-Over Navigation Sheet (locked non-scrollable viewport) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[var(--ground)] lg:hidden">
-          <div className="flex h-14 items-center justify-between border-b border-[var(--rule)] px-4">
+        <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[var(--ground)] lg:hidden">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--rule)] px-4">
             <div className="flex items-center gap-2">
               <SafetyLogMark />
               <span className="text-[15px] font-semibold text-[var(--text)]">SafetyLog</span>
@@ -467,7 +481,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+          <div className="flex-1 overflow-hidden px-4 py-3.5 space-y-4">
             {/* Mobile Quick Search */}
             <form onSubmit={handleQuickSearch}>
               <div className="relative">
@@ -477,14 +491,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   value={quickQuery}
                   onChange={(e) => setQuickQuery(e.target.value)}
                   placeholder="Cari nomor kasus, mesin, kata kunci..."
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+                  className="h-10 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
             </form>
 
             {groups.map((group) => (
               <div key={group} className="space-y-1">
-                <div className="px-2 pb-1 text-[12px] text-[var(--faint)]">{group}</div>
+                <div className="px-2 pb-0.5 text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
+                  {group}
+                </div>
                 {visibleItems
                   .filter((item) => item.group === group)
                   .map((item) => {
@@ -496,13 +512,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         to={item.to}
                         onClick={() => setMobileMenuOpen(false)}
                         className={cn(
-                          'flex h-11 items-center gap-3 rounded-[6px] px-3 text-[15px]',
+                          'flex h-10 items-center gap-3 rounded-[6px] px-3 text-[14px]',
                           active
                             ? 'bg-[var(--raised)] text-[var(--text)] font-medium'
                             : 'text-[var(--muted)]',
                         )}
                       >
-                        <Icon className="h-5 w-5 shrink-0 stroke-[1.75px]" />
+                        <Icon className="h-4 w-4 shrink-0 stroke-[1.75px]" />
                         <span>{item.label}</span>
                       </Link>
                     )
@@ -511,7 +527,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </div>
 
-          <div className="border-t border-[var(--rule)] p-4 flex items-center justify-between">
+          <div className="shrink-0 border-t border-[var(--rule)] p-4 flex items-center justify-between">
             <div className="min-w-0">
               <div className="truncate text-[14px] font-medium text-[var(--text)]">{user.name}</div>
               <div className="truncate text-[12px] text-[var(--faint)]">

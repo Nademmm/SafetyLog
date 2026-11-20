@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { SlidersHorizontal } from 'lucide-react'
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { useReferenceData } from '@/lib/reference'
@@ -25,6 +25,27 @@ export function CasesQueuePage() {
   const [machineId, setMachineId] = React.useState(searchParams.get('machine_id') || '')
   const [showMobileFilters, setShowMobileFilters] = React.useState(false)
   const activeFilterCount = (riskLevel ? 1 : 0) + (machineId ? 1 : 0)
+
+  const filterScrollRef = React.useRef<HTMLDivElement | null>(null)
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false)
+  const [canScrollRight, setCanScrollRight] = React.useState(false)
+
+  const syncFilterScroll = React.useCallback(() => {
+    const el = filterScrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }, [])
+
+  React.useEffect(() => {
+    syncFilterScroll()
+    window.addEventListener('resize', syncFilterScroll)
+    return () => window.removeEventListener('resize', syncFilterScroll)
+  }, [syncFilterScroll])
+
+  const scrollFilterBy = (delta: number) => {
+    filterScrollRef.current?.scrollBy({ left: delta, behavior: 'smooth' })
+  }
 
   const refQuery = useReferenceData()
   const machinesQuery = useQuery({
@@ -75,25 +96,95 @@ export function CasesQueuePage() {
         </div>
       </div>
 
-      {/* Status Underline Tabs */}
-      <div className="flex gap-5 overflow-x-auto border-b border-[var(--rule)] pb-0">
-        {STATUS_TABS.map((tab) => {
-          const active = status === tab.value
-          return (
+      {/* Interactive Scrollable Status Filter Pills with Scroll Arrows & Sleek Scrollbar */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-medium text-[var(--faint)]">Filter Status Kasus</span>
+          {(canScrollLeft || canScrollRight) && (
+            <span className="text-[11px] text-[var(--faint)] sm:hidden">Geser kiri/kanan →</span>
+          )}
+        </div>
+
+        <div className="relative flex items-center gap-1.5">
+          {canScrollLeft && (
             <button
-              key={tab.value || 'all'}
               type="button"
-              onClick={() => updateStatus(tab.value)}
-              className={`shrink-0 border-b-2 pb-2.5 text-[14px] transition-colors ${
-                active
-                  ? 'border-[var(--text)] font-medium text-[var(--text)]'
-                  : 'border-transparent text-[var(--faint)] hover:text-[var(--muted)]'
-              }`}
+              onClick={() => scrollFilterBy(-180)}
+              aria-label="Geser filter ke kiri"
+              className="hidden sm:inline-flex h-9 w-8 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] transition-colors cursor-pointer"
             >
-              {tab.label}
+              <ChevronLeft className="h-4 w-4" />
             </button>
-          )
-        })}
+          )}
+
+          <div className="relative min-w-0 flex-1">
+            {canScrollLeft && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[var(--ground)] to-transparent"
+              />
+            )}
+
+            <div
+              ref={filterScrollRef}
+              onScroll={syncFilterScroll}
+              role="tablist"
+              aria-label="Filter status kasus"
+              className="filter-scrollbar flex items-center gap-2 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth"
+            >
+              {STATUS_TABS.map((tab) => {
+                const active = status === tab.value
+                return (
+                  <button
+                    key={tab.value || 'all'}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={(e) => {
+                      updateStatus(tab.value)
+                      e.currentTarget.scrollIntoView({
+                        behavior: 'smooth',
+                        inline: 'nearest',
+                        block: 'nearest',
+                      })
+                    }}
+                    className={`inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[6px] border px-3.5 text-[13px] transition-all select-none ${
+                      active
+                        ? 'border-[var(--accent)] bg-[var(--raised)] font-semibold text-[var(--text)] shadow-sm'
+                        : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:border-[var(--faint)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                        active ? 'bg-[var(--accent)]' : 'bg-[var(--control)]'
+                      }`}
+                    />
+                    <span>{tab.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {canScrollRight && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--ground)] to-transparent"
+              />
+            )}
+          </div>
+
+          {canScrollRight && (
+            <button
+              type="button"
+              onClick={() => scrollFilterBy(180)}
+              aria-label="Geser filter ke kanan"
+              className="hidden sm:inline-flex h-9 w-8 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] transition-colors cursor-pointer"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search & Filter Row (1 compact row on phone, full 4-column inline on tablet/desktop) */}

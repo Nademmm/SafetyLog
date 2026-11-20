@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { ApiError } from '@/lib/api'
 import { isRedirectAllowedForRole, roleHomePath, useAuth } from '@/lib/auth'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
@@ -14,41 +15,12 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-const DEMO_ACCOUNTS = [
-  { label: 'Pelapor', email: 'pelapor@safetylog.test', roleNote: 'Lapor & PIC' },
-  { label: 'Supervisor', email: 'supervisor@safetylog.test', roleNote: 'Triase & CAPA' },
-  { label: 'K3 / Verifikator', email: 'k3@safetylog.test', roleNote: 'Verifikasi' },
-  { label: 'Manajer / Admin', email: 'admin@safetylog.test', roleNote: 'Dashboard & Master' },
-]
-
-const WORKFLOW_STAGES = [
-  {
-    code: '01 · CAPTURE',
-    title: 'Catat dari Lantai Produksi',
-    desc: 'Pindai QR mesin di HP, isi 3 kolom wajib dan foto kondisi dalam ≤ 60 detik.',
-  },
-  {
-    code: '02 · RESOLVE',
-    title: 'Triase 5×5 & Tindakan CAPA',
-    desc: 'Supervisor menilai keparahan × kemungkinan, menunjuk PIC, dan memantau tenggat SLA.',
-  },
-  {
-    code: '03 · LEARN',
-    title: 'Verifikasi Independen K3',
-    desc: 'Verifikator ≠ PIC memeriksa bukti penyelesaian dan mencatat ringkasan pembelajaran.',
-  },
-  {
-    code: '04 · PREVENT',
-    title: 'Cegah Masalah Berulang',
-    desc: 'Kasus Sedang/Tinggi wajib memiliki tindakan Preventif selesai; mesin berulang ditandai otomatis.',
-  },
-]
-
 export function LoginPage() {
   const { login, isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [serverError, setServerError] = React.useState<string | null>(null)
+  const [showPassword, setShowPassword] = React.useState(false)
 
   const redirectTo = searchParams.get('redirect')
 
@@ -64,7 +36,6 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -83,24 +54,26 @@ export function LoginPage() {
       if (err instanceof ApiError) {
         setServerError(err.message)
       } else {
-        setServerError('Tidak dapat terhubung ke server API SafetyLog.')
+        setServerError('Tidak dapat terhubung ke server SafetyLog. Periksa koneksi Anda.')
       }
     }
   }
 
-  const fillDemo = (email: string) => {
-    setServerError(null)
-    setValue('email', email, { shouldValidate: true })
-    setValue('password', 'password123', { shouldValidate: true })
-  }
-
   return (
     <div className="min-h-screen bg-[var(--ground)] text-[var(--text)] flex flex-col">
-      {/* Top Navbar with Brand and Icon-Only Day/Night Toggle */}
-      <header className="flex h-14 sm:h-[60px] lg:h-16 items-center justify-between border-b border-[var(--rule)] bg-[var(--ground)] px-4 sm:px-6 lg:px-8">
+      {/* Minimal Enterprise Top Bar */}
+      <header className="flex h-16 items-center justify-between px-4 sm:px-8">
         <div className="flex items-center gap-2.5">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect x="2" y="2" width="20" height="20" rx="4" stroke="var(--accent)" strokeWidth="2" />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect
+              x="2"
+              y="2"
+              width="20"
+              height="20"
+              rx="5"
+              stroke="var(--accent)"
+              strokeWidth="2"
+            />
             <path
               d="M8 12.5L10.8 15.3L16.5 9.2"
               stroke="var(--text)"
@@ -112,162 +85,135 @@ export function LoginPage() {
           <span className="text-[15px] font-semibold tracking-tight text-[var(--text)]">
             SafetyLog
           </span>
-          <span className="hidden sm:inline text-[12px] text-[var(--faint)]">
-            · Closed-Loop K3 &amp; Keandalan Mesin
-          </span>
         </div>
         <ThemeToggle />
       </header>
 
-      {/* Responsive All-Devices Content Grid */}
-      <main className="flex-1 flex items-center px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-        <div className="mx-auto w-full max-w-[1152px] grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
-          {/* Login & Quick Demo Column (First on Mobile/Tablet, Right on Desktop) */}
-          <div className="lg:col-span-5 lg:order-2 space-y-5">
-            <div>
-              <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-                Masuk ke SafetyLog
-              </h1>
-              <p className="mt-1 text-[14px] text-[var(--muted)]">
-                Masuk sesuai peran operasional Anda di pabrik.
-              </p>
+      {/* Centered Professional Auth Container */}
+      <main className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6">
+        <div className="w-full max-w-[400px] space-y-6">
+          {/* Brand Heading */}
+          <div className="text-center space-y-2">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[12px] border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect
+                  x="2"
+                  y="2"
+                  width="20"
+                  height="20"
+                  rx="5"
+                  stroke="var(--accent)"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M8 12.5L10.8 15.3L16.5 9.2"
+                  stroke="var(--text)"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
+            <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
+              Masuk ke SafetyLog
+            </h1>
+            <p className="text-[14px] text-[var(--muted)]">
+              Gunakan akun perusahaan Anda untuk melanjutkan.
+            </p>
+          </div>
 
-            <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-5">
-              {serverError && (
-                <div
-                  role="alert"
-                  className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3.5 py-2.5 text-[13px] text-[var(--safety-danger-foreground)]"
-                >
-                  {serverError}
-                </div>
-              )}
+          {/* Clean Elevated Login Card */}
+          <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7 shadow-[0_8px_30px_rgba(0,0,0,0.12)] space-y-5">
+            {serverError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-[8px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3.5 py-3 text-[13px] text-[var(--safety-danger-foreground)]"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{serverError}</span>
+              </div>
+            )}
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="email" className="block text-[14px] font-medium text-[var(--text)]">
-                    Email
-                  </label>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="block text-[13px] font-medium text-[var(--text)]">
+                  Alamat Email
+                </label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--faint)]" />
                   <input
                     id="email"
                     type="email"
                     autoComplete="email"
-                    placeholder="nama@pabrik.test"
+                    placeholder="nama@perusahaan.com"
                     {...register('email')}
-                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+                    className="h-11 w-full rounded-[8px] border border-[var(--control)] bg-[var(--ground)] pl-10 pr-3.5 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                   />
-                  {errors.email && (
-                    <p className="text-[12px] text-[var(--safety-danger-foreground)]">
-                      {errors.email.message}
-                    </p>
-                  )}
                 </div>
+                {errors.email && (
+                  <p className="text-[12px] text-[var(--safety-danger-foreground)]">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
 
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="password"
-                    className="block text-[14px] font-medium text-[var(--text)]"
-                  >
-                    Kata Sandi
-                  </label>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="password"
+                  className="block text-[13px] font-medium text-[var(--text)]"
+                >
+                  Kata Sandi
+                </label>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--faint)]" />
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     placeholder="Masukkan kata sandi"
                     {...register('password')}
-                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+                    className="h-11 w-full rounded-[8px] border border-[var(--control)] bg-[var(--ground)] pl-10 pr-11 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                   />
-                  {errors.password && (
-                    <p className="text-[12px] text-[var(--safety-danger-foreground)]">
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="h-11 w-full rounded-[6px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Memproses...' : 'Masuk'}
-                </button>
-              </form>
-            </div>
-
-            {/* Demo Quick-Fill Panel */}
-            <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-medium text-[var(--text)]">
-                  Isi Cepat Akun Demo (v0.1)
-                </span>
-                <span className="font-mono text-[11px] text-[var(--faint)]">
-                  Sandi: password123
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_ACCOUNTS.map((acc) => (
                   <button
-                    key={acc.email}
                     type="button"
-                    onClick={() => fillDemo(acc.email)}
-                    className="flex min-h-[44px] flex-col items-start justify-center rounded-[6px] border border-[var(--control)] bg-[var(--raised)] px-3 py-2 text-left hover:border-[var(--faint)]"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                    className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[6px] text-[var(--faint)] hover:text-[var(--text)] transition-colors"
                   >
-                    <span className="text-[13px] font-medium text-[var(--text)]">{acc.label}</span>
-                    <span className="text-[11px] text-[var(--faint)]">{acc.roleNote}</span>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
-                ))}
+                </div>
+                {errors.password && (
+                  <p className="text-[12px] text-[var(--safety-danger-foreground)]">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
-            </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Memverifikasi...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Masuk</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
           </div>
 
-          {/* Closed-Loop System Overview Column (Balances Desktop/Tablet Canvas) */}
-          <div className="lg:col-span-7 lg:order-1 space-y-5">
-            <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-                <span className="text-[14px] font-semibold text-[var(--text)]">
-                  Alur Tertutup SafetyLog (Closed-Loop CAPA)
-                </span>
-                <span className="font-mono text-[12px] text-[var(--accent)] tabular-nums">
-                  4 Peran · 10 Skenario UAT
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {WORKFLOW_STAGES.map((st) => (
-                  <div
-                    key={st.code}
-                    className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] p-4 space-y-1.5"
-                  >
-                    <div className="font-mono text-[11px] text-[var(--accent)]">{st.code}</div>
-                    <div className="text-[14px] font-semibold text-[var(--text)]">{st.title}</div>
-                    <p className="text-[13px] leading-relaxed text-[var(--muted)]">{st.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Divided KPI Reference Strip */}
-            <div className="grid grid-cols-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] divide-x divide-[var(--border)]">
-              <div className="p-4">
-                <div className="text-[12px] text-[var(--faint)]">Target waktu lapor</div>
-                <div className="mt-1 text-[20px] sm:text-[24px] font-semibold text-[var(--text)] tabular-nums">
-                  ≤ 60 dtk
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="text-[12px] text-[var(--faint)]">Matriks risiko K3</div>
-                <div className="mt-1 text-[20px] sm:text-[24px] font-semibold text-[var(--text)] tabular-nums">
-                  5 × 5
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="text-[12px] text-[var(--faint)]">Ambang berulang</div>
-                <div className="mt-1 text-[20px] sm:text-[24px] font-semibold text-[var(--text)] tabular-nums">
-                  ≥ 3 / 90h
-                </div>
-              </div>
-            </div>
+          {/* Subtle Support & Copyright Footer */}
+          <div className="text-center space-y-1 text-[12px] text-[var(--faint)]">
+            <p>Kendala akses akun? Hubungi Administrator pabrik Anda.</p>
+            <p className="opacity-80">SafetyLog · Platform K3 &amp; Keandalan Mesin</p>
           </div>
         </div>
       </main>

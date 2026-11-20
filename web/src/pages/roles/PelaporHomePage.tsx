@@ -38,13 +38,15 @@ export function PelaporHomePage() {
             {user?.site?.name || 'Site Utama'} · Catat kondisi tidak aman atau abnormalitas mesin kurang dari 60 detik.
           </p>
         </div>
-        <Link
-          to="/report"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
-        >
-          <Plus className="h-4 w-4 stroke-[2.2px]" />
-          <span>Lapor Masalah Baru</span>
-        </Link>
+        {user?.role === 'reporter' && (
+          <Link
+            to="/report"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+          >
+            <Plus className="h-4 w-4 stroke-[2.2px]" />
+            <span>Lapor Masalah Baru</span>
+          </Link>
+        )}
       </div>
 
       {/* Divided KPI Strip (crisp 1px hairlines; 3rd cell spans full width on phone to avoid orphan) */}

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Camera, CheckCircle2, QrCode, X } from 'lucide-react'
+import { AlertTriangle, Camera, Check, CheckCircle2, Copy, QrCode, X } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { compressImageFile } from '@/lib/image-compress'
 import { useReferenceData } from '@/lib/reference'
@@ -59,6 +59,29 @@ export function ReportCasePage() {
     caseData: SafetyCase
     emergencyReminder: string | null
   } | null>(null)
+  const [copiedCaseNumber, setCopiedCaseNumber] = React.useState(false)
+
+  const handleCopyCaseNumber = async (caseNumber: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(caseNumber)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = caseNumber
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
+      setCopiedCaseNumber(true)
+      window.setTimeout(() => setCopiedCaseNumber(false), 2000)
+    } catch {
+      setCopiedCaseNumber(false)
+    }
+  }
 
   const caseTypes = refQuery.data?.case_types ?? qrQuery.data?.case_types ?? []
 
@@ -183,10 +206,32 @@ export function ReportCasePage() {
             </div>
           )}
 
-          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--raised)] p-4 space-y-1">
-            <div className="text-[12px] text-[var(--faint)]">Nomor Kasus Resmi</div>
-            <div className="font-mono text-[22px] font-semibold text-[var(--text)] tabular-nums">
-              {createdResult.caseData.case_number}
+          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--raised)] p-4 space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <div className="text-[12px] text-[var(--faint)]">Nomor Kasus Resmi</div>
+                <div className="font-mono text-[20px] sm:text-[22px] font-semibold text-[var(--text)] tabular-nums break-all">
+                  {createdResult.caseData.case_number}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleCopyCaseNumber(createdResult.caseData.case_number)}
+                className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] font-medium text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--ground)] transition-colors"
+                aria-label="Salin nomor kasus"
+              >
+                {copiedCaseNumber ? (
+                  <>
+                    <Check className="h-4 w-4 text-[var(--safety-safe-foreground)]" />
+                    <span className="text-[var(--safety-safe-foreground)]">Tersalin</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 text-[var(--muted)]" />
+                    <span>Salin Nomor</span>
+                  </>
+                )}
+              </button>
             </div>
             <div className="text-[13px] text-[var(--muted)]">
               {createdResult.caseData.machine?.code} — {createdResult.caseData.machine?.name}
