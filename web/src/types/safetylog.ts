@@ -15,6 +15,13 @@ export type CaseStatus =
 export type ActionType = 'temporary' | 'corrective' | 'preventive'
 export type ActionStatus = 'open' | 'completed' | 'reopened'
 
+export interface PaginationMeta {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
+
 export interface OrganizationRef {
   id: number
   name: string
@@ -29,12 +36,23 @@ export interface SiteRef {
   is_active?: boolean
 }
 
+export interface AreaPicRef {
+  id: number
+  name: string
+  email?: string
+  role?: UserRole
+  role_label?: string
+  job_title?: string | null
+}
+
 export interface AreaRef {
   id: number
   site_id?: number
   name: string
   code: string
   is_active?: boolean
+  pic_user_id?: number | null
+  pic_user?: AreaPicRef | null
   site?: SiteRef | null
 }
 
@@ -90,7 +108,7 @@ export interface ReferenceData {
   case_types: CaseType[]
   categories: Category[]
   risk_configs: RiskConfig[]
-  configurations: Record<string, string | number | boolean>
+  configurations: Record<string, string | number | boolean | string[]>
   roles: EnumOption[]
   case_statuses: EnumOption[]
   action_types: EnumOption[]
@@ -105,8 +123,11 @@ export interface Machine {
   area_id?: number
   code: string
   name: string
+  description?: string | null
   qr_token: string
+  qr_url?: string
   is_active?: boolean
+  archived_at?: string | null
   site?: SiteRef | null
   area?: AreaRef | null
   open_cases_count?: number
@@ -167,6 +188,7 @@ export interface CaseAction {
 
 export interface CaseStatusHistory {
   id: number
+  safety_case_id?: number
   from_status: string | null
   from_status_label: string | null
   to_status: string
@@ -174,8 +196,29 @@ export interface CaseStatusHistory {
   action_name: string
   reason: string | null
   changed_by?: { id: number; name: string; role?: UserRole; role_label?: string } | null
-  safety_case?: { id: number; case_number: string } | null
+  safety_case?: {
+    id: number
+    case_number: string
+    status?: CaseStatus
+    status_label?: string
+  } | null
   created_at: string
+}
+
+export interface SafetyCaseSummary {
+  id: number
+  case_number: string
+  status: CaseStatus
+  status_label: string
+  risk_level: RiskLevel | null
+  risk_level_label: string | null
+  risk_score: number | null
+  short_description: string
+  is_machine_stopped: boolean
+  has_affected_people: boolean
+  reported_at: string
+  case_type: { id: number; code: string; name: string } | null
+  machine?: { id: number; code: string; name: string } | null
 }
 
 export interface SafetyCase {
@@ -245,6 +288,23 @@ export interface SafetyCase {
   updated_at?: string
 }
 
+export interface SimilarCaseItem {
+  id: number
+  case_number: string
+  status: CaseStatus
+  status_label: string
+  description: string
+  root_cause_category: string | null
+  root_cause_summary: string | null
+  learning_summary: string | null
+  machine: { id: number; code: string; name: string } | null
+  category: { id: number; name: string } | null
+  reported_at: string | null
+  similarity_percent: number
+  matching_reasons: string[]
+  method?: string
+}
+
 export interface AppNotification {
   id: number
   type: string
@@ -266,15 +326,19 @@ export interface DashboardData {
     total_cases_count: number
     recurring_machines_count: number
   }
+  recurring_rule?: {
+    threshold: number
+    window_days: number
+  }
   cases_per_machine: Array<{
     machine_id: number
     machine_code: string
     machine_name: string
     total_cases: number
-    recent_cases_count: number
-    open_cases_count: number
+    cases_last_90_days: number
+    open_cases: number
     is_recurring: boolean
-    recurring_label: string | null
+    recurring_label?: string | null
   }>
   cases_per_category: Array<{
     category_id: number | null
@@ -282,14 +346,14 @@ export interface DashboardData {
     total_cases: number
   }>
   cases_by_risk_level: Array<{
-    level: string
+    risk_level: string | null
     label: string
-    count: number
+    total_cases: number
   }>
   cases_by_status: Array<{
     status: string
     label: string
-    count: number
+    total_cases: number
   }>
   overdue_actions: Array<{
     id: number

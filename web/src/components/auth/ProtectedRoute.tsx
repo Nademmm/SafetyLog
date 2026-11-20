@@ -1,5 +1,5 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { roleHomePath, useAuth } from '@/lib/auth'
+import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import type { UserRole } from '@/types/safetylog'
 
 export function ProtectedRoute({

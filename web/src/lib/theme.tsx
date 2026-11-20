@@ -1,16 +1,7 @@
 import * as React from 'react'
-
-export type ThemeMode = 'dark' | 'light'
+import { ThemeContext, type ThemeMode } from '@/lib/theme-helpers'
 
 const THEME_KEY = 'safetylog_theme'
-
-interface ThemeContextValue {
-  theme: ThemeMode
-  setTheme: (mode: ThemeMode) => void
-  toggleTheme: () => void
-}
-
-const ThemeContext = React.createContext<ThemeContextValue | null>(null)
 
 function getInitialTheme(): ThemeMode {
   try {
@@ -62,12 +53,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       {children}
     </ThemeContext.Provider>
   )
-}
-
-export function useTheme(): ThemeContextValue {
-  const ctx = React.useContext(ThemeContext)
-  if (!ctx) {
-    throw new Error('useTheme harus digunakan di dalam ThemeProvider')
-  }
-  return ctx
 }

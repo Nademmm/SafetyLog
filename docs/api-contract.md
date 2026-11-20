@@ -13,10 +13,10 @@ Password seluruh akun demo lokal: `password123`
 
 | Email | Peran (`role`) | Label Indonesia | Hak Akses Utama |
 | --- | --- | --- | --- |
-| `pelapor@safetylog.test` | `reporter` | Pelapor | Lapor kasus, lihat kasus sendiri / kasus yang ditugaskan kepadanya, selesaikan tindakan jika jadi PIC |
-| `supervisor@safetylog.test` | `supervisor` | Supervisor | Semua akses pelapor + lihat semua kasus, cari kasus, analisis penyebab, triase risiko/PIC, tambah & ubah tindakan |
-| `k3@safetylog.test` | `hse` | K3/Verifikator | Lihat semua kasus, analisis penyebab, tambah tindakan, verifikasi & tutup kasus, buka ulang kasus |
-| `admin@safetylog.test` | `admin` | Manajer/Admin | Seluruh alur kasus + kelola site/area/mesin/user/konfigurasi |
+| `pelapor@safetylog.test` | `reporter` | Pelapor | Lapor kasus (`POST /api/cases`), lihat kasus sendiri / kasus yang ditugaskan kepadanya, selesaikan tindakan & isi 5 Why/6M bila jadi PIC |
+| `supervisor@safetylog.test` | `supervisor` | Supervisor | Lihat & cari semua kasus, triase risiko/PIC, tambah & ubah tindakan, selesaikan tindakan & isi 5 Why/6M bila jadi PIC |
+| `k3@safetylog.test` | `hse` | K3/Verifikator | Lihat semua kasus, tambah tindakan, verifikasi & tutup kasus (Verifikator ≠ PIC), buka ulang kasus/tindakan, dashboard & audit log |
+| `admin@safetylog.test` | `admin` | Manajer/Admin | Seluruh alur operasional (kecuali membuat laporan baru sebagai pelapor) + kelola site/area/mesin/user/konfigurasi |
 
 Catatan demo seeder:
 - `php artisan migrate:fresh --seed` mengisi data dasar (`B-03`: 1 organisasi, 1 site, 3 mesin, 4 user).
@@ -43,16 +43,16 @@ Catatan demo seeder:
 - `GET /api/machines/{machine}/cases` — Riwayat kasus mesin + penanda `is_recurring` (`"Berulang"` bila >= 3 kasus dalam 90 hari, `C-01`) (`Supervisor`, `K3`, `Admin`).
 
 ### Kasus: Capture, Search, Triage, 5 Why/6M, Actions, Verify, Reopen (`B-08`–`B-22`)
-- `POST /api/cases` — Buat laporan (`machine_id`, `case_type_id`, `description`, opsional `is_machine_stopped`, `has_affected_people`, `photos[]`/`photo`). Mengembalikan `data`, `emergency_reminder`, dan `open_cases_warning`.
+- `POST /api/cases` (Khusus `Pelapor`) — Buat laporan (`machine_id`, `case_type_id`, `description`, opsional `is_machine_stopped`, `has_affected_people`, `photos[]`/`photo`). Mengembalikan `data`, `emergency_reminder`, dan `open_cases_warning`.
 - `GET /api/my-cases` — Kasus milik pelapor (mendukung pencarian & filter).
 - `GET /api/cases` — Pencarian & antrean seluruh kasus (`Supervisor`, `K3`, `Admin`; `Pelapor` ditolak `403`). Pencarian `q` toleran salah ketik (contoh: `"konvayor"` menemukan `"konveyor"`). Filter: `status`, `risk_level`, `machine_id`, `site_id`, `area_id`, `case_type_id`, `category_id`, `is_machine_stopped`, `has_affected_people`, `date_from`, `date_to`, `per_page`.
 - `GET /api/cases/{case}` — Detail lengkap satu layar (foto, risiko, 5 Why/6M, tindakan, riwayat status, `available_actions`).
 - `GET /api/cases/{case}/summary` — Ringkasan non-sensitif untuk tautan peringatan `B-10`.
-- `GET /api/cases/{case}/similar` — Maksimal 5 kasus mirip berbasis kemiripan teks (`B-20`, non-AI).
+- `GET /api/cases/{case}/similar` (`Supervisor`, `K3`, `Admin`) — Maksimal 5 kasus mirip berbasis kemiripan teks (`B-20`, non-AI).
 - `GET /api/cases/{case}/histories` — Riwayat perubahan status kasus (`B-22`).
 - `POST /api/cases/{case}/attachments` — Unggah foto tambahan ke kasus aktif (JPG/PNG/WebP maks 5 MB, maks 5 file).
 - `POST /api/cases/{case}/triage` (`Supervisor`, `Admin`) — `assess` (hitung skor dari `risk_configs` + saran tenggat SLA), `reject`, atau `duplicate`.
-- `POST /api/cases/{case}/root-cause` (`Supervisor`, `K3`, `Admin`) — Simpan `root_cause_category` (6M terkonfigurasi), `five_whys` (1..5 baris), dan `root_cause_summary` (`B-13`).
+- `POST /api/cases/{case}/root-cause` (Khusus `PIC` yang ditugaskan pada kasus/tindakan) — Simpan `root_cause_category` (6M terkonfigurasi), `five_whys` (1..5 baris), dan `root_cause_summary` (`B-13`).
 - `POST /api/cases/{case}/actions` (`Supervisor`, `K3`, `Admin`) — Tambah tindakan `temporary` / `corrective` / `preventive` (`B-14`).
 - `POST /api/cases/{case}/verify` (`K3`, `Admin`) — `approve` (wajib `learning_summary`, tolak jika verifikator == PIC atau Sedang/Tinggi tanpa Preventif selesai) atau `reject` (wajib `rejection_reason`, opsional `reopen_action_ids[]`) (`B-16`).
 - `POST /api/cases/{case}/reopen` (`K3`, `Admin`) — Buka ulang kasus `Selesai` dengan `reason` wajib dan opsional `reopen_action_ids[]` (`B-17`).
@@ -74,7 +74,7 @@ Catatan demo seeder:
 - `POST /api/notifications/read-all` — Tandai semua notifikasi sudah dibaca.
 
 ### Master Data & Konfigurasi Admin (`role:admin`, `B-06`)
-- `GET /api/sites`
+- `GET /api/sites`, `POST /api/sites`, `PATCH /api/sites/{site}`, `POST /api/sites/{site}/archive`
 - `GET /api/areas`, `POST /api/areas`, `PATCH /api/areas/{area}`, `POST /api/areas/{area}/archive`
 - `POST /api/machines`, `PATCH /api/machines/{machine}`, `POST /api/machines/{machine}/archive`, `POST /api/machines/{machine}/regenerate-qr`
 - `GET /api/users`, `POST /api/users`, `PATCH /api/users/{user}`

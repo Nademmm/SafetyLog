@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { ApiError } from '@/lib/api'
-import { isRedirectAllowedForRole, roleHomePath, useAuth } from '@/lib/auth'
+import { isRedirectAllowedForRole, roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
 
 const loginSchema = z.object({

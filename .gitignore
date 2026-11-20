@@ -1,27 +1,28 @@
-# See https://github.com/github/gitignore for more about gitignore files
-
 # Dependencies
 node_modules/
 /pnpm-lock.yaml
 /yarn.lock
-/package-lock.lock
 
 # Laravel
-/vendor/
-/bootstrap/cache/
-/*.env
+/api/vendor/
+/api/bootstrap/cache/*.php
+/api/storage/*.key
+.env
+.env.*
+!.env.example
 
 # Database
 *.sqlite
-database/*.sqlite3
-database/*
+*.sqlite3
+*.sqlite-journal
 
-# PHP
+# Build outputs
+/web/dist/
+/web/dist-ssr/
+
+# Logs & Temp
 *.pid
 *.path
-composer.lock
-
-# Node
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -32,9 +33,3 @@ yarn-error.log*
 *.swp
 *.swo
 *.bak
-
-# Sprint Status - SafetyLog MVP
-# Item sudah dikerjain: B-01, B-02, B-03, B-04, B-05, B-06, B-07, B-09, B-22, B-23
-# Item masih harus: B-08, B-10, B-11, B-12, B-13, B-14, B-15, B-16, B-17, B-18, B-19, B-20, B-21, B-24, B-25
-# Stretch: C-01, C-02, C-03, C-04
-# Bukan untuk sprint: WhatsApp, Mode offline, AI/IoT, Ekspor Excel/PDF, dll.

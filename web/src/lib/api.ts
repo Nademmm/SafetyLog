@@ -1,6 +1,12 @@
 const TOKEN_KEY = 'safetylog_token'
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api'
 
+let unauthorizedHandler: (() => void) | null = null
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler
+}
+
 export class ApiError extends Error {
   status: number
   error_code?: string
@@ -68,11 +74,20 @@ export async function apiFetch<T>(
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  const res = await fetch(apiUrl(path), {
-    ...options,
-    headers,
-    body,
-  })
+  let res: Response
+  try {
+    res = await fetch(apiUrl(path), {
+      ...options,
+      headers,
+      body,
+    })
+  } catch {
+    throw new ApiError(
+      'Tidak dapat terhubung ke server. Periksa koneksi jaringan Anda.',
+      0,
+      { error_code: 'NETWORK_ERROR' },
+    )
+  }
 
   if (res.status === 204) {
     return {} as T
@@ -81,10 +96,15 @@ export async function apiFetch<T>(
   let data: Record<string, unknown> = {}
   const contentType = res.headers.get('content-type') || ''
   if (contentType.includes('application/json')) {
-    data = (await res.json()) as Record<string, unknown>
+    data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   }
 
   if (!res.ok) {
+    if (res.status === 401 && !path.startsWith('/auth/login')) {
+      setStoredToken(null)
+      unauthorizedHandler?.()
+    }
+
     const message =
       (typeof data.message === 'string' && data.message) ||
       `Permintaan gagal (${res.status}).`

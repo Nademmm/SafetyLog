@@ -1,0 +1,94 @@
+name: SafetyLog CI
+
+on:
+  push:
+    branches: ['main', 'feature/**', 'fix/**']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  backend:
+    name: Laravel API (Tests & Pint)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: safetylog_test
+          POSTGRES_USER: safetylog
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U safetylog -d safetylog_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, pdo_pgsql, pgsql, gd, mbstring, xml, bcmath
+          coverage: none
+
+      - name: Install Composer dependencies
+        working-directory: api
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Prepare environment
+        working-directory: api
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run Laravel Pint check
+        working-directory: api
+        run: ./vendor/bin/pint --test
+
+      - name: Run PHPUnit tests (SQLite in-memory)
+        working-directory: api
+        run: php artisan test
+
+      - name: Run PHPUnit tests (PostgreSQL + pg_trgm)
+        working-directory: api
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: safetylog_test
+          DB_USERNAME: safetylog
+          DB_PASSWORD: secret
+        run: php artisan test
+
+  frontend:
+    name: React PWA (Lint & Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install npm dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Run oxlint
+        working-directory: web
+        run: npm run lint
+
+      - name: Run TypeScript typecheck & production build
+        working-directory: web
+        run: npm run build

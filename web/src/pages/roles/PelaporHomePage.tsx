@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Plus } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import type { CaseAction, SafetyCase } from '@/types/safetylog'
 
 export function PelaporHomePage() {
@@ -24,7 +25,9 @@ export function PelaporHomePage() {
   const actions = myActionsQuery.data?.data ?? []
   const openCasesCount = cases.filter((c) => !c.is_locked).length
   const openActionsCount = actions.filter((a) => a.status !== 'completed').length
-  const overdueActionsCount = actions.filter((a) => a.is_overdue && a.status !== 'completed').length
+  const overdueActionsCount = actions.filter(
+    (a) => a.is_overdue && a.status !== 'completed',
+  ).length
 
   return (
     <div className="space-y-6">
@@ -35,7 +38,8 @@ export function PelaporHomePage() {
             Ruang Kerja Pelapor
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            {user?.site?.name || 'Site Utama'} · Catat kondisi tidak aman atau abnormalitas mesin kurang dari 60 detik.
+            {user?.site?.name || 'Site Utama'} · Catat kondisi tidak aman atau abnormalitas mesin
+            kurang dari 60 detik.
           </p>
         </div>
         {user?.role === 'reporter' && (
@@ -49,7 +53,17 @@ export function PelaporHomePage() {
         )}
       </div>
 
-      {/* Divided KPI Strip (crisp 1px hairlines; 3rd cell spans full width on phone to avoid orphan) */}
+      {(myCasesQuery.isError || myActionsQuery.isError) && (
+        <QueryErrorBanner
+          message="Gagal memuat sebagian data ruang kerja Pelapor."
+          onRetry={() => {
+            void myCasesQuery.refetch()
+            void myActionsQuery.refetch()
+          }}
+        />
+      )}
+
+      {/* Divided KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Laporan aktif saya</div>
@@ -67,7 +81,9 @@ export function PelaporHomePage() {
           <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Tindakan terlambat</div>
           <div
             className={`mt-1.5 text-[24px] sm:text-[28px] font-semibold tabular-nums ${
-              overdueActionsCount > 0 ? 'text-[var(--safety-danger-foreground)]' : 'text-[var(--text)]'
+              overdueActionsCount > 0
+                ? 'text-[var(--safety-danger-foreground)]'
+                : 'text-[var(--text)]'
             }`}
           >
             {myActionsQuery.isLoading ? '—' : overdueActionsCount}
@@ -80,16 +96,23 @@ export function PelaporHomePage() {
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
             <h2 className="text-[16px] font-semibold text-[var(--text)]">Laporan Terakhir Saya</h2>
-            <Link to="/my-cases" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1">
-              <span>Lihat semua</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            {user?.role === 'reporter' && (
+              <Link
+                to="/my-cases"
+                className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1"
+              >
+                <span>Lihat semua</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
           <div className="divide-y divide-[var(--rule)]">
             {myCasesQuery.isLoading ? (
               <div className="p-5 text-[14px] text-[var(--faint)]">Memuat laporan...</div>
             ) : myCasesQuery.isError ? (
-              <div className="p-5 text-[14px] text-[var(--safety-danger-foreground)]">Gagal memuat daftar laporan.</div>
+              <div className="p-5 text-[14px] text-[var(--safety-danger-foreground)]">
+                Gagal memuat daftar laporan.
+              </div>
             ) : cases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--faint)]">
                 Belum ada laporan yang Anda kirim. Gunakan tombol Lapor Masalah Baru untuk memulai.
@@ -112,7 +135,10 @@ export function PelaporHomePage() {
                   </div>
                   <div className="flex items-center justify-between gap-2 text-[12px] text-[var(--muted)]">
                     <span className="line-clamp-1">{c.description}</span>
-                    <RiskPill level={c.risk_assessment.risk_level} label={c.risk_assessment.risk_level_label} />
+                    <RiskPill
+                      level={c.risk_assessment.risk_level}
+                      label={c.risk_assessment.risk_level_label}
+                    />
                   </div>
                 </Link>
               ))
@@ -123,7 +149,10 @@ export function PelaporHomePage() {
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
             <h2 className="text-[16px] font-semibold text-[var(--text)]">Tindakan Saya (PIC)</h2>
-            <Link to="/my-actions" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1">
+            <Link
+              to="/my-actions"
+              className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1"
+            >
               <span>Lihat semua</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -132,7 +161,9 @@ export function PelaporHomePage() {
             {myActionsQuery.isLoading ? (
               <div className="p-5 text-[14px] text-[var(--faint)]">Memuat tindakan...</div>
             ) : myActionsQuery.isError ? (
-              <div className="p-5 text-[14px] text-[var(--safety-danger-foreground)]">Gagal memuat daftar tindakan.</div>
+              <div className="p-5 text-[14px] text-[var(--safety-danger-foreground)]">
+                Gagal memuat daftar tindakan.
+              </div>
             ) : actions.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--faint)]">
                 Tidak ada tindakan perbaikan yang ditugaskan kepada Anda saat ini.
@@ -148,13 +179,15 @@ export function PelaporHomePage() {
                     <span className="text-[12px] text-[var(--faint)]">
                       {a.action_type_label} · {a.safety_case?.case_number || ''}
                     </span>
-                    {a.is_overdue ? (
+                    {a.is_overdue && a.status !== 'completed' ? (
                       <OverduePill label={a.overdue_label} />
                     ) : (
                       <span className="text-[12px] text-[var(--muted)]">{a.status_label}</span>
                     )}
                   </div>
-                  <div className="text-[14px] font-medium text-[var(--text)] line-clamp-1">{a.title}</div>
+                  <div className="text-[14px] font-medium text-[var(--text)] line-clamp-1">
+                    {a.title}
+                  </div>
                   <div className="text-[12px] text-[var(--faint)] tabular-nums">
                     Tenggat: {formatDateTime(a.due_at)}
                   </div>

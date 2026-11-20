@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  AlertTriangle,
   Bell,
   CheckSquare,
   ClipboardList,
@@ -18,7 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
-import { roleHomePath, useAuth } from '@/lib/auth'
+import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
@@ -63,7 +64,7 @@ const NAV_ITEMS: NavItem[] = [
     shortLabel: 'Tindakan',
     to: '/my-actions',
     icon: CheckSquare,
-    roles: ['reporter', 'supervisor'],
+    roles: ['reporter', 'supervisor', 'hse', 'admin'],
     group: 'Utama',
   },
   {
@@ -146,6 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [notifOpen, setNotifOpen] = React.useState(false)
   const [quickQuery, setQuickQuery] = React.useState('')
+  const notifContainerRef = React.useRef<HTMLDivElement | null>(null)
 
   React.useEffect(() => {
     if (!mobileMenuOpen) return
@@ -155,6 +157,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       document.body.style.overflow = prevOverflow
     }
   }, [mobileMenuOpen])
+
+  React.useEffect(() => {
+    if (!notifOpen) return
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        notifContainerRef.current &&
+        !notifContainerRef.current.contains(event.target as Node)
+      ) {
+        setNotifOpen(false)
+      }
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setNotifOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [notifOpen])
 
   const notifQuery = useQuery({
     queryKey: ['notifications'],
@@ -211,9 +236,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const handleLogout = async () => {
-    navigate('/login', { replace: true })
-    queryClient.clear()
+    setMobileMenuOpen(false)
+    setNotifOpen(false)
     await logout()
+    navigate('/login', { replace: true })
   }
 
   const mobileBottomItems = (
@@ -230,8 +256,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ? [
               visibleItems[0],
               visibleItems.find((i) => i.to === '/cases'),
+              visibleItems.find((i) => i.to === '/my-actions'),
               visibleItems.find((i) => i.to === '/dashboard'),
-              visibleItems.find((i) => i.to === '/audit-logs'),
             ]
           : [
               visibleItems[0],
@@ -244,7 +270,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen overflow-x-clip bg-[var(--ground)] text-[var(--text)] flex flex-col lg:flex-row">
       {/* Desktop Ruled T-Frame Sidebar (fixed viewport height, non-scrollable to prevent scroll UI bugs) */}
-      <aside className="hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:overflow-hidden lg:w-[232px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[var(--rule)] lg:bg-[var(--ground)]">
+      <aside className="hidden print:hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:overflow-hidden lg:w-[232px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[var(--rule)] lg:bg-[var(--ground)]">
         <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-[var(--rule)] px-5">
           <SafetyLogMark />
           <div className="min-w-0">
@@ -257,10 +283,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-hidden px-3 py-3 space-y-4" aria-label="Navigasi utama">
+        <nav className="flex-1 overflow-hidden px-3 py-2.5 space-y-3" aria-label="Navigasi utama">
           {groups.map((group) => (
-            <div key={group} className="space-y-1">
-              <div className="px-3 pb-1 text-[12px] font-normal text-[var(--faint)]">{group}</div>
+            <div key={group} className="space-y-0.5">
+              <div className="px-3 pb-0.5 text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
+                {group}
+              </div>
               {visibleItems
                 .filter((item) => item.group === group)
                 .map((item) => {
@@ -271,7 +299,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       key={item.to}
                       to={item.to}
                       className={cn(
-                        'flex h-9 items-center gap-2.5 rounded-[6px] px-3 text-[14px] transition-colors',
+                        'flex h-8.5 min-h-[34px] items-center gap-2.5 rounded-[6px] px-3 text-[13.5px] transition-colors',
                         active
                           ? 'bg-[var(--raised)] text-[var(--text)] font-medium'
                           : 'text-[var(--muted)] hover:text-[var(--text)]',
@@ -286,7 +314,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="shrink-0 border-t border-[var(--rule)] p-4 space-y-3">
+        <div className="shrink-0 border-t border-[var(--rule)] p-3.5 space-y-2.5">
           <div className="min-w-0">
             <div className="truncate text-[14px] font-medium text-[var(--text)]">{user.name}</div>
             <div className="truncate text-[12px] text-[var(--faint)]">
@@ -307,13 +335,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top Navbar across Phone (56px), Tablet (60px), and Desktop (64px) */}
-        <header className="sticky top-0 z-30 flex h-14 sm:h-[60px] lg:h-16 items-center justify-between border-b border-[var(--rule)] bg-[var(--ground)] px-3 sm:px-5 lg:px-7 gap-2">
+        <header className="print:hidden sticky top-0 z-30 flex h-14 sm:h-[60px] lg:h-16 items-center justify-between border-b border-[var(--rule)] bg-[var(--ground)] px-3 sm:px-5 lg:px-7 gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Buka menu navigasi"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] lg:hidden"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -333,7 +361,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   value={quickQuery}
                   onChange={(e) => setQuickQuery(e.target.value)}
                   placeholder="Cari kasus, mesin, kata kunci..."
-                  className="h-10 w-[210px] md:w-[260px] lg:w-[340px] rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+                  className="h-11 w-[210px] md:w-[260px] lg:w-[340px] rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
             </form>
@@ -344,17 +372,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ThemeToggle />
 
             {/* Notification Bell (B-18) */}
-            <div className="relative flex items-center">
+            <div ref={notifContainerRef} className="relative flex items-center">
               <button
                 type="button"
-                onClick={() => setNotifOpen(!notifOpen)}
+                onClick={() => setNotifOpen((prev) => !prev)}
                 aria-label="Notifikasi"
-                className="relative flex h-10 w-10 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]"
+                aria-expanded={notifOpen}
+                className="relative flex h-11 w-11 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]"
               >
                 <Bell className="h-[18px] w-[18px] stroke-[1.75px]" />
                 {(unreadCount > 0 || overdueCount > 0) && (
                   <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-[4px] bg-[var(--safety-danger)] px-1 font-mono text-[11px] font-semibold text-white tabular-nums">
-                    {unreadCount || overdueCount}
+                    {unreadCount > 0 ? unreadCount : overdueCount}
                   </span>
                 )}
               </button>
@@ -383,6 +412,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       </button>
                     </div>
                   </div>
+
+                  {overdueCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotifOpen(false)
+                        navigate('/my-actions')
+                      }}
+                      className="flex w-full items-center gap-2.5 border-b border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-4 py-2.5 text-left text-[12px] text-[var(--safety-danger-foreground)] hover:opacity-90"
+                    >
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>
+                        Anda memiliki <strong className="font-semibold">{overdueCount}</strong>{' '}
+                        tindakan terlambat. Ketuk untuk membuka Tindakan Saya.
+                      </span>
+                    </button>
+                  )}
+
                   <div className="max-h-[340px] overflow-y-auto divide-y divide-[var(--rule)]">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-[13px] text-[var(--faint)]">
@@ -429,7 +476,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {canAccessReport && (
               <Link
                 to="/report"
-                className="inline-flex h-10 items-center rounded-[6px] bg-[var(--primary)] px-3 sm:px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] lg:hidden"
+                className="inline-flex h-11 items-center rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] lg:hidden"
               >
                 Lapor
               </Link>
@@ -445,7 +492,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {canAccessReport && (
                 <Link
                   to="/report"
-                  className="inline-flex h-10 items-center rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+                  className="inline-flex h-11 items-center rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
                 >
                   Lapor Kasus
                 </Link>
@@ -455,14 +502,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Canvas (responsive padding across 360px phone, 768px tablet, 1440px desktop) */}
-        <main className="flex-1 px-4 py-5 pb-24 sm:px-6 sm:py-6 sm:pb-24 lg:px-[29px] lg:py-7 lg:pb-10 max-w-[1260px] w-full mx-auto">
+        <main className="flex-1 px-4 py-5 pb-24 sm:px-6 sm:py-6 sm:pb-24 lg:px-[29px] lg:py-7 lg:pb-10 print:p-0 print:max-w-none max-w-[1260px] w-full mx-auto">
           {children}
         </main>
       </div>
 
       {/* Mobile & Tablet Slide-Over Navigation Sheet (locked non-scrollable viewport) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[var(--ground)] lg:hidden">
+        <div className="print:hidden fixed inset-0 z-50 flex flex-col overflow-hidden bg-[var(--ground)] lg:hidden">
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--rule)] px-4">
             <div className="flex items-center gap-2">
               <SafetyLogMark />
@@ -474,14 +521,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Tutup menu"
-                className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)]"
+                className="flex h-11 w-11 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)]"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden px-4 py-3.5 space-y-4">
+          <div className="flex-1 overflow-hidden px-4 py-3 space-y-3">
             {/* Mobile Quick Search */}
             <form onSubmit={handleQuickSearch}>
               <div className="relative">
@@ -491,13 +538,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   value={quickQuery}
                   onChange={(e) => setQuickQuery(e.target.value)}
                   placeholder="Cari nomor kasus, mesin, kata kunci..."
-                  className="h-10 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
             </form>
 
             {groups.map((group) => (
-              <div key={group} className="space-y-1">
+              <div key={group} className="space-y-0.5">
                 <div className="px-2 pb-0.5 text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
                   {group}
                 </div>
@@ -549,7 +596,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Phone & Tablet Bottom Navigation Bar (4 destinations, 56px + safe area) */}
       <nav
         aria-label="Navigasi bawah mobile"
-        className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-[var(--rule)] bg-[var(--ground)] pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="print:hidden fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-[var(--rule)] bg-[var(--ground)] pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {mobileBottomItems.map((item) => {
           const Icon = item.icon

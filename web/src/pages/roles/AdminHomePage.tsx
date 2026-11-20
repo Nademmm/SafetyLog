@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import type { DashboardData } from '@/types/safetylog'
 
 export function AdminHomePage() {
@@ -13,6 +14,7 @@ export function AdminHomePage() {
 
   const data = dashboardQuery.data?.data
   const summary = data?.summary
+  const recurringRule = data?.recurring_rule ?? { threshold: 3, window_days: 90 }
   const recurringMachines = (data?.cases_per_machine ?? []).filter((m) => m.is_recurring)
 
   return (
@@ -23,7 +25,8 @@ export function AdminHomePage() {
             Ruang Kerja Manajer &amp; Admin
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Ringkasan keandalan mesin, tindakan terlambat, serta pengelolaan area, mesin QR, pengguna, dan konfigurasi SLA.
+            Ringkasan keandalan mesin, tindakan terlambat, serta pengelolaan area, mesin QR,
+            pengguna, dan konfigurasi SLA.
           </p>
         </div>
         <Link
@@ -33,6 +36,13 @@ export function AdminHomePage() {
           Buka Dashboard Lengkap
         </Link>
       </div>
+
+      {dashboardQuery.isError && (
+        <QueryErrorBanner
+          message="Gagal memuat ringkasan pabrik."
+          onRetry={() => void dashboardQuery.refetch()}
+        />
+      )}
 
       {/* Divided KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
@@ -55,14 +65,16 @@ export function AdminHomePage() {
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Mesin berulang (90h)</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">
+            Mesin berulang ({recurringRule.window_days}h)
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
           </div>
         </div>
       </div>
 
-      {/* Admin Management Quick Links (clean flat list, no icon boxes) */}
+      {/* Admin Management Quick Links */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Link
           to="/admin/machines"
@@ -108,7 +120,9 @@ export function AdminHomePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Mesin dengan Masalah Berulang</h2>
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">
+              Mesin dengan Masalah Berulang
+            </h2>
             <Link to="/dashboard" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)]">
               Semua mesin
             </Link>
@@ -118,7 +132,8 @@ export function AdminHomePage() {
               <div className="p-5 text-[14px] text-[var(--faint)]">Memuat data mesin...</div>
             ) : recurringMachines.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--faint)]">
-                Belum ada mesin yang melewati ambang berulang (≥ 3 kasus dalam 90 hari).
+                Belum ada mesin yang melewati ambang berulang (≥ {recurringRule.threshold} kasus
+                dalam {recurringRule.window_days} hari).
               </div>
             ) : (
               recurringMachines.map((m) => (
@@ -129,8 +144,10 @@ export function AdminHomePage() {
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[12px] text-[var(--faint)]">{m.machine_code}</span>
-                      <RecurringPill label={m.recurring_label} />
+                      <span className="font-mono text-[12px] text-[var(--faint)]">
+                        {m.machine_code}
+                      </span>
+                      <RecurringPill label={m.recurring_label || 'Berulang'} />
                     </div>
                     <div className="mt-0.5 truncate text-[14px] font-medium text-[var(--text)]">
                       {m.machine_name}
@@ -138,9 +155,11 @@ export function AdminHomePage() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[16px] font-semibold text-[var(--text)] tabular-nums">
-                      {m.recent_cases_count}
+                      {m.cases_last_90_days}
                     </div>
-                    <div className="text-[11px] text-[var(--faint)]">kasus (90h)</div>
+                    <div className="text-[11px] text-[var(--faint)]">
+                      kasus ({recurringRule.window_days}h)
+                    </div>
                   </div>
                 </Link>
               ))
@@ -170,7 +189,9 @@ export function AdminHomePage() {
                   className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-[var(--hover-row)]"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-[14px] font-medium text-[var(--text)]">{oa.title}</div>
+                    <div className="truncate text-[14px] font-medium text-[var(--text)]">
+                      {oa.title}
+                    </div>
                     <div className="text-[12px] text-[var(--faint)]">
                       {oa.safety_case?.case_number} · PIC: {oa.pic?.name || '—'}
                     </div>

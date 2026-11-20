@@ -4,12 +4,14 @@ import { ArrowRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import type { DashboardData, SafetyCase } from '@/types/safetylog'
 
 export function SupervisorHomePage() {
   const newCasesQuery = useQuery({
     queryKey: ['cases', 'supervisor-new'],
-    queryFn: () => apiFetch<{ data: SafetyCase[]; meta?: { total: number } }>('/cases?status=new&per_page=6'),
+    queryFn: () =>
+      apiFetch<{ data: SafetyCase[]; meta?: { total: number } }>('/cases?status=new&per_page=6'),
   })
 
   const activeCasesQuery = useQuery({
@@ -25,6 +27,7 @@ export function SupervisorHomePage() {
   const newCases = newCasesQuery.data?.data ?? []
   const activeCases = activeCasesQuery.data?.data ?? []
   const summary = dashboardQuery.data?.data.summary
+  const hasError = newCasesQuery.isError || activeCasesQuery.isError || dashboardQuery.isError
 
   return (
     <div className="space-y-6">
@@ -45,10 +48,23 @@ export function SupervisorHomePage() {
         </Link>
       </div>
 
+      {hasError && (
+        <QueryErrorBanner
+          message="Sebagian data Supervisor gagal dimuat."
+          onRetry={() => {
+            void newCasesQuery.refetch()
+            void activeCasesQuery.refetch()
+            void dashboardQuery.refetch()
+          }}
+        />
+      )}
+
       {/* Divided KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Menunggu triase (Baru)</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">
+            Menunggu triase (Baru)
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {newCasesQuery.isLoading ? '—' : (newCasesQuery.data?.meta?.total ?? newCases.length)}
           </div>
@@ -60,7 +76,9 @@ export function SupervisorHomePage() {
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Risiko tinggi terbuka</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">
+            Risiko tinggi terbuka
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.high_risk_open_count : '—'}
           </div>
@@ -77,8 +95,13 @@ export function SupervisorHomePage() {
         {/* Queue: Baru */}
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Antrean Triase (Status Baru)</h2>
-            <Link to="/cases?status=new" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1">
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">
+              Antrean Triase (Status Baru)
+            </h2>
+            <Link
+              to="/cases?status=new"
+              className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1"
+            >
               <span>Semua</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -125,8 +148,13 @@ export function SupervisorHomePage() {
         {/* Active Cases / Overdue */}
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Tindakan Sedang Berjalan</h2>
-            <Link to="/cases?status=in_progress" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1">
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">
+              Tindakan Sedang Berjalan
+            </h2>
+            <Link
+              to="/cases?status=in_progress"
+              className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1"
+            >
               <span>Semua</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -176,8 +204,13 @@ export function SupervisorHomePage() {
       {(dashboardQuery.data?.data.overdue_actions.length ?? 0) > 0 && (
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Tindakan Melewati Tenggat SLA</h2>
-            <Link to="/dashboard" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)]">
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">
+              Tindakan Melewati Tenggat SLA
+            </h2>
+            <Link
+              to="/dashboard"
+              className="text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+            >
               Lihat Dashboard
             </Link>
           </div>
@@ -189,7 +222,9 @@ export function SupervisorHomePage() {
                 className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-[var(--hover-row)]"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-[14px] font-medium text-[var(--text)]">{oa.title}</div>
+                  <div className="truncate text-[14px] font-medium text-[var(--text)]">
+                    {oa.title}
+                  </div>
                   <div className="text-[12px] text-[var(--faint)]">
                     {oa.safety_case?.case_number} · PIC: {oa.pic?.name || '—'}
                   </div>

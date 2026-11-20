@@ -2,16 +2,20 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import type { DashboardData, SiteRef } from '@/types/safetylog'
 
 export function DashboardPage() {
+  const { user } = useAuth()
   const [siteId, setSiteId] = React.useState('')
 
   const sitesQuery = useQuery({
     queryKey: ['sites-opt'],
     queryFn: () => apiFetch<{ data: SiteRef[] }>('/sites'),
+    enabled: user?.role === 'admin',
     retry: false,
   })
 
@@ -23,6 +27,7 @@ export function DashboardPage() {
 
   const data = dashboardQuery.data?.data
   const summary = data?.summary
+  const recurringRule = data?.recurring_rule ?? { threshold: 3, window_days: 90 }
   const machines = data?.cases_per_machine ?? []
   const maxMachineCases = Math.max(1, ...machines.map((m) => m.total_cases))
   const categories = data?.cases_per_category ?? []
@@ -45,7 +50,7 @@ export function DashboardPage() {
             value={siteId}
             onChange={(e) => setSiteId(e.target.value)}
             aria-label="Filter site"
-            className="h-10 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)]"
+            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)]"
           >
             <option value="">Semua Site</option>
             {sitesQuery.data!.data.map((s) => (
@@ -56,6 +61,13 @@ export function DashboardPage() {
           </select>
         )}
       </div>
+
+      {dashboardQuery.isError && (
+        <QueryErrorBanner
+          message="Gagal memuat data dashboard pabrik."
+          onRetry={() => void dashboardQuery.refetch()}
+        />
+      )}
 
       {/* Divided KPI Strip (crisp 1px hairlines across phone 2x2 & desktop 4-col) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
@@ -78,7 +90,9 @@ export function DashboardPage() {
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Mesin berulang (90h)</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">
+            Mesin berulang ({recurringRule.window_days}h)
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
           </div>
@@ -90,7 +104,9 @@ export function DashboardPage() {
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus per Mesin</h2>
-            <span className="text-[12px] text-[var(--faint)]">Ambang berulang: ≥ 3 / 90 hari</span>
+            <span className="text-[12px] text-[var(--faint)]">
+              Ambang berulang: ≥ {recurringRule.threshold} / {recurringRule.window_days} hari
+            </span>
           </div>
 
           {dashboardQuery.isLoading ? (
@@ -115,7 +131,7 @@ export function DashboardPage() {
                         <span className="truncate text-[var(--text)] group-hover:underline">
                           {m.machine_name}
                         </span>
-                        {m.is_recurring && <RecurringPill label={m.recurring_label} />}
+                        {m.is_recurring && <RecurringPill label={m.recurring_label || 'Berulang'} />}
                       </div>
                       <span className="font-mono text-[var(--text)] tabular-nums shrink-0">
                         {m.total_cases}
@@ -137,7 +153,9 @@ export function DashboardPage() {
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus per Kategori</h2>
-            <span className="text-[12px] text-[var(--faint)]">Total: {summary?.total_cases_count ?? '—'}</span>
+            <span className="text-[12px] text-[var(--faint)]">
+              Total: {summary?.total_cases_count ?? '—'}
+            </span>
           </div>
 
           {dashboardQuery.isLoading ? (
@@ -152,7 +170,9 @@ export function DashboardPage() {
                   <div key={`${cat.category_name}-${idx}`} className="space-y-1.5">
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-[var(--text)]">{cat.category_name}</span>
-                      <span className="font-mono text-[var(--text)] tabular-nums">{cat.total_cases}</span>
+                      <span className="font-mono text-[var(--text)] tabular-nums">
+                        {cat.total_cases}
+                      </span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-[var(--raised)] overflow-hidden">
                       <div
@@ -169,13 +189,18 @@ export function DashboardPage() {
           {/* Risk distribution compact table */}
           {(data?.cases_by_risk_level?.length ?? 0) > 0 && (
             <div className="border-t border-[var(--rule)] pt-4 space-y-2">
-              <div className="text-[13px] font-medium text-[var(--muted)]">Sebaran Level Risiko</div>
-              <div className="grid grid-cols-3 gap-2">
-                {data!.cases_by_risk_level.map((r) => (
-                  <div key={r.level} className="rounded-[6px] bg-[var(--ground)] px-3 py-2">
+              <div className="text-[13px] font-medium text-[var(--muted)]">
+                Sebaran Level Risiko
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {data!.cases_by_risk_level.map((r, idx) => (
+                  <div
+                    key={`${r.risk_level ?? 'unassessed'}-${idx}`}
+                    className="rounded-[6px] bg-[var(--ground)] px-3 py-2"
+                  >
                     <div className="text-[12px] text-[var(--faint)]">{r.label}</div>
                     <div className="text-[18px] font-semibold text-[var(--text)] tabular-nums">
-                      {r.count}
+                      {r.total_cases}
                     </div>
                   </div>
                 ))}
@@ -188,7 +213,9 @@ export function DashboardPage() {
       {/* Overdue Actions Table */}
       <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
         <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-          <h2 className="text-[16px] font-semibold text-[var(--text)]">Daftar Tindakan Terlambat</h2>
+          <h2 className="text-[16px] font-semibold text-[var(--text)]">
+            Daftar Tindakan Terlambat
+          </h2>
           <Link to="/cases" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)]">
             Semua kasus
           </Link>
@@ -214,7 +241,9 @@ export function DashboardPage() {
                       · {oa.safety_case?.machine?.code}
                     </span>
                   </div>
-                  <div className="truncate text-[14px] font-medium text-[var(--text)]">{oa.title}</div>
+                  <div className="truncate text-[14px] font-medium text-[var(--text)]">
+                    {oa.title}
+                  </div>
                   <div className="text-[12px] text-[var(--faint)]">
                     PIC: {oa.pic?.name || '—'} · Tenggat: {formatDateTime(oa.due_at)}
                   </div>

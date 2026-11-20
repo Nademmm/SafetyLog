@@ -18,7 +18,7 @@ interface WindowWithBarcodeDetector extends Window {
   BarcodeDetector?: new (options?: { formats?: string[] }) => BarcodeDetectorLike
 }
 
-export function extractQrToken(rawValue: string): string | null {
+function extractQrToken(rawValue: string): string | null {
   const trimmed = rawValue.trim()
   if (!trimmed) return null
 
@@ -161,13 +161,6 @@ export function QrScannerStage({
   const [decodingPhoto, setDecodingPhoto] = React.useState(false)
   const [restartKey, setRestartKey] = React.useState(0)
 
-  React.useEffect(() => {
-    if (errorMessage) {
-      lockedRef.current = false
-      setRestartKey((k) => k + 1)
-    }
-  }, [errorMessage])
-
   const stopCamera = React.useCallback(() => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current)
@@ -276,7 +269,7 @@ export function QrScannerStage({
       cancelled = true
       stopCamera()
     }
-  }, [facingMode, restartKey, onDetected, stopCamera, isInsecureHttp])
+  }, [facingMode, restartKey, errorMessage, onDetected, stopCamera, isInsecureHttp])
 
   const handleImageQr = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null)

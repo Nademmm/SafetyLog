@@ -18,6 +18,7 @@ html.dark {
   --primary-ink: #000000;
   --primary-hover: #e5e5e5;
   --accent: #f97316;
+  --accent-ink: #000000;
 
   /* K3 Safety Semantics — Dark */
   --safety-danger: #ef4444;
@@ -99,6 +100,7 @@ html.light {
   --primary-ink: #ffffff;
   --primary-hover: #333638;
   --accent: #b93800;
+  --accent-ink: #ffffff;
 
   /* K3 Safety Semantics — Light (pale tints with ≥4.5:1 dark text of same hue) */
   --safety-danger: #c4242a;

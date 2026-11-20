@@ -1,13 +1,45 @@
+import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
-import type { CaseStatusHistory } from '@/types/safetylog'
+import { PaginationBar } from '@/components/safety/PaginationBar'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import type { CaseStatusHistory, PaginationMeta } from '@/types/safetylog'
+
+const ACTION_OPTIONS = [
+  { value: '', label: 'Semua Aksi' },
+  { value: 'case_reported', label: 'Kasus Dilaporkan' },
+  { value: 'case_triaged', label: 'Triase Risiko' },
+  { value: 'case_rejected', label: 'Kasus Ditolak' },
+  { value: 'case_marked_duplicate', label: 'Kasus Duplikat' },
+  { value: 'root_cause_analyzed', label: 'Analisis 5 Why & 6M' },
+  { value: 'action_created', label: 'Tindakan Dibuat' },
+  { value: 'action_completed', label: 'Tindakan Selesai' },
+  { value: 'all_actions_completed', label: 'Semua Tindakan Selesai' },
+  { value: 'verification_approved', label: 'Verifikasi Disetujui' },
+  { value: 'verification_rejected', label: 'Verifikasi Ditolak' },
+  { value: 'case_reopened', label: 'Kasus Dibuka Ulang' },
+]
 
 export function AuditLogsPage() {
+  const [actionName, setActionName] = React.useState('')
+  const [dateFrom, setDateFrom] = React.useState('')
+  const [dateTo, setDateTo] = React.useState('')
+  const [page, setPage] = React.useState(1)
+
   const logsQuery = useQuery({
-    queryKey: ['audit-logs'],
-    queryFn: () => apiFetch<{ data: CaseStatusHistory[] }>('/audit-logs?per_page=50'),
+    queryKey: ['audit-logs', actionName, dateFrom, dateTo, page],
+    queryFn: () => {
+      const p = new URLSearchParams({ per_page: '30', page: String(page) })
+      if (actionName) p.set('action_name', actionName)
+      if (dateFrom) p.set('date_from', dateFrom)
+      if (dateTo) p.set('date_to', dateTo)
+      return apiFetch<{ data: CaseStatusHistory[]; meta?: PaginationMeta }>(
+        `/audit-logs?${p.toString()}`,
+      )
+    },
   })
 
   const logs = logsQuery.data?.data ?? []
@@ -19,18 +51,85 @@ export function AuditLogsPage() {
           Riwayat Perubahan (Audit Log)
         </h1>
         <p className="mt-1 text-[14px] text-[var(--muted)]">
-          Catatan append-only seluruh perubahan status kasus dalam organisasi. Tidak dapat diubah atau dihapus.
+          Catatan append-only seluruh perubahan status kasus dalam organisasi. Tidak dapat diubah
+          atau dihapus.
         </p>
       </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <select
+          value={actionName}
+          onChange={(e) => {
+            setActionName(e.target.value)
+            setPage(1)
+          }}
+          aria-label="Filter jenis aksi"
+          className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+        >
+          {ACTION_OPTIONS.map((opt) => (
+            <option key={opt.value || 'all'} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => {
+            setDateFrom(e.target.value)
+            setPage(1)
+          }}
+          aria-label="Tanggal mulai"
+          className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+        />
+
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => {
+            setDateTo(e.target.value)
+            setPage(1)
+          }}
+          aria-label="Tanggal akhir"
+          className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+        />
+
+        {(actionName || dateFrom || dateTo) && (
+          <button
+            type="button"
+            onClick={() => {
+              setActionName('')
+              setDateFrom('')
+              setDateTo('')
+              setPage(1)
+            }}
+            className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+          >
+            <X className="h-4 w-4" />
+            Reset
+          </button>
+        )}
+      </div>
+
+      {logsQuery.isError && (
+        <QueryErrorBanner
+          message="Gagal memuat catatan audit log."
+          onRetry={() => void logsQuery.refetch()}
+        />
+      )}
 
       <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)]">
         {logsQuery.isLoading ? (
           <div className="p-5 text-[14px] text-[var(--faint)]">Memuat audit log...</div>
         ) : logs.length === 0 ? (
-          <div className="p-6 text-[14px] text-[var(--faint)]">Belum ada catatan audit log.</div>
+          <div className="p-6 text-[14px] text-[var(--faint)]">
+            Belum ada catatan audit log yang sesuai filter.
+          </div>
         ) : (
           <>
-            {/* Mobile Two-Line List (< md, per app-screens.md §12) */}
+            {/* Mobile Two-Line List */}
             <div className="divide-y divide-[var(--rule)] md:hidden">
               {logs.map((log) => (
                 <div key={log.id} className="px-4 py-3.5 space-y-1">
@@ -58,7 +157,7 @@ export function AuditLogsPage() {
               ))}
             </div>
 
-            {/* Tablet & Desktop Table (md+) */}
+            {/* Tablet & Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -106,6 +205,12 @@ export function AuditLogsPage() {
           </>
         )}
       </div>
+
+      <PaginationBar
+        meta={logsQuery.data?.meta}
+        onPageChange={setPage}
+        isFetching={logsQuery.isFetching}
+      />
     </div>
   )
 }

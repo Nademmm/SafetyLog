@@ -4,16 +4,44 @@ import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
-import type { SafetyCase } from '@/types/safetylog'
+import { PaginationBar } from '@/components/safety/PaginationBar'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import type { PaginationMeta, SafetyCase } from '@/types/safetylog'
 
 export function MyCasesPage() {
-  const [searchParams] = useSearchParams()
-  const [q, setQ] = React.useState(searchParams.get('q') || '')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlQ = searchParams.get('q') || ''
+  const page = Math.max(1, Number(searchParams.get('page') || '1') || 1)
+  const [qInput, setQInput] = React.useState(urlQ)
+
+  const prevUrlQRef = React.useRef(urlQ)
+  React.useEffect(() => {
+    if (prevUrlQRef.current !== urlQ) {
+      prevUrlQRef.current = urlQ
+      setQInput(urlQ)
+    }
+  }, [urlQ])
+
+  React.useEffect(() => {
+    const trimmed = qInput.trim()
+    if (trimmed === urlQ) return
+    const timer = window.setTimeout(() => {
+      const next = new URLSearchParams(searchParams)
+      if (trimmed) next.set('q', trimmed)
+      else next.delete('q')
+      next.delete('page')
+      setSearchParams(next, { replace: true })
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [qInput, urlQ, searchParams, setSearchParams])
 
   const casesQuery = useQuery({
-    queryKey: ['my-cases', q],
-    queryFn: () =>
-      apiFetch<{ data: SafetyCase[] }>(`/my-cases?per_page=30${q ? `&q=${encodeURIComponent(q)}` : ''}`),
+    queryKey: ['my-cases', urlQ, page],
+    queryFn: () => {
+      const p = new URLSearchParams({ per_page: '20', page: String(page) })
+      if (urlQ) p.set('q', urlQ)
+      return apiFetch<{ data: SafetyCase[]; meta?: PaginationMeta }>(`/my-cases?${p.toString()}`)
+    },
   })
 
   const cases = casesQuery.data?.data ?? []
@@ -22,7 +50,9 @@ export function MyCasesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">Kasus Saya</h1>
+          <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
+            Kasus Saya
+          </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
             Daftar laporan yang pernah Anda kirim beserta status tindak lanjutnya.
           </p>
@@ -38,12 +68,19 @@ export function MyCasesPage() {
       <div>
         <input
           type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          value={qInput}
+          onChange={(e) => setQInput(e.target.value)}
           placeholder="Cari nomor kasus atau deskripsi..."
           className="h-11 w-full max-w-md rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
         />
       </div>
+
+      {casesQuery.isError && (
+        <QueryErrorBanner
+          message="Gagal memuat daftar laporan Anda."
+          onRetry={() => void casesQuery.refetch()}
+        />
+      )}
 
       <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
         {casesQuery.isLoading ? (
@@ -86,6 +123,16 @@ export function MyCasesPage() {
           ))
         )}
       </div>
+
+      <PaginationBar
+        meta={casesQuery.data?.meta}
+        onPageChange={(nextPage) => {
+          const next = new URLSearchParams(searchParams)
+          next.set('page', String(nextPage))
+          setSearchParams(next, { replace: true })
+        }}
+        isFetching={casesQuery.isFetching}
+      />
     </div>
   )
 }

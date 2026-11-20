@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import type { DashboardData, SafetyCase } from '@/types/safetylog'
 
 export function K3HomePage() {
@@ -17,7 +18,10 @@ export function K3HomePage() {
 
   const highRiskQuery = useQuery({
     queryKey: ['cases', 'k3-high-risk'],
-    queryFn: () => apiFetch<{ data: SafetyCase[] }>('/cases?risk_level=high&per_page=6'),
+    queryFn: () =>
+      apiFetch<{ data: SafetyCase[] }>(
+        '/cases?risk_level=high&status=new,assessed,analyzed,in_progress,pending_verification&per_page=6',
+      ),
   })
 
   const dashboardQuery = useQuery({
@@ -26,8 +30,9 @@ export function K3HomePage() {
   })
 
   const pendingCases = pendingVerifyQuery.data?.data ?? []
-  const highRiskCases = (highRiskQuery.data?.data ?? []).filter((c) => !c.is_locked)
+  const highRiskCases = highRiskQuery.data?.data ?? []
   const summary = dashboardQuery.data?.data.summary
+  const hasError = pendingVerifyQuery.isError || highRiskQuery.isError || dashboardQuery.isError
 
   return (
     <div className="space-y-6">
@@ -37,7 +42,8 @@ export function K3HomePage() {
             Ruang Kerja K3 / Verifikator
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Verifikasi independen (Verifikator ≠ PIC) dan pastikan kasus Sedang/Tinggi memiliki tindakan Preventif selesai.
+            Verifikasi independen (Verifikator ≠ PIC) dan pastikan kasus Sedang/Tinggi memiliki
+            tindakan Preventif selesai.
           </p>
         </div>
         <Link
@@ -47,6 +53,17 @@ export function K3HomePage() {
           Periksa Antrean Verifikasi
         </Link>
       </div>
+
+      {hasError && (
+        <QueryErrorBanner
+          message="Sebagian data K3 gagal dimuat."
+          onRetry={() => {
+            void pendingVerifyQuery.refetch()
+            void highRiskQuery.refetch()
+            void dashboardQuery.refetch()
+          }}
+        />
+      )}
 
       {/* Divided KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
@@ -59,7 +76,9 @@ export function K3HomePage() {
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Risiko tinggi terbuka</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">
+            Risiko tinggi terbuka
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.high_risk_open_count : '—'}
           </div>
@@ -93,7 +112,9 @@ export function K3HomePage() {
           </div>
           <div className="divide-y divide-[var(--rule)]">
             {pendingVerifyQuery.isLoading ? (
-              <div className="p-5 text-[14px] text-[var(--faint)]">Memuat antrean verifikasi...</div>
+              <div className="p-5 text-[14px] text-[var(--faint)]">
+                Memuat antrean verifikasi...
+              </div>
             ) : pendingCases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--faint)]">
                 Tidak ada kasus yang menunggu verifikasi saat ini.
@@ -133,7 +154,9 @@ export function K3HomePage() {
         {/* High Risk Open Cases */}
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus Risiko Tinggi Terbuka</h2>
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">
+              Kasus Risiko Tinggi Terbuka
+            </h2>
             <Link
               to="/audit-logs"
               className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1"
@@ -144,7 +167,9 @@ export function K3HomePage() {
           </div>
           <div className="divide-y divide-[var(--rule)]">
             {highRiskQuery.isLoading ? (
-              <div className="p-5 text-[14px] text-[var(--faint)]">Memuat kasus risiko tinggi...</div>
+              <div className="p-5 text-[14px] text-[var(--faint)]">
+                Memuat kasus risiko tinggi...
+              </div>
             ) : highRiskCases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--faint)]">
                 Tidak ada kasus risiko tinggi yang terbuka.

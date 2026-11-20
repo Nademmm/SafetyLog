@@ -1,36 +1,42 @@
+import * as React from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, RecurringPill, RiskPill } from '@/components/safety/StatusPill'
-import type { Machine, SafetyCase } from '@/types/safetylog'
+import { PaginationBar } from '@/components/safety/PaginationBar'
+import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import type { Machine, PaginationMeta, SafetyCaseSummary } from '@/types/safetylog'
 
 export function MachineHistoryPage() {
   const { id } = useParams<{ id: string }>()
+  const [page, setPage] = React.useState(1)
 
   const historyQuery = useQuery({
-    queryKey: ['machine-cases', id],
+    queryKey: ['machine-cases', id, page],
     queryFn: () =>
       apiFetch<{
         machine: Machine
         is_recurring: boolean
-        recurring_label: string | null
-        recent_cases_count: number
-        data: SafetyCase[]
-      }>(`/machines/${id}/cases`),
+        recurring_label?: string | null
+        cases_last_90_days: number
+        data: SafetyCaseSummary[]
+        meta?: PaginationMeta
+      }>(`/machines/${id}/cases?page=${page}`),
     enabled: Boolean(id),
   })
 
   const machine = historyQuery.data?.machine
   const cases = historyQuery.data?.data ?? []
+  const totalCases = historyQuery.data?.meta?.total ?? cases.length
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <Link
           to="/dashboard"
-          className="inline-flex items-center gap-1.5 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+          className="inline-flex h-11 items-center gap-1.5 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Kembali ke Dashboard</span>
@@ -45,9 +51,17 @@ export function MachineHistoryPage() {
           )}
         </div>
         <p className="text-[14px] text-[var(--muted)]">
-          Total {cases.length} kasus tercatat · {historyQuery.data?.recent_cases_count ?? 0} kasus dalam 90 hari terakhir.
+          Total {totalCases} kasus tercatat · {historyQuery.data?.cases_last_90_days ?? 0} kasus
+          dalam 90 hari terakhir.
         </p>
       </div>
+
+      {historyQuery.isError && (
+        <QueryErrorBanner
+          message="Gagal memuat riwayat kasus mesin ini."
+          onRetry={() => void historyQuery.refetch()}
+        />
+      )}
 
       <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
         {historyQuery.isLoading ? (
@@ -68,15 +82,19 @@ export function MachineHistoryPage() {
                   <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
                     {c.case_number}
                   </span>
-                  <span className="text-[12px] text-[var(--faint)]">· {c.case_type?.name}</span>
+                  {c.case_type?.name && (
+                    <span className="text-[12px] text-[var(--faint)]">· {c.case_type.name}</span>
+                  )}
                 </div>
-                <div className="text-[14px] text-[var(--text)] line-clamp-1">{c.description}</div>
+                <div className="text-[14px] text-[var(--text)] line-clamp-1">
+                  {c.short_description}
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <RiskPill
-                  level={c.risk_assessment.risk_level}
-                  score={c.risk_assessment.risk_score}
-                  label={c.risk_assessment.risk_level_label}
+                  level={c.risk_level}
+                  score={c.risk_score}
+                  label={c.risk_level_label}
                 />
                 <CaseStatusPill status={c.status} label={c.status_label} />
                 <span className="hidden md:inline text-[12px] text-[var(--faint)] tabular-nums ml-2">
@@ -87,6 +105,12 @@ export function MachineHistoryPage() {
           ))
         )}
       </div>
+
+      <PaginationBar
+        meta={historyQuery.data?.meta}
+        onPageChange={setPage}
+        isFetching={historyQuery.isFetching}
+      />
     </div>
   )
 }

@@ -1,9 +1,10 @@
 import * as React from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Camera, Plus, Trash2, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Camera, ImagePlus, Plus, Trash2, X } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { compressImageFile } from '@/lib/image-compress'
-import type { CaseAction, ReferenceData } from '@/types/safetylog'
+import { useReferenceData } from '@/lib/reference'
+import type { CaseAction } from '@/types/safetylog'
 
 const DEFAULT_6M = ['Manusia', 'Mesin', 'Metode', 'Material', 'Pengukuran', 'Lingkungan']
 
@@ -31,11 +32,7 @@ export function CompleteActionModal({
   onCompleted,
 }: CompleteActionModalProps) {
   const queryClient = useQueryClient()
-
-  const refQuery = useQuery({
-    queryKey: ['references'],
-    queryFn: () => apiFetch<ReferenceData>('/references'),
-  })
+  const refQuery = useReferenceData()
 
   const categories6M = React.useMemo(() => {
     const configs = refQuery.data?.configurations
@@ -66,12 +63,24 @@ export function CompleteActionModal({
   const [rcSummary, setRcSummary] = React.useState(existingRootCause?.root_cause_summary || '')
   const [submitting, setSubmitting] = React.useState(false)
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
+  const [rootCauseSaved, setRootCauseSaved] = React.useState(false)
+
+  const activeCategory = categories6M.includes(rcCategory) ? rcCategory : categories6M[0]
 
   React.useEffect(() => {
-    if (categories6M.length > 0 && !categories6M.includes(rcCategory)) {
-      setRcCategory(categories6M[0])
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !submitting) {
+        onClose()
+      }
     }
-  }, [categories6M, rcCategory])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose, submitting])
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
@@ -104,17 +113,18 @@ export function CompleteActionModal({
 
     setSubmitting(true)
     try {
-      // 1. Simpan analisis 5 Why & 6M terlebih dahulu saat kasus masih editable
-      await apiFetch(`/cases/${caseId}/root-cause`, {
-        method: 'POST',
-        json: {
-          root_cause_category: rcCategory,
-          five_whys: cleanedWhys,
-          root_cause_summary: rcSummary.trim() || null,
-        },
-      })
+      if (!rootCauseSaved) {
+        await apiFetch(`/cases/${caseId}/root-cause`, {
+          method: 'POST',
+          json: {
+            root_cause_category: activeCategory,
+            five_whys: cleanedWhys,
+            root_cause_summary: rcSummary.trim() || null,
+          },
+        })
+        setRootCauseSaved(true)
+      }
 
-      // 2. Tandai tindakan selesai beserta catatan hasil & foto bukti
       const formData = new FormData()
       formData.append('completion_note', trimmedNote)
       photos.forEach((f) => formData.append('photos[]', f))
@@ -134,7 +144,13 @@ export function CompleteActionModal({
       onCompleted?.()
       onClose()
     } catch (err) {
-      setErrorMsg(err instanceof ApiError ? err.message : 'Gagal menyimpan penyelesaian tindakan.')
+      const baseMsg =
+        err instanceof ApiError ? err.message : 'Gagal menyimpan penyelesaian tindakan.'
+      setErrorMsg(
+        rootCauseSaved
+          ? `Analisis 5 Why & 6M sudah tersimpan, tetapi penyelesaian tindakan gagal: ${baseMsg}`
+          : baseMsg,
+      )
     } finally {
       setSubmitting(false)
     }
@@ -146,8 +162,14 @@ export function CompleteActionModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="complete-action-title"
+      onClick={() => {
+        if (!submitting) onClose()
+      }}
     >
-      <div className="flex max-h-[92vh] w-full max-w-xl flex-col rounded-t-[12px] sm:rounded-[8px] border border-[var(--control)] bg-[var(--surface)]">
+      <div
+        className="flex max-h-[92vh] w-full max-w-xl flex-col rounded-t-[12px] sm:rounded-[8px] border border-[var(--control)] bg-[var(--surface)]"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Sticky Header */}
         <div className="flex items-start justify-between gap-3 border-b border-[var(--rule)] px-5 py-4">
           <div className="min-w-0 space-y-0.5">
@@ -169,15 +191,20 @@ export function CompleteActionModal({
           <button
             type="button"
             onClick={onClose}
+            disabled={submitting}
             aria-label="Tutup modal"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] disabled:opacity-40"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Scrollable Body */}
-        <form id="complete-action-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        <form
+          id="complete-action-form"
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto px-5 py-4 space-y-5"
+        >
           {errorMsg && (
             <div className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3.5 py-2.5 text-[13px] text-[var(--safety-danger-foreground)]">
               {errorMsg}
@@ -213,17 +240,30 @@ export function CompleteActionModal({
               <label className="block text-[13px] font-medium text-[var(--muted)]">
                 Foto Bukti (Opsional, maks. 5 foto)
               </label>
-              <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]">
-                <Camera className="h-4 w-4 text-[var(--muted)]" />
-                <span>Pilih / Ambil Foto Bukti</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={handlePhotoChange}
-                  className="sr-only"
-                />
-              </label>
+              <div className="flex flex-wrap gap-2">
+                <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]">
+                  <Camera className="h-4 w-4 text-[var(--muted)]" />
+                  <span>Ambil Foto</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoChange}
+                    className="sr-only"
+                  />
+                </label>
+                <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]">
+                  <ImagePlus className="h-4 w-4 text-[var(--muted)]" />
+                  <span>Dari Galeri</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handlePhotoChange}
+                    className="sr-only"
+                  />
+                </label>
+              </div>
               {photos.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {photos.map((file, idx) => (
@@ -265,7 +305,7 @@ export function CompleteActionModal({
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {categories6M.map((cat) => {
-                  const selected = rcCategory === cat
+                  const selected = activeCategory === cat
                   return (
                     <button
                       key={cat}
@@ -273,7 +313,7 @@ export function CompleteActionModal({
                       onClick={() => setRcCategory(cat)}
                       className={`h-11 rounded-[6px] border px-3 text-[13px] font-medium transition-colors ${
                         selected
-                          ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-semibold'
+                          ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] font-semibold'
                           : 'border-[var(--control)] bg-[var(--ground)] text-[var(--text)] hover:bg-[var(--raised)]'
                       }`}
                     >
@@ -322,7 +362,7 @@ export function CompleteActionModal({
                       type="button"
                       onClick={() => setFiveWhys((prev) => prev.filter((_, i) => i !== idx))}
                       aria-label={`Hapus baris mengapa ke-${idx + 1}`}
-                      className="flex h-11 w-10 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--faint)] hover:text-[var(--safety-danger-foreground)]"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--faint)] hover:text-[var(--safety-danger-foreground)]"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -334,7 +374,7 @@ export function CompleteActionModal({
                 <button
                   type="button"
                   onClick={() => setFiveWhys((prev) => [...prev, ''])}
-                  className="inline-flex h-9 items-center gap-1.5 text-[13px] font-medium text-[var(--accent)] hover:underline"
+                  className="inline-flex h-11 items-center gap-1.5 text-[13px] font-medium text-[var(--accent)] hover:underline"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>Tambah baris Mengapa ({fiveWhys.length + 1})</span>
