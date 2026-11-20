@@ -106,7 +106,8 @@ export interface PendingQrRedirect {
 const AUTH_STORAGE_KEY = 'safetylog_auth_session_v1'
 const PENDING_QR_STORAGE_KEY = 'safetylog_pending_qr_redirect_v1'
 
-export const API_BASE_URL = 'http://localhost:8000/api'
+export const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api'
 
 export const DEMO_USERS: Array<AuthUser & { password: string }> = [
   {
