@@ -17,6 +17,7 @@ class Area extends Model
         'site_id',
         'name',
         'code',
+        'pic_user_id',
         'is_active',
         'archived_at',
     ];
@@ -32,6 +33,11 @@ class Area extends Model
     public function site(): BelongsTo
     {
         return $this->belongsTo(Site::class);
+    }
+
+    public function picUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pic_user_id');
     }
 
     public function machines(): HasMany

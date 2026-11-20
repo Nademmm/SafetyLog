@@ -43,6 +43,14 @@ class SafetyCaseResource extends JsonResource
                 'id' => $this->area->id,
                 'name' => $this->area->name,
                 'code' => $this->area->code,
+                'pic_user' => $this->area->relationLoaded('picUser') && $this->area->picUser ? [
+                    'id' => $this->area->picUser->id,
+                    'name' => $this->area->picUser->name,
+                    'email' => $this->area->picUser->email,
+                    'role' => $this->area->picUser->role->value,
+                    'role_label' => $this->area->picUser->role->label(),
+                    'job_title' => $this->area->picUser->job_title,
+                ] : null,
             ] : null),
             'machine' => $this->whenLoaded('machine', fn () => $this->machine ? [
                 'id' => $this->machine->id,

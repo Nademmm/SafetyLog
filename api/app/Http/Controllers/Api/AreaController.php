@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\UpdateAreaRequest;
 use App\Http\Requests\Admin\UpdateSiteRequest;
 use App\Models\Area;
 use App\Models\Site;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -82,7 +83,7 @@ class AreaController extends Controller
     {
         $query = Area::query()
             ->forOrganization($request->user()->organization_id)
-            ->with(['site:id,name,code'])
+            ->with(['site:id,name,code', 'picUser:id,name,email,role,job_title'])
             ->withCount(['machines' => fn ($q) => $q->where('is_active', true)->whereNull('archived_at')])
             ->orderBy('name');
 
@@ -101,18 +102,22 @@ class AreaController extends Controller
     {
         $orgId = $request->user()->organization_id;
         $site = $this->findActiveSite((int) $request->validated('site_id'), $orgId);
+        $picUserId = $request->filled('pic_user_id')
+            ? $this->findActiveOrganizationUser((int) $request->validated('pic_user_id'), $orgId)->id
+            : null;
 
         $area = Area::query()->create([
             'organization_id' => $orgId,
             'site_id' => $site->id,
             'name' => trim((string) $request->validated('name')),
             'code' => $this->generateAreaCode($orgId),
+            'pic_user_id' => $picUserId,
             'is_active' => true,
         ]);
 
         return response()->json([
             'message' => 'Area produksi berhasil ditambahkan.',
-            'data' => $area->load('site:id,name,code'),
+            'data' => $area->load(['site:id,name,code', 'picUser:id,name,email,role,job_title']),
         ], 201);
     }
 
@@ -130,6 +135,13 @@ class AreaController extends Controller
             $updates['name'] = trim((string) $request->validated('name'));
         }
 
+        if ($request->has('pic_user_id')) {
+            $rawPicId = $request->validated('pic_user_id');
+            $updates['pic_user_id'] = $rawPicId !== null
+                ? $this->findActiveOrganizationUser((int) $rawPicId, $area->organization_id)->id
+                : null;
+        }
+
         if ($request->has('is_active')) {
             $active = (bool) $request->validated('is_active');
             $updates['is_active'] = $active;
@@ -140,7 +152,7 @@ class AreaController extends Controller
 
         return response()->json([
             'message' => 'Area produksi berhasil diperbarui.',
-            'data' => $area->fresh('site:id,name,code'),
+            'data' => $area->fresh(['site:id,name,code', 'picUser:id,name,email,role,job_title']),
         ]);
     }
 
@@ -159,8 +171,24 @@ class AreaController extends Controller
             'message' => $activate
                 ? 'Area produksi berhasil diaktifkan kembali.'
                 : 'Area produksi berhasil diarsipkan.',
-            'data' => $area->fresh('site:id,name,code'),
+            'data' => $area->fresh(['site:id,name,code', 'picUser:id,name,email,role,job_title']),
         ]);
+    }
+
+    private function findActiveOrganizationUser(int $userId, int $organizationId): User
+    {
+        $user = User::query()
+            ->forOrganization($organizationId)
+            ->where('is_active', true)
+            ->find($userId);
+
+        if (! $user) {
+            throw new DomainRuleException('PIC area tidak ditemukan pada organisasi Anda.', 'INVALID_PIC_USER', 422, [
+                'pic_user_id' => ['PIC area harus pengguna aktif pada organisasi yang sama.'],
+            ]);
+        }
+
+        return $user;
     }
 
     private function findActiveSite(int $siteId, int $organizationId): Site
