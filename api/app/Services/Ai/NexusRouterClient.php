@@ -38,6 +38,10 @@ class NexusRouterClient
 
         $startedAt = microtime(true);
 
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(max(60, ($timeout * self::RETRY_ATTEMPTS) + 15));
+        }
+
         try {
             $response = Http::baseUrl($baseUrl)
                 ->acceptJson()
