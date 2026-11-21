@@ -1,4 +1,4 @@
-name: SafetyLog CI
+name: SafetyLog CI/CD
 
 on:
   push:
@@ -30,10 +30,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: pdo_sqlite, pdo_pgsql, pgsql, gd, mbstring, xml, bcmath
           coverage: none
 
@@ -92,3 +92,64 @@ jobs:
       - name: Run TypeScript typecheck & production build
         working-directory: web
         run: npm run build
+
+  deploy:
+    name: Deploy to Railway (Production)
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: railway-production-deploy
+      cancel-in-progress: false
+
+    env:
+      RAILWAY_TOKEN_SECRET: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN_SECRET: ${{ secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_PROJECT_ID: f3f4b408-82ec-4fea-8d56-be4dc5046200
+      RAILWAY_ENVIRONMENT_ID: e27be57f-1978-4170-bf9f-a6248e45e057
+      RAILWAY_API_SERVICE_ID: 8b39aa74-34c3-47fb-acd3-371a51c0a881
+      RAILWAY_WEB_SERVICE_ID: b1700f7f-1549-418c-9549-3f4ce9e91879
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Backend API (safetylog-api) & Frontend PWA (safetylog-web)
+        run: |
+          TOKEN="${RAILWAY_TOKEN_SECRET:-$RAILWAY_API_TOKEN_SECRET}"
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::Secret RAILWAY_TOKEN belum diatur di GitHub Repository Secrets. Lewati langkah deploy via GitHub Actions (atau gunakan Railway GitHub App autodeploy)."
+            exit 0
+          fi
+
+          deploy_service() {
+            local dir="$1"
+            local svc_id="$2"
+            local label="$3"
+
+            if RAILWAY_TOKEN="$TOKEN" railway up "$dir" --path-as-root \
+              --project "$RAILWAY_PROJECT_ID" \
+              --environment "$RAILWAY_ENVIRONMENT_ID" \
+              --service "$svc_id" \
+              --ci -m "GitHub Actions CD: deploy ${label} (${GITHUB_SHA::7})"; then
+              return 0
+            fi
+
+            echo "Mencoba ulang menggunakan mode RAILWAY_API_TOKEN..."
+            RAILWAY_API_TOKEN="$TOKEN" railway up "$dir" --path-as-root \
+              --project "$RAILWAY_PROJECT_ID" \
+              --environment "$RAILWAY_ENVIRONMENT_ID" \
+              --service "$svc_id" \
+              --ci -m "GitHub Actions CD: deploy ${label} (${GITHUB_SHA::7})"
+          }
+
+          deploy_service "./api" "$RAILWAY_API_SERVICE_ID" "safetylog-api"
+          deploy_service "./web" "$RAILWAY_WEB_SERVICE_ID" "safetylog-web"
