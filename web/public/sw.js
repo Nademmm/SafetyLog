@@ -1,4 +1,4 @@
-const CACHE_NAME = 'safetylog-shell-v3'
+const CACHE_NAME = 'safetylog-shell-v4'
 const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/favicon.svg?v=3']
 
 self.addEventListener('install', (event) => {
@@ -25,7 +25,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
-  if (request.method !== 'GET') return
+  if (request.method !== 'GET' || request.headers.has('range')) return
 
   const url = new URL(request.url)
   // Never cache API calls, auth requests, or cross-origin requests
@@ -38,9 +38,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response.status === 200) {
             const copy = response.clone()
-            void caches.open(CACHE_NAME).then((cache) => cache.put('/', copy))
+            void caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put('/', copy))
+              .catch(() => {})
           }
           return response
         })
@@ -60,9 +63,12 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         const networkPromise = fetch(request)
           .then((response) => {
-            if (response.ok) {
+            if (response.status === 200) {
               const copy = response.clone()
-              void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
+              void caches
+                .open(CACHE_NAME)
+                .then((cache) => cache.put(request, copy))
+                .catch(() => {})
             }
             return response
           })
