@@ -1,18 +1,19 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronRight, Filter, X } from 'lucide-react'
-import { apiFetch } from '@/lib/api'
+import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
-import type { DashboardData, SiteRef } from '@/types/safetylog'
+import type { AiDashboardSummary, AiEnvelope, DashboardData, SiteRef } from '@/types/safetylog'
 
 export function DashboardPage() {
   const { user } = useAuth()
   const [siteId, setSiteId] = React.useState('')
+  const [summarySiteId, setSummarySiteId] = React.useState<string | null>(null)
   const [filterOpen, setFilterOpen] = React.useState(false)
   const filterPanelRef = React.useRef<HTMLDivElement | null>(null)
 
@@ -46,6 +47,29 @@ export function DashboardPage() {
     queryFn: () =>
       apiFetch<{ data: DashboardData }>(`/dashboard${siteId ? `?site_id=${siteId}` : ''}`),
   })
+
+  const summaryMutation = useMutation({
+    mutationFn: ({ refresh }: { refresh: boolean }) =>
+      apiFetch<AiEnvelope<AiDashboardSummary>>('/ai/dashboard-summary', {
+        method: 'POST',
+        json: {
+          site_id: siteId ? Number(siteId) : null,
+          refresh,
+        },
+      }),
+    onSuccess: () => setSummarySiteId(siteId),
+    onError: () => setSummarySiteId(siteId),
+  })
+
+  const summaryResponse = summarySiteId === siteId ? summaryMutation.data : undefined
+  const aiSummary = summaryResponse?.data
+  const summaryVisible = summarySiteId === siteId
+
+  const changeSite = (nextSiteId: string) => {
+    setSiteId(nextSiteId)
+    setSummarySiteId(null)
+    summaryMutation.reset()
+  }
 
   const data = dashboardQuery.data?.data
   const summary = data?.summary
@@ -129,7 +153,7 @@ export function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          setSiteId('')
+                          changeSite('')
                           setFilterOpen(false)
                         }}
                         className={`flex min-h-[44px] sm:min-h-[40px] w-full items-center justify-between rounded-[6px] px-3 text-left text-[14px] transition-colors cursor-pointer ${
@@ -149,7 +173,7 @@ export function DashboardPage() {
                             key={s.id}
                             type="button"
                             onClick={() => {
-                              setSiteId(String(s.id))
+                              changeSite(String(s.id))
                               setFilterOpen(false)
                             }}
                             className={`flex min-h-[44px] sm:min-h-[40px] w-full items-center justify-between rounded-[6px] px-3 text-left text-[14px] transition-colors cursor-pointer ${
@@ -208,6 +232,117 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* AI-06: narrative summary built from the same dashboard aggregates */}
+      <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">Ringkasan AI</h2>
+            <p className="text-[12px] text-[var(--faint)]">
+              Narasi berdasarkan angka yang sudah dihitung SafetyLog, bukan sumber angka baru.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => summaryMutation.mutate({ refresh: Boolean(summaryResponse) })}
+            disabled={summaryMutation.isPending || dashboardQuery.isLoading}
+            className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--ground)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
+          >
+            {summaryMutation.isPending
+              ? 'Menyusun ringkasan...'
+              : summaryResponse
+                ? 'Perbarui Ringkasan'
+                : 'Buat Ringkasan AI'}
+          </button>
+        </div>
+
+        {summaryMutation.isError && summaryVisible && (
+          <div
+            role="alert"
+            className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3.5 py-2.5 text-[13px] text-[var(--safety-danger-foreground)]"
+          >
+            {summaryMutation.error instanceof ApiError
+              ? summaryMutation.error.message
+              : 'Gagal menyusun ringkasan AI.'}
+          </div>
+        )}
+
+        {summaryResponse && aiSummary && (
+          <div
+            role="status"
+            className="space-y-3 rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3.5"
+          >
+            <div className="text-[14px] font-semibold text-[var(--text)]">
+              {aiSummary.headline}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <div className="text-[12px] font-semibold text-[var(--muted)]">Temuan utama</div>
+                <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
+                  {aiSummary.key_findings.map((item, idx) => (
+                    <li key={`finding-${idx}`}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-[12px] font-semibold text-[var(--muted)]">
+                  Tindak lanjut yang disarankan
+                </div>
+                <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
+                  {aiSummary.suggested_follow_ups.length === 0 ? (
+                    <li className="list-none text-[var(--faint)]">
+                      Belum ada saran tindak lanjut.
+                    </li>
+                  ) : (
+                    aiSummary.suggested_follow_ups.map((item, idx) => (
+                      <li key={`followup-${idx}`}>{item}</li>
+                    ))
+                  )}
+                </ul>
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-[12px] font-semibold text-[var(--muted)]">Catatan tren</div>
+                <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
+                  {aiSummary.trend_observations.length === 0 ? (
+                    <li className="list-none text-[var(--faint)]">
+                      Data historis belum cukup.
+                    </li>
+                  ) : (
+                    aiSummary.trend_observations.map((item, idx) => (
+                      <li key={`trend-${idx}`}>{item}</li>
+                    ))
+                  )}
+                </ul>
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-[12px] font-semibold text-[var(--muted)]">
+                  Keterbatasan data
+                </div>
+                <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
+                  {aiSummary.data_limitations.length === 0 ? (
+                    <li className="list-none text-[var(--faint)]">
+                      Tidak ada catatan keterbatasan.
+                    </li>
+                  ) : (
+                    aiSummary.data_limitations.map((item, idx) => (
+                      <li key={`limitation-${idx}`}>{item}</li>
+                    ))
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-[var(--rule)] pt-2.5 space-y-0.5 text-[12px] text-[var(--faint)]">
+              <div>
+                {aiSummary.period?.label ?? 'Periode mengikuti data dashboard yang tersedia.'}
+                {' · '}Data hingga {formatDateTime(aiSummary.period?.as_of ?? aiSummary.generated_at)}.
+              </div>
+              <div>Dibuat {formatDateTime(aiSummary.generated_at)} · Ringkasan perlu ditinjau.</div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Charts Row: Single Data Hue (#F97316) horizontal bar lists */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">

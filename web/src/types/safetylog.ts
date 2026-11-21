@@ -374,3 +374,80 @@ export interface DashboardData {
     } | null
   }>
 }
+
+export interface AiEnvelope<T> {
+  data: T
+  meta: {
+    generated_by: string
+    requires_review: boolean
+  }
+}
+
+export interface AiTriageSuggestion {
+  category_id: number
+  category_name: string
+  severity: number
+  likelihood: number
+  reasoning: string[]
+  additional_information: string[]
+  scale_max: number
+  requires_review: boolean
+}
+
+export interface AiSimilarMatch {
+  id: number
+  case_number: string
+  status: string
+  status_label: string
+  description: string
+  machine: { id: number; code: string; name: string } | null
+  category: { id: number; name: string } | null
+  reported_at: string | null
+  similarity_percent: number
+  database_reasons: string[]
+  similarity_reason: string
+  differences: string[]
+  duplicate_assessment: 'possible_duplicate' | 'needs_review' | 'not_duplicate'
+}
+
+export interface AiSimilarAnalysis {
+  matches: AiSimilarMatch[]
+  summary: string
+  possible_duplicate: boolean
+  requires_review: boolean
+  source: string
+}
+
+export interface AiActionSuggestion {
+  action_type: ActionType
+  action_type_label: string
+  title: string
+  description: string
+  rationale: string
+  priority: 'high' | 'medium' | 'low'
+  suggested_pic_role: string | null
+}
+
+export interface AiActionSuggestions {
+  suggestions: AiActionSuggestion[]
+  limitations: string[]
+  requires_review: boolean
+}
+
+export interface AiDashboardSummary {
+  headline: string
+  key_findings: string[]
+  trend_observations: string[]
+  suggested_follow_ups: string[]
+  data_limitations: string[]
+  period?: {
+    scope: string
+    label: string
+    as_of: string
+    closed_this_month_from: string
+    recurring_window_days: number | null
+  } | null
+  statistics: Record<string, unknown>
+  generated_at: string
+  requires_review: boolean
+}

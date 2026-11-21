@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
   Camera,
@@ -18,7 +18,13 @@ import { compressImageFile } from '@/lib/image-compress'
 import { useReferenceData } from '@/lib/reference'
 import { QrScannerStage } from '@/components/safety/QrScannerStage'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
-import type { Machine, SafetyCase, SafetyCaseSummary } from '@/types/safetylog'
+import type {
+  AiEnvelope,
+  AiTriageSuggestion,
+  Machine,
+  SafetyCase,
+  SafetyCaseSummary,
+} from '@/types/safetylog'
 
 const QUICK_SYMPTOMS = [
   'Suara / getaran abnormal',
@@ -77,6 +83,11 @@ export function ReportCasePage() {
     caseData: SafetyCase
     emergencyReminder: string | null
   } | null>(null)
+  const [aiTriageState, setAiTriageState] = React.useState<{
+    key: string
+    data: AiTriageSuggestion | null
+    error: string | null
+  }>({ key: '', data: null, error: null })
   const [copiedCaseNumber, setCopiedCaseNumber] = React.useState(false)
   const copyTimerRef = React.useRef<number | null>(null)
   const photoEntriesRef = React.useRef<PhotoEntry[]>([])
@@ -132,6 +143,33 @@ export function ReportCasePage() {
   const selectedCaseType = caseTypes.find((ct) => String(ct.id) === effectiveCaseTypeId)
   const showEmergencyReminder = Boolean(selectedCaseType?.is_incident && hasAffectedPeople)
   const openCases = qrQuery.data?.open_cases_warning?.cases ?? []
+  const currentTriageKey = `${machine?.id ?? ''}:${effectiveCaseTypeId}:${description.trim()}`
+  const aiTriage = aiTriageState.key === currentTriageKey ? aiTriageState.data : null
+  const aiTriageError = aiTriageState.key === currentTriageKey ? aiTriageState.error : null
+
+  const triageSuggestion = useMutation({
+    mutationFn: () =>
+      apiFetch<AiEnvelope<AiTriageSuggestion>>('/ai/triage-suggestion', {
+        method: 'POST',
+        json: {
+          description: description.trim(),
+          case_type_id: effectiveCaseTypeId ? Number(effectiveCaseTypeId) : null,
+          machine_id: machine?.id ?? null,
+          is_machine_stopped: isMachineStopped,
+          has_affected_people: hasAffectedPeople,
+        },
+      }),
+    onSuccess: (response) => {
+      setAiTriageState({ key: currentTriageKey, data: response.data, error: null })
+    },
+    onError: (error) => {
+      setAiTriageState({
+        key: currentTriageKey,
+        data: null,
+        error: error instanceof ApiError ? error.message : 'Gagal meminta saran triase AI.',
+      })
+    },
+  })
 
   const handleQrDetected = React.useCallback(
     (token: string) => {
@@ -649,6 +687,69 @@ export function ReportCasePage() {
             required
             className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
           />
+
+          <div className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] p-3.5 space-y-3">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[13px] font-semibold text-[var(--text)]">
+                  Bantuan triase awal (opsional)
+                </div>
+                <div className="text-[12px] text-[var(--faint)]">
+                  Saran untuk dipertimbangkan supervisor. Tidak mengubah laporan yang dikirim.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => triageSuggestion.mutate()}
+                disabled={triageSuggestion.isPending || description.trim().length < 5}
+                className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
+              >
+                {triageSuggestion.isPending ? 'Meminta saran...' : 'Minta Saran AI'}
+              </button>
+            </div>
+
+            {aiTriageError && (
+              <div
+                role="alert"
+                className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[12px] text-[var(--safety-danger-foreground)]"
+              >
+                {aiTriageError}
+              </div>
+            )}
+
+            {aiTriage && (
+              <div
+                role="status"
+                className="space-y-2 rounded-[6px] border border-[var(--rule)] bg-[var(--surface)] p-3"
+              >
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+                  <span className="text-[var(--muted)]">
+                    Kategori: <strong className="text-[var(--text)]">{aiTriage.category_name}</strong>
+                  </span>
+                  <span className="text-[var(--muted)]">
+                    Keparahan <strong className="text-[var(--text)]">{aiTriage.severity}</strong> · Kemungkinan{' '}
+                    <strong className="text-[var(--text)]">{aiTriage.likelihood}</strong> (skala 1-{aiTriage.scale_max})
+                  </span>
+                </div>
+                {aiTriage.reasoning.length > 0 && (
+                  <ul className="list-disc space-y-0.5 pl-5 text-[12px] text-[var(--muted)]">
+                    {aiTriage.reasoning.map((reason, idx) => (
+                      <li key={`${reason}-${idx}`}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+                {aiTriage.additional_information.length > 0 && (
+                  <div className="text-[12px] text-[var(--muted)]">
+                    <span className="font-medium">Informasi yang belum ada:</span>{' '}
+                    {aiTriage.additional_information.join(' · ')}
+                  </div>
+                )}
+                <div className="text-[11px] text-[var(--faint)]">
+                  Rekomendasi AI harus ditinjau, penilaian resmi dilakukan melalui triase.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 4. Foto Bukti (Kamera & Galeri terpisah) + Kirim */}

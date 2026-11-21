@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -24,10 +24,29 @@ import { Select } from '@/components/ui/FormField'
 import { SectionLoading } from '@/components/ui/waveform-loader'
 import type {
   ActionType,
+  AiActionSuggestions,
+  AiEnvelope,
+  AiSimilarAnalysis,
+  AiTriageSuggestion,
   CaseAction,
   SafetyCase,
   SimilarCaseItem,
 } from '@/types/safetylog'
+
+const AI_DUPLICATE_LABELS: Record<
+  AiSimilarAnalysis['matches'][number]['duplicate_assessment'],
+  string
+> = {
+  possible_duplicate: 'Kemungkinan duplikat',
+  needs_review: 'Perlu ditinjau',
+  not_duplicate: 'Bukan duplikat',
+}
+
+const AI_PRIORITY_LABELS: Record<'high' | 'medium' | 'low', string> = {
+  high: 'Prioritas tinggi',
+  medium: 'Prioritas sedang',
+  low: 'Prioritas rendah',
+}
 
 function toLocalDateTimeInput(iso: string | null | undefined): string {
   if (!iso) return ''
@@ -96,6 +115,82 @@ export function CaseDetailPage() {
     void queryClient.invalidateQueries({ queryKey: ['my-actions'] })
     void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
   }
+
+  const [aiTriageState, setAiTriageState] = React.useState<{
+    caseId: string | undefined
+    data: AiTriageSuggestion | null
+    error: string | null
+  }>({ caseId: undefined, data: null, error: null })
+  const [aiSimilarState, setAiSimilarState] = React.useState<{
+    caseId: string | undefined
+    data: AiSimilarAnalysis | null
+    error: string | null
+  }>({ caseId: undefined, data: null, error: null })
+  const [aiActionsState, setAiActionsState] = React.useState<{
+    caseId: string | undefined
+    data: AiActionSuggestions | null
+    error: string | null
+  }>({ caseId: undefined, data: null, error: null })
+
+  const aiTriage = aiTriageState.caseId === id ? aiTriageState.data : null
+  const aiTriageError = aiTriageState.caseId === id ? aiTriageState.error : null
+  const aiSimilar = aiSimilarState.caseId === id ? aiSimilarState.data : null
+  const aiSimilarError = aiSimilarState.caseId === id ? aiSimilarState.error : null
+  const aiActions = aiActionsState.caseId === id ? aiActionsState.data : null
+  const aiActionsError = aiActionsState.caseId === id ? aiActionsState.error : null
+
+  const triageSuggestion = useMutation({
+    mutationFn: () =>
+      apiFetch<AiEnvelope<AiTriageSuggestion>>('/ai/triage-suggestion', {
+        method: 'POST',
+        json: { case_id: Number(id) },
+      }),
+    onSuccess: (response) => {
+      setAiTriageState({ caseId: id, data: response.data, error: null })
+    },
+    onError: (error) => {
+      setAiTriageState({
+        caseId: id,
+        data: null,
+        error: error instanceof ApiError ? error.message : 'Gagal meminta saran triase AI.',
+      })
+    },
+  })
+
+  const similarAnalysis = useMutation({
+    mutationFn: () =>
+      apiFetch<AiEnvelope<AiSimilarAnalysis>>(`/cases/${id}/similar-analysis`, {
+        method: 'POST',
+        json: { limit: 5 },
+      }),
+    onSuccess: (response) => {
+      setAiSimilarState({ caseId: id, data: response.data, error: null })
+    },
+    onError: (error) => {
+      setAiSimilarState({
+        caseId: id,
+        data: null,
+        error: error instanceof ApiError ? error.message : 'Gagal menganalisis kasus mirip.',
+      })
+    },
+  })
+
+  const actionSuggestions = useMutation({
+    mutationFn: () =>
+      apiFetch<AiEnvelope<AiActionSuggestions>>(`/cases/${id}/action-suggestions`, {
+        method: 'POST',
+      }),
+    onSuccess: (response) => {
+      setAiActionsState({ caseId: id, data: response.data, error: null })
+    },
+    onError: (error) => {
+      setAiActionsState({
+        caseId: id,
+        data: null,
+        error: error instanceof ApiError ? error.message : 'Gagal meminta saran tindakan AI.',
+      })
+    },
+  })
 
   // Triage state (B-12) — derived defaults from caseData, overridden on user edit
   const [severityOverride, setSeverityOverride] = React.useState<number | null>(null)
@@ -201,6 +296,21 @@ export function CaseDetailPage() {
     if (!currentRiskLevel) return null
     return riskConfigs.find((rc) => rc.level === currentRiskLevel) ?? null
   }, [currentRiskLevel, riskConfigs])
+
+  const applyAiTriage = () => {
+    if (!aiTriage) return
+    setSeverity(Math.min(aiTriage.scale_max, Math.max(1, aiTriage.severity)))
+    setLikelihood(Math.min(aiTriage.scale_max, Math.max(1, aiTriage.likelihood)))
+    if (refQuery.data?.categories.some((cat) => cat.id === aiTriage.category_id)) {
+      setTriageCategoryId(String(aiTriage.category_id))
+    }
+  }
+
+  const applyAiAction = (suggestion: AiActionSuggestions['suggestions'][number]) => {
+    setActionType(suggestion.action_type)
+    setActionTitle(suggestion.title)
+    setActionDescription(suggestion.description)
+  }
 
   const startEditAction = (act: CaseAction) => {
     setEditingAction(act)
@@ -648,6 +758,73 @@ export function CaseDetailPage() {
                 </div>
               )}
 
+              {triageMode === 'assess' && (
+                <div className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] p-3.5 space-y-2.5">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-[13px] font-semibold text-[var(--text)]">
+                        Saran triase AI
+                      </div>
+                      <div className="text-[12px] text-[var(--faint)]">
+                        Rekomendasi awal, tetap tinjau dan simpan melalui triase resmi.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => triageSuggestion.mutate()}
+                      disabled={triageSuggestion.isPending}
+                      className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
+                    >
+                      {triageSuggestion.isPending ? 'Meminta saran...' : 'Minta Saran AI'}
+                    </button>
+                  </div>
+
+                  {aiTriageError && (
+                    <div
+                      role="alert"
+                      className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[12px] text-[var(--safety-danger-foreground)]"
+                    >
+                      {aiTriageError}
+                    </div>
+                  )}
+
+                  {aiTriage && (
+                    <div
+                      role="status"
+                      className="space-y-2 rounded-[6px] border border-[var(--rule)] bg-[var(--surface)] p-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-[13px] text-[var(--muted)]">
+                          Kategori <strong className="text-[var(--text)]">{aiTriage.category_name}</strong>
+                          {' · '}Keparahan <strong className="text-[var(--text)]">{aiTriage.severity}</strong>
+                          {' · '}Kemungkinan <strong className="text-[var(--text)]">{aiTriage.likelihood}</strong>
+                          {' '}(skala 1-{aiTriage.scale_max})
+                        </div>
+                        <button
+                          type="button"
+                          onClick={applyAiTriage}
+                          className="h-11 shrink-0 rounded-[6px] border border-[var(--control)] bg-[var(--raised)] px-3.5 text-[13px] font-semibold text-[var(--text)] hover:bg-[var(--border)] cursor-pointer transition-colors"
+                        >
+                          Gunakan saran
+                        </button>
+                      </div>
+                      {aiTriage.reasoning.length > 0 && (
+                        <ul className="list-disc space-y-0.5 pl-5 text-[12px] text-[var(--muted)]">
+                          {aiTriage.reasoning.map((reason, idx) => (
+                            <li key={`${reason}-${idx}`}>{reason}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {aiTriage.additional_information.length > 0 && (
+                        <div className="text-[12px] text-[var(--muted)]">
+                          Informasi yang belum ada: {aiTriage.additional_information.join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <form onSubmit={handleTriageSubmit} className="space-y-4">
                 {triageMode === 'assess' ? (
                   <>
@@ -1032,6 +1209,80 @@ export function CaseDetailPage() {
                     </button>
                   </div>
                 )}
+
+                <div className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] p-3.5 space-y-2.5">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-[13px] font-semibold text-[var(--text)]">
+                        Draf tindakan dari AI
+                      </div>
+                      <div className="text-[12px] text-[var(--faint)]">
+                        Pilih draf lalu sesuaikan judul dan instruksi sebelum disimpan.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => actionSuggestions.mutate()}
+                      disabled={actionSuggestions.isPending}
+                      className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
+                    >
+                      {actionSuggestions.isPending ? 'Meminta saran...' : 'Sarankan Tindakan'}
+                    </button>
+                  </div>
+
+                  {aiActionsError && (
+                    <div
+                      role="alert"
+                      className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[12px] text-[var(--safety-danger-foreground)]"
+                    >
+                      {aiActionsError}
+                    </div>
+                  )}
+
+                  {aiActions?.suggestions.map((suggestion, idx) => (
+                    <div
+                      key={`${suggestion.title}-${idx}`}
+                      role="status"
+                      className="space-y-1.5 rounded-[6px] border border-[var(--rule)] bg-[var(--surface)] p-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[11px] font-medium text-[var(--text)]">
+                            {suggestion.action_type_label}
+                          </span>
+                          <span className="text-[11px] text-[var(--faint)]">
+                            {AI_PRIORITY_LABELS[suggestion.priority]}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => applyAiAction(suggestion)}
+                          className="h-11 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] cursor-pointer transition-colors"
+                        >
+                          Gunakan draf
+                        </button>
+                      </div>
+                      <div className="text-[13px] font-semibold text-[var(--text)]">
+                        {suggestion.title}
+                      </div>
+                      <div className="text-[12px] text-[var(--muted)]">{suggestion.description}</div>
+                      <div className="text-[12px] text-[var(--faint)]">
+                        Alasan: {suggestion.rationale}
+                      </div>
+                      {suggestion.suggested_pic_role && (
+                        <div className="text-[11px] text-[var(--faint)]">
+                          Peran PIC yang disarankan: {suggestion.suggested_pic_role}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {aiActions?.limitations.length ? (
+                    <div className="text-[11px] text-[var(--faint)]">
+                      Keterbatasan: {aiActions.limitations.join(' · ')}
+                    </div>
+                  ) : null}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <label className="block text-[13px] font-semibold text-[var(--text)]">
@@ -1386,11 +1637,21 @@ export function CaseDetailPage() {
         <div className="space-y-6">
           {user?.role !== 'reporter' && (
             <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-3">
-              <div>
-                <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus Mirip</h2>
-                <p className="text-[12px] text-[var(--faint)]">
-                  Berdasarkan kemiripan teks deskripsi &amp; mesin (non-AI).
-                </p>
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus Mirip</h2>
+                  <p className="text-[12px] text-[var(--faint)]">
+                    Berdasarkan kemiripan teks deskripsi &amp; mesin (non-AI).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => similarAnalysis.mutate()}
+                  disabled={similarAnalysis.isPending}
+                  className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  {similarAnalysis.isPending ? 'Menganalisis...' : 'Analisis AI'}
+                </button>
               </div>
               <div className="divide-y divide-[var(--rule)]">
                 {similarQuery.isLoading ? (
@@ -1434,6 +1695,77 @@ export function CaseDetailPage() {
                   ))
                 )}
               </div>
+
+              {aiSimilarError && (
+                <div
+                  role="alert"
+                  className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[12px] text-[var(--safety-danger-foreground)]"
+                >
+                  {aiSimilarError}
+                </div>
+              )}
+
+              {aiSimilar && (
+                <div role="status" className="space-y-3 border-t border-[var(--rule)] pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[13px] font-semibold text-[var(--text)]">Analisis AI</div>
+                    <div className="text-[11px] text-[var(--faint)]">Perlu ditinjau</div>
+                  </div>
+
+                  {aiSimilar.possible_duplicate && (
+                    <div className="rounded-[6px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] px-3 py-2 text-[12px] text-[var(--safety-warning-foreground)]">
+                      AI menemukan kemungkinan duplikat. Periksa sebelum melanjutkan.
+                    </div>
+                  )}
+
+                  <p className="text-[12px] text-[var(--muted)]">{aiSimilar.summary}</p>
+
+                  {aiSimilar.matches.length === 0 ? (
+                    <div className="rounded-[6px] bg-[var(--ground)] px-3 py-2 text-[12px] text-[var(--faint)]">
+                      Tidak ada kandidat kasus historis yang relevan untuk dianalisis.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {aiSimilar.matches.map((match) => (
+                        <div
+                          key={`ai-${match.id}`}
+                          className="space-y-1.5 rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <Link
+                              to={`/cases/${match.id}`}
+                              className="font-mono text-[12px] font-semibold text-[var(--accent)] hover:underline"
+                            >
+                              {match.case_number}
+                            </Link>
+                            <span className="text-[11px] font-medium text-[var(--text)] tabular-nums">
+                              {match.similarity_percent}% mirip
+                            </span>
+                          </div>
+                          <div className="text-[12px] text-[var(--muted)]">
+                            {match.similarity_reason}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[11px] text-[var(--text)]">
+                              {AI_DUPLICATE_LABELS[match.duplicate_assessment]}
+                            </span>
+                            {match.database_reasons.length > 0 && (
+                              <span className="text-[11px] text-[var(--faint)]">
+                                Dasar database: {match.database_reasons.join(', ')}
+                              </span>
+                            )}
+                          </div>
+                          {match.differences.length > 0 && (
+                            <div className="text-[11px] text-[var(--faint)]">
+                              Perbedaan: {match.differences.join(' · ')}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           )}
 

@@ -10,7 +10,10 @@ use App\Policies\AttachmentPolicy;
 use App\Policies\CaseActionPolicy;
 use App\Policies\MachinePolicy;
 use App\Policies\SafetyCasePolicy;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,5 +29,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(CaseAction::class, CaseActionPolicy::class);
         Gate::policy(Machine::class, MachinePolicy::class);
         Gate::policy(Attachment::class, AttachmentPolicy::class);
+
+        RateLimiter::for('ai', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('user:'.($request->user()?->id ?? $request->ip())));
     }
 }

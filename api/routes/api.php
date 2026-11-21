@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuditLogController;
@@ -78,6 +79,18 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
     // Authorized attachment streaming & deletion (B-08, B-09, B-15)
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show']);
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy']);
+
+    // AI assistant (AI-01, AI-02, AI-04, AI-06): recommendations only, never auto-applied
+    Route::post('/ai/triage-suggestion', [AiController::class, 'triageSuggestion'])
+        ->middleware('throttle:ai');
+    Route::post('/ai/similar-analysis', [AiController::class, 'similarAnalysis'])
+        ->middleware('throttle:ai');
+    Route::post('/cases/{case}/similar-analysis', [AiController::class, 'caseSimilarAnalysis'])
+        ->middleware('throttle:ai');
+    Route::post('/cases/{case}/action-suggestions', [AiController::class, 'actionSuggestions'])
+        ->middleware(['role:supervisor,hse,admin', 'throttle:ai']);
+    Route::post('/ai/dashboard-summary', [AiController::class, 'dashboardSummary'])
+        ->middleware(['role:supervisor,hse,admin', 'throttle:ai']);
 
     // Dashboard & Audit Logs (B-21, B-22, C-01)
     Route::get('/dashboard', [DashboardController::class, 'index'])
