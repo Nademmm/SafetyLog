@@ -6,6 +6,9 @@ import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
 import { PaginationBar } from '@/components/safety/PaginationBar'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import { Input } from '@/components/ui/FormField'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { PaginationMeta, SafetyCase } from '@/types/safetylog'
 
 export function MyCasesPage() {
@@ -48,30 +51,26 @@ export function MyCasesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Kasus Saya
-          </h1>
-          <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Daftar laporan yang pernah Anda kirim beserta status tindak lanjutnya.
-          </p>
-        </div>
-        <Link
-          to="/report"
-          className="inline-flex h-11 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
-        >
-          Lapor Baru
-        </Link>
-      </div>
+      <PageHeader
+        title="Kasus Saya"
+        description="Daftar laporan yang pernah Anda kirim beserta status tindak lanjutnya."
+        actions={
+          <Link
+            to="/report"
+            className="inline-flex h-11 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+          >
+            Lapor Baru
+          </Link>
+        }
+      />
 
       <div>
-        <input
+        <Input
           type="search"
           value={qInput}
           onChange={(e) => setQInput(e.target.value)}
           placeholder="Cari nomor kasus atau deskripsi..."
-          className="h-11 w-full max-w-md rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+          className="max-w-md"
         />
       </div>
 
@@ -84,7 +83,7 @@ export function MyCasesPage() {
 
       <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
         {casesQuery.isLoading ? (
-          <div className="p-5 text-[14px] text-[var(--faint)]">Memuat laporan Anda...</div>
+          <SectionLoading label="Memuat laporan Anda..." />
         ) : cases.length === 0 ? (
           <div className="p-6 text-[14px] text-[var(--faint)]">
             Tidak ada laporan ditemukan.

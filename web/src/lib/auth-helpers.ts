@@ -46,11 +46,8 @@ export function isRedirectAllowedForRole(path: string | null, role: UserRole): b
     return role === 'supervisor' || role === 'hse' || role === 'admin'
   }
 
-  if (clean === '/report' || clean.startsWith('/qr/') || clean === '/my-cases') {
+  if (clean === '/report' || clean.startsWith('/qr/') || clean === '/my-cases' || clean === '/my-actions') {
     return role === 'reporter'
-  }
-  if (clean === '/my-actions') {
-    return true
   }
 
   // Case detail routes (/cases/:id)

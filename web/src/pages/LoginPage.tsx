@@ -94,7 +94,7 @@ export function LoginPage() {
         <div className="w-full max-w-[400px] space-y-6">
           {/* Brand Heading */}
           <div className="text-center space-y-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[12px] border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)]">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect
                   x="2"
@@ -122,12 +122,12 @@ export function LoginPage() {
             </p>
           </div>
 
-          {/* Clean Elevated Login Card */}
-          <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7 shadow-[0_8px_30px_rgba(0,0,0,0.12)] space-y-5">
+          {/* Flat Cloudflare-style Login Card */}
+          <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7 space-y-5">
             {serverError && (
               <div
                 role="alert"
-                className="flex items-start gap-2.5 rounded-[8px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3.5 py-3 text-[13px] text-[var(--safety-danger-foreground)]"
+                className="flex items-start gap-2.5 rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3.5 py-3 text-[13px] text-[var(--safety-danger-foreground)]"
               >
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>{serverError}</span>
@@ -136,7 +136,7 @@ export function LoginPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-[13px] font-medium text-[var(--text)]">
+                <label htmlFor="email" className="block text-[13px] font-semibold text-[var(--text)]">
                   Alamat Email
                 </label>
                 <div className="relative">
@@ -147,7 +147,7 @@ export function LoginPage() {
                     autoComplete="email"
                     placeholder="nama@perusahaan.com"
                     {...register('email')}
-                    className="h-11 w-full rounded-[8px] border border-[var(--control)] bg-[var(--ground)] pl-10 pr-3.5 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-10 pr-3.5 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none"
                   />
                 </div>
                 {errors.email && (
@@ -160,7 +160,7 @@ export function LoginPage() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="password"
-                  className="block text-[13px] font-medium text-[var(--text)]"
+                  className="block text-[13px] font-semibold text-[var(--text)]"
                 >
                   Kata Sandi
                 </label>
@@ -172,7 +172,7 @@ export function LoginPage() {
                     autoComplete="current-password"
                     placeholder="Masukkan kata sandi"
                     {...register('password')}
-                    className="h-11 w-full rounded-[8px] border border-[var(--control)] bg-[var(--ground)] pl-10 pr-11 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-10 pr-11 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none"
                   />
                   <button
                     type="button"
@@ -193,7 +193,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>

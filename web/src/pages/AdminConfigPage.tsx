@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '@/lib/api'
 import { useReferenceData } from '@/lib/reference'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { RiskConfig } from '@/types/safetylog'
 
 export function AdminConfigPage() {
@@ -103,7 +104,7 @@ export function AdminConfigPage() {
       )}
 
       {refQuery.isLoading ? (
-        <div className="p-5 text-[14px] text-[var(--faint)]">Memuat konfigurasi...</div>
+        <SectionLoading label="Memuat konfigurasi organisasi..." />
       ) : (
         <>
           {/* Risk Matrix & SLA Section */}
@@ -114,10 +115,10 @@ export function AdminConfigPage() {
                 className="grid grid-cols-1 gap-6 py-7 lg:grid-cols-12 items-start"
               >
                 <div className="lg:col-span-4 space-y-1.5">
-                  <h2 className="text-[16px] font-medium text-[var(--text)]">
+                  <h2 className="text-[16px] font-semibold text-[var(--text)]">
                     Level Risiko: {rc.label}
                   </h2>
-                  <p className="text-[14px] text-[var(--faint)]">
+                  <p className="text-[14px] text-[var(--muted)]">
                     Skor saat ini: {rc.min_score}–{rc.max_score}. Sementara:{' '}
                     {rc.temporary_action_hours} jam · Permanen: {rc.permanent_action_hours} jam.
                   </p>
@@ -132,7 +133,7 @@ export function AdminConfigPage() {
                 >
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-[var(--muted)]">
+                      <label className="block text-[13px] font-semibold text-[var(--text)]">
                         Skor Min
                       </label>
                       <input
@@ -142,11 +143,11 @@ export function AdminConfigPage() {
                         max={25}
                         required
                         defaultValue={rc.min_score}
-                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-[var(--muted)]">
+                      <label className="block text-[13px] font-semibold text-[var(--text)]">
                         Skor Maks
                       </label>
                       <input
@@ -156,11 +157,11 @@ export function AdminConfigPage() {
                         max={25}
                         required
                         defaultValue={rc.max_score}
-                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-[var(--muted)]">
+                      <label className="block text-[13px] font-semibold text-[var(--text)]">
                         Respon (jam)
                       </label>
                       <input
@@ -169,11 +170,11 @@ export function AdminConfigPage() {
                         min={1}
                         required
                         defaultValue={rc.first_response_hours}
-                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-[var(--muted)]">
+                      <label className="block text-[13px] font-semibold text-[var(--text)]">
                         Sementara (jam)
                       </label>
                       <input
@@ -182,11 +183,11 @@ export function AdminConfigPage() {
                         min={1}
                         required
                         defaultValue={rc.temporary_action_hours}
-                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                     <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                      <label className="block text-[13px] font-medium text-[var(--muted)]">
+                      <label className="block text-[13px] font-semibold text-[var(--text)]">
                         Permanen (jam)
                       </label>
                       <input
@@ -195,7 +196,7 @@ export function AdminConfigPage() {
                         min={1}
                         required
                         defaultValue={rc.permanent_action_hours}
-                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                        className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                   </div>
@@ -219,7 +220,7 @@ export function AdminConfigPage() {
                     <button
                       type="submit"
                       disabled={savingId === rc.id}
-                      className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                      className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                     >
                       {savingId === rc.id ? 'Menyimpan...' : 'Simpan'}
                     </button>
@@ -232,10 +233,10 @@ export function AdminConfigPage() {
           {/* General Organization Rules Section */}
           <div className="border-t border-[var(--rule)] pt-7 grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
             <div className="lg:col-span-4 space-y-1.5">
-              <h2 className="text-[16px] font-medium text-[var(--text)]">
+              <h2 className="text-[16px] font-semibold text-[var(--text)]">
                 Aturan Umum &amp; Pengingat Darurat
               </h2>
-              <p className="text-[14px] text-[var(--faint)]">
+              <p className="text-[14px] text-[var(--muted)]">
                 Pengaturan jendela kasus terbuka, ambang mesin berulang, dan teks pengingat prosedur
                 darurat K3.
               </p>
@@ -247,7 +248,7 @@ export function AdminConfigPage() {
             >
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-[13px] font-medium text-[var(--muted)]">
+                  <label className="block text-[13px] font-semibold text-[var(--text)]">
                     Peringatan Kasus Terbuka (hari)
                   </label>
                   <input
@@ -257,11 +258,11 @@ export function AdminConfigPage() {
                     max={90}
                     required
                     defaultValue={Number(configs.open_case_warning_days ?? 7)}
-                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[13px] font-medium text-[var(--muted)]">
+                  <label className="block text-[13px] font-semibold text-[var(--text)]">
                     Ambang Mesin Berulang (kasus)
                   </label>
                   <input
@@ -271,11 +272,11 @@ export function AdminConfigPage() {
                     max={50}
                     required
                     defaultValue={Number(configs.recurring_case_threshold ?? 3)}
-                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[13px] font-medium text-[var(--muted)]">
+                  <label className="block text-[13px] font-semibold text-[var(--text)]">
                     Rentang Mesin Berulang (hari)
                   </label>
                   <input
@@ -285,13 +286,13 @@ export function AdminConfigPage() {
                     max={365}
                     required
                     defaultValue={Number(configs.recurring_window_days ?? 90)}
-                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums"
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 font-mono text-[14px] text-[var(--text)] tabular-nums focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[13px] font-medium text-[var(--muted)]">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">
                   Teks Pengingat Prosedur Darurat (Insiden + Pekerja Terdampak)
                 </label>
                 <textarea
@@ -302,7 +303,7 @@ export function AdminConfigPage() {
                     configs.emergency_reminder_text ??
                       'Ikuti prosedur darurat perusahaan terlebih dahulu. SafetyLog bukan pengganti prosedur resmi K3.',
                   )}
-                  className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] p-3 text-[14px] text-[var(--text)]"
+                  className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
 

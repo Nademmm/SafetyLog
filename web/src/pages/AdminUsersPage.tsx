@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/auth-helpers'
 import { useReferenceData } from '@/lib/reference'
 import { PaginationBar } from '@/components/safety/PaginationBar'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import { Select } from '@/components/ui/FormField'
+import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { PaginationMeta, SiteRef, User, UserRole } from '@/types/safetylog'
 
 function generateTempPassword(): string {
@@ -168,7 +170,7 @@ export function AdminUsersPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama lengkap"
             required
-            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
           />
           <input
             type="email"
@@ -176,7 +178,7 @@ export function AdminUsersPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email perusahaan"
             required
-            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
           />
           <div className="flex gap-1.5">
             <input
@@ -186,47 +188,45 @@ export function AdminUsersPage() {
               placeholder="Kata sandi awal (min. 8)"
               minLength={8}
               required
-              className="h-11 min-w-0 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+              className="h-11 min-w-0 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
             />
             <button
               type="button"
               onClick={() => setPassword(generateTempPassword())}
               title="Buat kata sandi acak"
-              className="inline-flex h-11 shrink-0 items-center gap-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-2.5 text-[12px] text-[var(--muted)] hover:text-[var(--text)]"
+              className="inline-flex h-11 shrink-0 items-center gap-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-2.5 text-[12px] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] cursor-pointer"
             >
               <KeyRound className="h-4 w-4" />
               <span>Acak</span>
             </button>
           </div>
-          <select
+          <Select
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
-            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
           >
             {roles.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             value={siteId || (sites[0] ? String(sites[0].id) : '')}
             onChange={(e) => setSiteId(e.target.value)}
             aria-label="Pilih site"
-            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
           >
             {sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.code})
               </option>
             ))}
-          </select>
+          </Select>
           <input
             type="text"
             value={jobTitle}
             onChange={(e) => setJobTitle(e.target.value)}
             placeholder="Jabatan (opsional)"
-            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
           />
         </div>
 
@@ -248,7 +248,7 @@ export function AdminUsersPage() {
 
       <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
         {usersQuery.isLoading ? (
-          <div className="p-5 text-[14px] text-[var(--faint)]">Memuat pengguna...</div>
+          <SectionLoading label="Memuat daftar pengguna..." />
         ) : (
           users.map((u) => {
             const isSelf = u.id === currentUser?.id
@@ -340,36 +340,35 @@ export function AdminUsersPage() {
               </button>
             </div>
             <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Nama Lengkap</label>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Nama Lengkap</label>
                 <input
                   type="text"
                   value={editingUser.name}
                   onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
                   required
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Peran</label>
-                <select
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Peran</label>
+                <Select
                   value={editingUser.role}
                   onChange={(e) =>
                     setEditingUser({ ...editingUser, role: e.target.value as UserRole })
                   }
                   disabled={editingUser.id === currentUser?.id}
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] disabled:opacity-50"
                 >
                   {roles.map((r) => (
                     <option key={r.value} value={r.value}>
                       {r.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Site</label>
-                <select
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Site</label>
+                <Select
                   value={editingUser.site_id ?? ''}
                   onChange={(e) =>
                     setEditingUser({
@@ -377,7 +376,6 @@ export function AdminUsersPage() {
                       site_id: e.target.value ? Number(e.target.value) : null,
                     })
                   }
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   <option value="">Tidak ditentukan</option>
                   {sites.map((s) => (
@@ -385,19 +383,19 @@ export function AdminUsersPage() {
                       {s.name} ({s.code})
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Jabatan</label>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Jabatan</label>
                 <input
                   type="text"
                   value={editingUser.job_title || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, job_title: e.target.value })}
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">
                   Reset Kata Sandi (Opsional, min. 8 karakter)
                 </label>
                 <input
@@ -406,7 +404,7 @@ export function AdminUsersPage() {
                   onChange={(e) => setEditPassword(e.target.value)}
                   placeholder="Kosongkan jika tidak diubah"
                   minLength={8}
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
             </div>

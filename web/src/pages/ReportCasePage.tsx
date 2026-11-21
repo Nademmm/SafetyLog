@@ -346,28 +346,23 @@ export function ReportCasePage() {
           errorMessage={scanError}
         />
 
-        <div className="mx-auto max-w-[540px] rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <div className="text-[14px] font-semibold text-[var(--text)]">
-                Stiker QR rusak atau sulit dipindai?
-              </div>
-              <p className="text-[12px] text-[var(--muted)]">
-                Pilih mesin aktif langsung dari daftar pabrik sebagai cadangan.
-              </p>
-            </div>
+        <div className="mx-auto max-w-[540px] space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[13px] text-[var(--muted)]">
+              Stiker QR rusak atau tidak terbaca?
+            </span>
             <button
               type="button"
               onClick={() => setShowManualPicker((v) => !v)}
-              className="inline-flex h-11 items-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]"
+              className="inline-flex h-9 items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
             >
-              <ListFilter className="h-4 w-4 text-[var(--accent)]" />
+              <ListFilter className="h-3.5 w-3.5" />
               <span>{showManualPicker ? 'Tutup Daftar' : 'Pilih Mesin Manual'}</span>
             </button>
           </div>
 
           {showManualPicker && (
-            <div className="space-y-2.5 pt-2 border-t border-[var(--rule)]">
+            <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-2.5">
               <input
                 type="search"
                 value={manualSearch}
@@ -388,7 +383,7 @@ export function ReportCasePage() {
                       key={m.id}
                       type="button"
                       onClick={() => handleQrDetected(m.qr_token)}
-                      className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left hover:bg-[var(--raised)]"
+                      className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left hover:bg-[var(--raised)] cursor-pointer"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -523,10 +518,10 @@ export function ReportCasePage() {
           </div>
         )}
 
-        {/* 1. Jenis Temuan */}
+        {/* 1. Jenis Temuan (Vertikal ke bawah, konsisten) */}
         <div className="space-y-2">
-          <span className="block text-[14px] font-medium text-[var(--text)]">Jenis Temuan</span>
-          <div className="flex flex-wrap gap-2">
+          <span className="block text-[13px] font-semibold text-[var(--text)]">Jenis Temuan</span>
+          <div className="flex flex-col gap-2">
             {caseTypes.map((ct) => {
               const selected = String(ct.id) === effectiveCaseTypeId
               return (
@@ -535,94 +530,94 @@ export function ReportCasePage() {
                   type="button"
                   aria-pressed={selected}
                   onClick={() => setCaseTypeId(String(ct.id))}
-                  className={`inline-flex min-h-[44px] items-center gap-2 rounded-[6px] border px-3.5 text-[14px] transition-colors ${
+                  className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[6px] border px-3.5 text-left text-[14px] transition-colors cursor-pointer ${
                     selected
-                      ? 'border-[var(--accent)] bg-[var(--raised)] font-semibold text-[var(--text)]'
-                      : 'border-[var(--control)] bg-[var(--ground)] text-[var(--muted)] hover:text-[var(--text)]'
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                      : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                   }`}
                 >
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      selected ? 'bg-[var(--accent)]' : 'bg-[var(--control)]'
-                    }`}
-                  />
                   <span>{ct.name}</span>
+                  {selected && <Check className="h-4 w-4 shrink-0 stroke-[2.2px]" />}
                 </button>
               )
             })}
           </div>
         </div>
 
-        {/* 2. Dua Pertanyaan Cepat */}
-        <div className="divide-y divide-[var(--rule)] rounded-[6px] border border-[var(--border)] bg-[var(--ground)]">
+        {/* 2. Dua Pertanyaan Cepat (Tombol konsisten) */}
+        <div className="divide-y divide-[var(--rule)] rounded-[8px] border border-[var(--border)] bg-[var(--ground)]">
           <div className="flex flex-col gap-2.5 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-[14px] font-medium text-[var(--text)]">
+            <span className="text-[14px] font-semibold text-[var(--text)]">
               Mesin berhenti beroperasi?
             </span>
             <div
               role="group"
               aria-label="Mesin berhenti beroperasi"
-              className="grid grid-cols-2 gap-1.5 sm:w-[230px]"
+              className="grid grid-cols-2 gap-2 sm:w-[240px]"
             >
               <button
                 type="button"
                 aria-pressed={!isMachineStopped}
                 onClick={() => setIsMachineStopped(false)}
-                className={`h-11 rounded-[6px] border text-[13px] font-semibold transition-colors ${
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-[6px] border px-3 text-[13px] transition-colors cursor-pointer ${
                   !isMachineStopped
-                    ? 'border-[var(--text)] bg-[var(--surface)] text-[var(--text)]'
-                    : 'border-[var(--control)] bg-transparent text-[var(--muted)]'
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                    : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                 }`}
               >
-                Tidak
+                {!isMachineStopped && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
+                <span>Tidak</span>
               </button>
               <button
                 type="button"
                 aria-pressed={isMachineStopped}
                 onClick={() => setIsMachineStopped(true)}
-                className={`h-11 rounded-[6px] border text-[13px] font-semibold transition-colors ${
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-[6px] border px-3 text-[13px] transition-colors cursor-pointer ${
                   isMachineStopped
-                    ? 'border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] text-[var(--safety-danger-foreground)]'
-                    : 'border-[var(--control)] bg-transparent text-[var(--muted)]'
+                    ? 'border-[var(--safety-danger)] bg-[var(--safety-danger-bg)] font-semibold text-[var(--safety-danger-foreground)]'
+                    : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                 }`}
               >
-                Ya, Berhenti
+                {isMachineStopped && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
+                <span>Ya, Berhenti</span>
               </button>
             </div>
           </div>
 
           <div className="flex flex-col gap-2.5 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-[14px] font-medium text-[var(--text)]">
+            <span className="text-[14px] font-semibold text-[var(--text)]">
               Ada pekerja terdampak?
             </span>
             <div
               role="group"
               aria-label="Ada pekerja terdampak"
-              className="grid grid-cols-2 gap-1.5 sm:w-[230px]"
+              className="grid grid-cols-2 gap-2 sm:w-[240px]"
             >
               <button
                 type="button"
                 aria-pressed={!hasAffectedPeople}
                 onClick={() => setHasAffectedPeople(false)}
-                className={`h-11 rounded-[6px] border text-[13px] font-semibold transition-colors ${
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-[6px] border px-3 text-[13px] transition-colors cursor-pointer ${
                   !hasAffectedPeople
-                    ? 'border-[var(--text)] bg-[var(--surface)] text-[var(--text)]'
-                    : 'border-[var(--control)] bg-transparent text-[var(--muted)]'
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                    : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                 }`}
               >
-                Tidak
+                {!hasAffectedPeople && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
+                <span>Tidak</span>
               </button>
               <button
                 type="button"
                 aria-pressed={hasAffectedPeople}
                 onClick={() => setHasAffectedPeople(true)}
-                className={`h-11 rounded-[6px] border text-[13px] font-semibold transition-colors ${
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-[6px] border px-3 text-[13px] transition-colors cursor-pointer ${
                   hasAffectedPeople
-                    ? 'border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] text-[var(--safety-danger-foreground)]'
-                    : 'border-[var(--control)] bg-transparent text-[var(--muted)]'
+                    ? 'border-[var(--safety-danger)] bg-[var(--safety-danger-bg)] font-semibold text-[var(--safety-danger-foreground)]'
+                    : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                 }`}
               >
-                Ya, Ada
+                {hasAffectedPeople && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
+                <span>Ya, Ada</span>
               </button>
             </div>
           </div>
@@ -630,7 +625,7 @@ export function ReportCasePage() {
 
         {/* 3. Deskripsi Kejadian + Quick Chips */}
         <div className="space-y-2">
-          <label htmlFor="description" className="block text-[14px] font-medium text-[var(--text)]">
+          <label htmlFor="description" className="block text-[13px] font-semibold text-[var(--text)]">
             Apa yang terjadi?
           </label>
           <div className="flex flex-wrap gap-1.5">
@@ -639,7 +634,7 @@ export function ReportCasePage() {
                 key={sym}
                 type="button"
                 onClick={() => appendSymptom(sym)}
-                className="inline-flex min-h-[36px] items-center rounded-[4px] border border-[var(--control)] bg-[var(--raised)] px-2.5 text-[12px] text-[var(--text)] hover:border-[var(--accent)]"
+                className="inline-flex min-h-[36px] items-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] transition-colors cursor-pointer"
               >
                 + {sym}
               </button>
@@ -652,7 +647,7 @@ export function ReportCasePage() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Ketuk chip di atas atau ketik kondisi singkat..."
             required
-            className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] p-3 text-[16px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
+            className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
           />
         </div>
 

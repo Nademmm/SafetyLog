@@ -11,9 +11,9 @@ function getInitialTheme(): ThemeMode {
       return urlTheme
     }
     const saved = localStorage.getItem(THEME_KEY)
-    return saved === 'light' ? 'light' : 'dark'
+    return saved === 'dark' ? 'dark' : 'light'
   } catch {
-    return 'dark'
+    return 'light'
   }
 }
 
@@ -24,7 +24,7 @@ function applyTheme(mode: ThemeMode) {
   root.setAttribute('data-theme', mode)
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) {
-    meta.setAttribute('content', mode === 'light' ? '#f9fafb' : '#000000')
+    meta.setAttribute('content', mode === 'dark' ? '#0D1117' : '#F5F7FA')
   }
 }
 

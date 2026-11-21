@@ -64,7 +64,7 @@ const NAV_ITEMS: NavItem[] = [
     shortLabel: 'Tindakan',
     to: '/my-actions',
     icon: CheckSquare,
-    roles: ['reporter', 'supervisor', 'hse', 'admin'],
+    roles: ['reporter'],
     group: 'Utama',
   },
   {
@@ -249,15 +249,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ? [
             visibleItems[0],
             visibleItems.find((i) => i.to === '/cases'),
-            visibleItems.find((i) => i.to === '/my-actions'),
             visibleItems.find((i) => i.to === '/dashboard'),
+            visibleItems.find((i) => i.to === '/audit-logs'),
           ]
         : user.role === 'hse'
           ? [
               visibleItems[0],
               visibleItems.find((i) => i.to === '/cases'),
-              visibleItems.find((i) => i.to === '/my-actions'),
               visibleItems.find((i) => i.to === '/dashboard'),
+              visibleItems.find((i) => i.to === '/audit-logs'),
             ]
           : [
               visibleItems[0],
@@ -269,24 +269,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[var(--ground)] text-[var(--text)] flex flex-col lg:flex-row">
-      {/* Desktop Ruled T-Frame Sidebar (fixed viewport height, non-scrollable to prevent scroll UI bugs) */}
-      <aside className="hidden print:hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:overflow-hidden lg:w-[232px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[var(--rule)] lg:bg-[var(--ground)]">
+      {/* Desktop Cloudflare-style Ruled T-Frame Sidebar */}
+      <aside className="hidden print:hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:overflow-hidden lg:w-[240px] lg:shrink-0 lg:flex-col lg:border-r lg:border-[var(--border)] lg:bg-[var(--surface)]">
         <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-[var(--rule)] px-5">
           <SafetyLogMark />
           <div className="min-w-0">
             <div className="text-[15px] font-semibold tracking-tight text-[var(--text)]">
               SafetyLog
             </div>
-            <div className="truncate text-[11px] text-[var(--faint)]">
+            <div className="truncate text-[12px] text-[var(--faint)]">
               {user.organization?.name || 'Pabrik Manufaktur'}
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-hidden px-3 py-2.5 space-y-3" aria-label="Navigasi utama">
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4" aria-label="Navigasi utama">
           {groups.map((group) => (
-            <div key={group} className="space-y-0.5">
-              <div className="px-3 pb-0.5 text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
+            <div key={group} className="space-y-1">
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--faint)]">
                 {group}
               </div>
               {visibleItems
@@ -299,13 +299,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       key={item.to}
                       to={item.to}
                       className={cn(
-                        'flex h-8.5 min-h-[34px] items-center gap-2.5 rounded-[6px] px-3 text-[13.5px] transition-colors',
+                        'flex h-10 items-center gap-2.5 rounded-[6px] px-3 text-[14px] transition-colors',
                         active
-                          ? 'bg-[var(--raised)] text-[var(--text)] font-medium'
-                          : 'text-[var(--muted)] hover:text-[var(--text)]',
+                          ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
+                          : 'text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] font-medium',
                       )}
                     >
-                      <Icon className="h-4 w-4 shrink-0 stroke-[1.75px]" />
+                      <Icon
+                        className={cn(
+                          'h-4 w-4 shrink-0 stroke-[1.85px]',
+                          active ? 'text-[var(--accent)]' : 'text-[var(--faint)]',
+                        )}
+                      />
                       <span className="truncate">{item.label}</span>
                     </Link>
                   )
@@ -335,7 +340,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top Navbar across Phone (56px), Tablet (60px), and Desktop (64px) */}
-        <header className="print:hidden sticky top-0 z-30 flex h-14 sm:h-[60px] lg:h-16 items-center justify-between border-b border-[var(--rule)] bg-[var(--ground)] px-3 sm:px-5 lg:px-7 gap-2">
+        <header className="print:hidden sticky top-0 z-30 flex h-14 sm:h-[60px] lg:h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 sm:px-5 lg:px-7 gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
@@ -418,14 +423,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       type="button"
                       onClick={() => {
                         setNotifOpen(false)
-                        navigate('/my-actions')
+                        navigate(user.role === 'reporter' ? '/my-actions' : '/dashboard')
                       }}
                       className="flex w-full items-center gap-2.5 border-b border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-4 py-2.5 text-left text-[12px] text-[var(--safety-danger-foreground)] hover:opacity-90"
                     >
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       <span>
                         Anda memiliki <strong className="font-semibold">{overdueCount}</strong>{' '}
-                        tindakan terlambat. Ketuk untuk membuka Tindakan Saya.
+                        tindakan terlambat. Ketuk untuk membuka{' '}
+                        {user.role === 'reporter' ? 'Tindakan Saya' : 'Dashboard'}.
                       </span>
                     </button>
                   )}
@@ -559,13 +565,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         to={item.to}
                         onClick={() => setMobileMenuOpen(false)}
                         className={cn(
-                          'flex h-10 items-center gap-3 rounded-[6px] px-3 text-[14px]',
+                          'flex h-10 items-center gap-3 rounded-[6px] px-3 text-[14px] transition-colors',
                           active
-                            ? 'bg-[var(--raised)] text-[var(--text)] font-medium'
-                            : 'text-[var(--muted)]',
+                            ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
+                            : 'text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] font-medium',
                         )}
                       >
-                        <Icon className="h-4 w-4 shrink-0 stroke-[1.75px]" />
+                        <Icon
+                          className={cn(
+                            'h-4 w-4 shrink-0 stroke-[1.85px]',
+                            active ? 'text-[var(--accent)]' : 'text-[var(--faint)]',
+                          )}
+                        />
                         <span>{item.label}</span>
                       </Link>
                     )
@@ -596,7 +607,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Phone & Tablet Bottom Navigation Bar (4 destinations, 56px + safe area) */}
       <nav
         aria-label="Navigasi bawah mobile"
-        className="print:hidden fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-[var(--rule)] bg-[var(--ground)] pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="print:hidden fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-[var(--border)] bg-[var(--surface)] pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {mobileBottomItems.map((item) => {
           const Icon = item.icon
@@ -607,7 +618,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               to={item.to}
               className={cn(
                 'relative flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] transition-colors',
-                active ? 'text-[var(--text)] font-medium' : 'text-[var(--faint)] hover:text-[var(--muted)]',
+                active ? 'text-[var(--accent)] font-semibold' : 'text-[var(--muted)] hover:text-[var(--text)]',
               )}
             >
               {active && (

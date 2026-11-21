@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ChevronRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { DashboardData, SafetyCase } from '@/types/safetylog'
 
 export function K3HomePage() {
@@ -32,6 +33,7 @@ export function K3HomePage() {
   const pendingCases = pendingVerifyQuery.data?.data ?? []
   const highRiskCases = highRiskQuery.data?.data ?? []
   const summary = dashboardQuery.data?.data.summary
+  const pendingTotal = pendingVerifyQuery.data?.meta?.total ?? pendingCases.length
   const hasError = pendingVerifyQuery.isError || highRiskQuery.isError || dashboardQuery.isError
 
   return (
@@ -48,7 +50,7 @@ export function K3HomePage() {
         </div>
         <Link
           to="/cases?status=pending_verification"
-          className="inline-flex h-11 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+          className="inline-flex h-11 shrink-0 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] transition-colors"
         >
           Periksa Antrean Verifikasi
         </Link>
@@ -68,15 +70,15 @@ export function K3HomePage() {
       {/* Divided KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Menunggu verifikasi</div>
+          <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
+            Menunggu verifikasi
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
-            {pendingVerifyQuery.isLoading
-              ? '—'
-              : (pendingVerifyQuery.data?.meta?.total ?? pendingCases.length)}
+            {pendingVerifyQuery.isLoading ? '—' : pendingTotal}
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">
+          <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
             Risiko tinggi terbuka
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
@@ -84,13 +86,17 @@ export function K3HomePage() {
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Selesai bulan ini</div>
+          <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
+            Selesai bulan ini
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
             {summary ? summary.closed_this_month_count : '—'}
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Mesin berulang (90h)</div>
+          <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
+            Mesin berulang (90h)
+          </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
           </div>
@@ -100,11 +106,20 @@ export function K3HomePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
         {/* Pending Verification Queue */}
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-          <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Antrean Verifikasi K3</h2>
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+                Antrean Verifikasi K3
+              </h2>
+              {pendingTotal > 0 && (
+                <span className="shrink-0 rounded-[4px] bg-[var(--accent-soft)] border border-[var(--accent)]/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--accent)] tabular-nums">
+                  {pendingTotal}
+                </span>
+              )}
+            </div>
             <Link
               to="/cases?status=pending_verification"
-              className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1"
+              className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
               <span>Semua</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -112,11 +127,9 @@ export function K3HomePage() {
           </div>
           <div className="divide-y divide-[var(--rule)]">
             {pendingVerifyQuery.isLoading ? (
-              <div className="p-5 text-[14px] text-[var(--faint)]">
-                Memuat antrean verifikasi...
-              </div>
+              <SectionLoading label="Memuat antrean verifikasi..." className="py-8" />
             ) : pendingCases.length === 0 ? (
-              <div className="p-5 text-[14px] text-[var(--faint)]">
+              <div className="p-5 text-[14px] text-[var(--muted)]">
                 Tidak ada kasus yang menunggu verifikasi saat ini.
               </div>
             ) : (
@@ -124,27 +137,37 @@ export function K3HomePage() {
                 <Link
                   key={c.id}
                   to={`/cases/${c.id}`}
-                  className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-[var(--hover-row)]"
+                  className="group flex flex-col gap-2.5 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
                 >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                      <span className="whitespace-nowrap font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
                         {c.case_number}
                       </span>
+                      {c.machine?.code && (
+                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                          {c.machine.code}
+                        </span>
+                      )}
                       <RiskPill
                         level={c.risk_assessment.risk_level}
                         score={c.risk_assessment.risk_score}
                         label={c.risk_assessment.risk_level_label}
                       />
                     </div>
-                    <div className="truncate text-[14px] font-medium text-[var(--text)]">
-                      {c.machine ? `${c.machine.code} — ${c.machine.name}` : 'Mesin'}
-                    </div>
-                    <div className="text-[12px] text-[var(--muted)] truncate">{c.description}</div>
+                    <span className="shrink-0 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-2.5 py-1 text-[12px] font-medium text-[var(--text)] transition-colors group-hover:border-[var(--accent)] group-hover:bg-[var(--accent-soft)] group-hover:text-[var(--accent)]">
+                      Verifikasi
+                    </span>
                   </div>
-                  <span className="shrink-0 rounded-[6px] border border-[var(--control)] px-3 py-1.5 text-[12px] font-medium text-[var(--text)]">
-                    Verifikasi
-                  </span>
+
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="truncate text-[14px] font-medium text-[var(--text)]">
+                      {c.machine?.name || 'Mesin / Area'}
+                    </div>
+                    <div className="line-clamp-1 text-[12px] text-[var(--muted)]">
+                      {c.description}
+                    </div>
+                  </div>
                 </Link>
               ))
             )}
@@ -153,13 +176,20 @@ export function K3HomePage() {
 
         {/* High Risk Open Cases */}
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-          <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">
-              Kasus Risiko Tinggi Terbuka
-            </h2>
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+                Kasus Risiko Tinggi Terbuka
+              </h2>
+              {highRiskCases.length > 0 && (
+                <span className="shrink-0 rounded-[4px] bg-[var(--safety-danger-bg)] border border-[var(--safety-danger-border)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
+                  {highRiskCases.length}
+                </span>
+              )}
+            </div>
             <Link
               to="/audit-logs"
-              className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] inline-flex items-center gap-1"
+              className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
               <span>Audit Log</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -167,11 +197,9 @@ export function K3HomePage() {
           </div>
           <div className="divide-y divide-[var(--rule)]">
             {highRiskQuery.isLoading ? (
-              <div className="p-5 text-[14px] text-[var(--faint)]">
-                Memuat kasus risiko tinggi...
-              </div>
+              <SectionLoading label="Memuat kasus risiko tinggi..." className="py-8" />
             ) : highRiskCases.length === 0 ? (
-              <div className="p-5 text-[14px] text-[var(--faint)]">
+              <div className="p-5 text-[14px] text-[var(--muted)]">
                 Tidak ada kasus risiko tinggi yang terbuka.
               </div>
             ) : (
@@ -179,20 +207,37 @@ export function K3HomePage() {
                 <Link
                   key={c.id}
                   to={`/cases/${c.id}`}
-                  className="flex flex-col gap-1.5 px-5 py-3.5 hover:bg-[var(--hover-row)]"
+                  className="group flex flex-col gap-2 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
-                      {c.case_number}
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                      <span className="whitespace-nowrap font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
+                        {c.case_number}
+                      </span>
+                      {c.machine?.code && (
+                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                          {c.machine.code}
+                        </span>
+                      )}
+                    </div>
                     <CaseStatusPill status={c.status} label={c.status_label} />
                   </div>
-                  <div className="text-[14px] font-medium text-[var(--text)] truncate">
-                    {c.machine ? `${c.machine.code} — ${c.machine.name}` : 'Mesin'}
+
+                  <div className="truncate text-[14px] font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
+                    {c.machine?.name || 'Mesin / Area'}
                   </div>
-                  <div className="flex items-center justify-between text-[12px] text-[var(--faint)]">
-                    <span>PIC: {c.risk_assessment.assigned_pic?.name || 'Belum ditunjuk'}</span>
-                    <span>{formatDateTime(c.reported_at)}</span>
+
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-[var(--muted)]">
+                    <span className="truncate">
+                      PIC:{' '}
+                      <strong className="font-medium text-[var(--text)]">
+                        {c.risk_assessment.assigned_pic?.name || 'Belum ditunjuk'}
+                      </strong>
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0 tabular-nums text-[var(--faint)]">
+                      <span>{formatDateTime(c.reported_at)}</span>
+                      <ChevronRight className="h-4 w-4 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
+                    </div>
                   </div>
                 </Link>
               ))

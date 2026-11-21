@@ -1,5 +1,6 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { roleHomePath, useAuth } from '@/lib/auth-helpers'
+import { WaveformLoader } from '@/components/ui/waveform-loader'
 import type { UserRole } from '@/types/safetylog'
 
 export function ProtectedRoute({
@@ -15,10 +16,7 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--ground)] flex items-center justify-center p-6">
-        <div className="space-y-2 text-center">
-          <div className="h-2 w-32 rounded bg-[var(--raised)] mx-auto" />
-          <p className="text-[13px] text-[var(--faint)]">Memuat sesi SafetyLog...</p>
-        </div>
+        <WaveformLoader label="Memuat sesi SafetyLog..." />
       </div>
     )
   }

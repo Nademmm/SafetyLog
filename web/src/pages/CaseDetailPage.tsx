@@ -15,23 +15,17 @@ import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { useReferenceData } from '@/lib/reference'
 import { AuthorizedImage } from '@/components/safety/AuthorizedImage'
+import { CasePipelineTracker } from '@/components/safety/CasePipelineTracker'
 import { CompleteActionModal } from '@/components/safety/CompleteActionModal'
 import { CaseStatusPill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
+import { Select } from '@/components/ui/FormField'
+import { SectionLoading } from '@/components/ui/waveform-loader'
 import type {
   ActionType,
   CaseAction,
   SafetyCase,
   SimilarCaseItem,
 } from '@/types/safetylog'
-
-const PIPELINE_STEPS: Array<{ key: string; label: string }> = [
-  { key: 'new', label: 'Baru' },
-  { key: 'assessed', label: 'Dinilai' },
-  { key: 'analyzed', label: 'Dianalisis' },
-  { key: 'in_progress', label: 'Tindakan berjalan' },
-  { key: 'pending_verification', label: 'Menunggu verifikasi' },
-  { key: 'closed', label: 'Selesai' },
-]
 
 function toLocalDateTimeInput(iso: string | null | undefined): string {
   if (!iso) return ''
@@ -190,27 +184,12 @@ export function CaseDetailPage() {
     () => refQuery.data?.risk_configs ?? [],
     [refQuery.data?.risk_configs],
   )
-  const liveRiskScore = severity * likelihood
-  const liveRiskConfig = React.useMemo(
-    () =>
-      riskConfigs.find(
-        (rc) => liveRiskScore >= rc.min_score && liveRiskScore <= rc.max_score,
-      ) ?? null,
-    [riskConfigs, liveRiskScore],
-  )
 
   const currentRiskLevel = caseData?.risk_assessment.risk_level ?? null
   const currentRiskConfig = React.useMemo(() => {
     if (!currentRiskLevel) return null
     return riskConfigs.find((rc) => rc.level === currentRiskLevel) ?? null
   }, [currentRiskLevel, riskConfigs])
-
-  const suggestedSlaHours = React.useMemo(() => {
-    if (!currentRiskConfig) return null
-    return actionType === 'temporary'
-      ? currentRiskConfig.temporary_action_hours
-      : currentRiskConfig.permanent_action_hours
-  }, [currentRiskConfig, actionType])
 
   const startEditAction = (act: CaseAction) => {
     setEditingAction(act)
@@ -417,7 +396,7 @@ export function CaseDetailPage() {
   }
 
   if (caseQuery.isLoading) {
-    return <div className="p-6 text-[14px] text-[var(--faint)]">Memuat detail kasus...</div>
+    return <SectionLoading label="Memuat detail kasus..." className="py-16" />
   }
 
   if (caseQuery.isError || !caseData) {
@@ -441,7 +420,6 @@ export function CaseDetailPage() {
     )
   }
 
-  const activeStepIndex = PIPELINE_STEPS.findIndex((s) => s.key === caseData.status)
   const assignableUsers = assignableQuery.data?.data ?? []
   const similarCases = similarQuery.data?.data ?? []
   const completedActions = (caseData.actions ?? []).filter((a) => a.status === 'completed')
@@ -549,41 +527,8 @@ export function CaseDetailPage() {
         </div>
       )}
 
-      {/* Closed-Loop Case Pipeline Strip */}
-      {caseData.status !== 'rejected' && caseData.status !== 'duplicate' && (
-        <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {PIPELINE_STEPS.map((step, idx) => {
-              const reached = activeStepIndex >= idx
-              const current = activeStepIndex === idx
-              return (
-                <div key={step.key} className="space-y-1.5">
-                  <div
-                    className={`h-1.5 rounded-full ${
-                      current
-                        ? 'bg-[var(--accent)]'
-                        : reached
-                          ? 'bg-[var(--text)]'
-                          : 'bg-[var(--control)]'
-                    }`}
-                  />
-                  <div
-                    className={`text-[12px] ${
-                      current
-                        ? 'font-semibold text-[var(--text)]'
-                        : reached
-                          ? 'text-[var(--muted)]'
-                          : 'text-[var(--faint)]'
-                    }`}
-                  >
-                    {step.label}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      {/* Industrial Closed-Loop Case Pipeline Visualization */}
+      <CasePipelineTracker caseData={caseData} />
 
       {/* Main 2-Column Layout */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
@@ -646,26 +591,32 @@ export function CaseDetailPage() {
 
           {/* Triage Panel (B-12) */}
           {available?.can_triage && (
-            <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4">
+            <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-[16px] font-semibold text-[var(--text)]">
                   Penilaian Risiko &amp; Triase
                 </h2>
                 <div className="grid grid-cols-3 gap-1.5 sm:flex">
-                  {(['assess', 'reject', 'duplicate'] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setTriageMode(m)}
-                      className={`h-11 sm:h-9 rounded-[6px] px-3 text-[13px] font-medium ${
-                        triageMode === m
-                          ? 'bg-[var(--primary)] text-[var(--primary-ink)]'
-                          : 'bg-[var(--raised)] text-[var(--muted)] hover:text-[var(--text)]'
-                      }`}
-                    >
-                      {m === 'assess' ? 'Nilai Risiko' : m === 'reject' ? 'Tolak' : 'Duplikat'}
-                    </button>
-                  ))}
+                  {(['assess', 'reject', 'duplicate'] as const).map((m) => {
+                    const active = triageMode === m
+                    const isDanger = m === 'reject'
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setTriageMode(m)}
+                        className={`h-11 sm:h-9 rounded-[6px] border px-3 text-[13px] transition-colors cursor-pointer ${
+                          active
+                            ? isDanger
+                              ? 'border-[var(--safety-danger)] bg-[var(--safety-danger-bg)] font-semibold text-[var(--safety-danger-foreground)]'
+                              : 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                            : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
+                        }`}
+                      >
+                        {m === 'assess' ? 'Nilai Risiko' : m === 'reject' ? 'Tolak' : 'Duplikat'}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -678,10 +629,10 @@ export function CaseDetailPage() {
               <form onSubmit={handleTriageSubmit} className="space-y-4">
                 {triageMode === 'assess' ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div className="space-y-1.5">
-                        <span className="block text-[13px] font-medium text-[var(--muted)]">
-                          Keparahan (Severity 1–5)
+                        <span className="block text-[13px] font-semibold text-[var(--text)]">
+                          Keparahan (1–5)
                         </span>
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((n) => (
@@ -689,10 +640,10 @@ export function CaseDetailPage() {
                               key={n}
                               type="button"
                               onClick={() => setSeverity(n)}
-                              className={`h-11 rounded-[6px] border font-mono text-[14px] font-semibold tabular-nums ${
+                              className={`h-11 rounded-[6px] border font-mono text-[14px] tabular-nums transition-colors cursor-pointer ${
                                 severity === n
-                                  ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)]'
-                                  : 'border-[var(--control)] bg-[var(--ground)] text-[var(--text)]'
+                                  ? 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                                  : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                               }`}
                             >
                               {n}
@@ -702,8 +653,8 @@ export function CaseDetailPage() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <span className="block text-[13px] font-medium text-[var(--muted)]">
-                          Kemungkinan (Likelihood 1–5)
+                        <span className="block text-[13px] font-semibold text-[var(--text)]">
+                          Kemungkinan (1–5)
                         </span>
                         <div className="grid grid-cols-5 gap-1.5">
                           {[1, 2, 3, 4, 5].map((n) => (
@@ -711,10 +662,10 @@ export function CaseDetailPage() {
                               key={n}
                               type="button"
                               onClick={() => setLikelihood(n)}
-                              className={`h-11 rounded-[6px] border font-mono text-[14px] font-semibold tabular-nums ${
+                              className={`h-11 rounded-[6px] border font-mono text-[14px] tabular-nums transition-colors cursor-pointer ${
                                 likelihood === n
-                                  ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)]'
-                                  : 'border-[var(--control)] bg-[var(--ground)] text-[var(--text)]'
+                                  ? 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                                  : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                               }`}
                             >
                               {n}
@@ -724,46 +675,26 @@ export function CaseDetailPage() {
                       </div>
                     </div>
 
-                    {/* Live Risk Score Preview */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-[6px] border border-[var(--border)] bg-[var(--ground)] px-3.5 py-2.5 text-[13px]">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[var(--muted)]">Pratinjau Skor:</span>
-                        <span className="font-mono font-semibold text-[var(--text)] tabular-nums">
-                          {severity} × {likelihood} = {liveRiskScore}
-                        </span>
-                        {liveRiskConfig && (
-                          <RiskPill level={liveRiskConfig.level} label={liveRiskConfig.label} />
-                        )}
-                      </div>
-                      {liveRiskConfig && (
-                        <span className="text-[12px] text-[var(--faint)]">
-                          Target SLA: {liveRiskConfig.permanent_action_hours} jam
-                          {liveRiskConfig.requires_preventive_action ? ' · Wajib Preventif' : ''}
-                        </span>
-                      )}
-                    </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
-                          <label className="block text-[13px] font-medium text-[var(--muted)]">
+                          <label className="block text-[13px] font-semibold text-[var(--text)]">
                             Tunjuk PIC Kasus
                           </label>
                           {caseData.area?.pic_user && (
                             <button
                               type="button"
                               onClick={() => setTriagePicId(String(caseData.area!.pic_user!.id))}
-                              className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline"
+                              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
                             >
                               <UserCheck className="h-3.5 w-3.5" />
                               Gunakan PIC Area
                             </button>
                           )}
                         </div>
-                        <select
+                        <Select
                           value={triagePicId}
                           onChange={(e) => setTriagePicId(e.target.value)}
-                          className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
                         >
                           <option value="">Pilih PIC...</option>
                           {assignableUsers.map((u) => (
@@ -771,17 +702,16 @@ export function CaseDetailPage() {
                               {u.name} ({u.role_label})
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="block text-[13px] font-medium text-[var(--muted)]">
+                        <label className="block text-[13px] font-semibold text-[var(--text)]">
                           Kategori Masalah
                         </label>
-                        <select
+                        <Select
                           value={triageCategoryId}
                           onChange={(e) => setTriageCategoryId(e.target.value)}
-                          className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
                         >
                           <option value="">Pilih kategori...</option>
                           {(refQuery.data?.categories ?? []).map((cat) => (
@@ -789,7 +719,7 @@ export function CaseDetailPage() {
                               {cat.name}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     </div>
                   </>
@@ -797,7 +727,7 @@ export function CaseDetailPage() {
                   <>
                     {triageMode === 'duplicate' && (
                       <div className="space-y-2">
-                        <label className="block text-[13px] font-medium text-[var(--muted)]">
+                        <label className="block text-[13px] font-semibold text-[var(--text)]">
                           Pilih Kasus Asli (Rujukan Duplikat)
                         </label>
                         <input
@@ -805,13 +735,12 @@ export function CaseDetailPage() {
                           value={duplicateSearch}
                           onChange={(e) => setDuplicateSearch(e.target.value)}
                           placeholder="Cari nomor kasus atau mesin..."
-                          className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+                          className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                         />
-                        <select
+                        <Select
                           value={duplicateOfId}
                           onChange={(e) => setDuplicateOfId(e.target.value)}
                           required
-                          className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
                         >
                           <option value="">Pilih kasus asli...</option>
                           {duplicateCandidates.map((cand) => (
@@ -820,11 +749,11 @@ export function CaseDetailPage() {
                               {cand.status_label})
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     )}
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-[var(--muted)]">
+                      <label className="block text-[13px] font-semibold text-[var(--text)]">
                         Alasan ({triageMode === 'reject' ? 'Penolakan' : 'Duplikat'})
                       </label>
                       <textarea
@@ -832,7 +761,7 @@ export function CaseDetailPage() {
                         value={triageReason}
                         onChange={(e) => setTriageReason(e.target.value)}
                         required
-                        className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] p-3 text-[15px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+                        className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                   </>
@@ -841,7 +770,7 @@ export function CaseDetailPage() {
                 <button
                   type="submit"
                   disabled={triageBusy}
-                  className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                  className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                 >
                   {triageBusy ? 'Menyimpan...' : 'Simpan Triase'}
                 </button>
@@ -1050,16 +979,8 @@ export function CaseDetailPage() {
                 onSubmit={handleAddAction}
                 className="border-t border-[var(--rule)] pt-4 space-y-3"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[14px] font-medium text-[var(--text)]">
-                    Tambah Tindakan Baru
-                  </div>
-                  {suggestedSlaHours && (
-                    <span className="text-[12px] text-[var(--faint)]">
-                      Saran SLA otomatis: +{suggestedSlaHours} jam (kosongkan tenggat untuk pakai
-                      saran)
-                    </span>
-                  )}
+                <div className="text-[14px] font-semibold text-[var(--text)]">
+                  Tambah Tindakan Baru
                 </div>
                 {actionErr && (
                   <div className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[13px] text-[var(--safety-danger-foreground)]">
@@ -1067,23 +988,21 @@ export function CaseDetailPage() {
                   </div>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <select
+                  <Select
                     value={actionType}
                     onChange={(e) => setActionType(e.target.value as ActionType)}
-                    className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                   >
                     {actionTypeOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
 
-                  <select
+                  <Select
                     value={actionPicId}
                     onChange={(e) => setActionPicId(e.target.value)}
                     required
-                    className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                   >
                     <option value="">Pilih PIC...</option>
                     {assignableUsers.map((u) => (
@@ -1091,14 +1010,14 @@ export function CaseDetailPage() {
                         {u.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
 
                   <input
                     type="datetime-local"
                     value={actionDueAt}
                     onChange={(e) => setActionDueAt(e.target.value)}
                     aria-label="Tenggat opsional"
-                    className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[13px] text-[var(--text)]"
+                    className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                   />
                 </div>
                 <input
@@ -1107,7 +1026,7 @@ export function CaseDetailPage() {
                   onChange={(e) => setActionTitle(e.target.value)}
                   placeholder="Judul tindakan perbaikan atau pencegahan..."
                   required
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)]"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   <input
@@ -1115,12 +1034,12 @@ export function CaseDetailPage() {
                     value={actionDescription}
                     onChange={(e) => setActionDescription(e.target.value)}
                     placeholder="Instruksi detail tindakan (opsional)..."
-                    className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)]"
+                    className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                   />
                   <button
                     type="submit"
                     disabled={actionBusy}
-                    className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                    className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                   >
                     {actionBusy ? 'Menambah...' : 'Tambah Tindakan'}
                   </button>
@@ -1163,7 +1082,7 @@ export function CaseDetailPage() {
               {available?.can_verify && (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="block text-[13px] font-medium text-[var(--muted)]">
+                    <label className="block text-[13px] font-semibold text-[var(--text)]">
                       Ringkasan Pembelajaran (Wajib untuk Setujui &amp; Tutup)
                     </label>
                     <textarea
@@ -1171,25 +1090,25 @@ export function CaseDetailPage() {
                       value={learningSummary}
                       onChange={(e) => setLearningSummary(e.target.value)}
                       placeholder="Apa pelajaran utama agar masalah tidak terulang..."
-                      className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] p-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+                      className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                     />
                   </div>
                   <button
                     type="button"
                     disabled={verifyBusy || (requiresPreventive && !hasCompletedPreventive)}
                     onClick={() => void handleVerify('approve')}
-                    className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                    className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                   >
                     Setujui &amp; Tutup Kasus
                   </button>
 
                   <div className="border-t border-[var(--rule)] pt-4 space-y-3">
-                    <label className="block text-[13px] font-medium text-[var(--muted)]">
+                    <label className="block text-[13px] font-semibold text-[var(--text)]">
                       Atau Tolak Verifikasi (Alasan Wajib)
                     </label>
                     {completedActions.length > 0 && (
                       <div className="space-y-1.5">
-                        <div className="text-[12px] text-[var(--faint)]">
+                        <div className="text-[12px] text-[var(--muted)]">
                           Pilih tindakan yang akan dibuka ulang untuk diperbaiki PIC:
                         </div>
                         <div className="space-y-1">
@@ -1227,13 +1146,13 @@ export function CaseDetailPage() {
                         value={verifyRejectReason}
                         onChange={(e) => setVerifyRejectReason(e.target.value)}
                         placeholder="Alasan dikembalikan ke Tindakan berjalan..."
-                        className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                        className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                       <button
                         type="button"
                         disabled={verifyBusy}
                         onClick={() => void handleVerify('reject')}
-                        className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-4 text-[13px] font-medium text-[var(--safety-danger-foreground)]"
+                        className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-4 text-[13px] font-semibold text-[var(--safety-danger-foreground)] cursor-pointer"
                       >
                         Tolak Verifikasi
                       </button>
@@ -1266,7 +1185,7 @@ export function CaseDetailPage() {
                   onSubmit={handleReopen}
                   className="border-t border-[var(--rule)] pt-4 space-y-3"
                 >
-                  <div className="text-[13px] font-medium text-[var(--text)]">Buka Ulang Kasus</div>
+                  <div className="text-[13px] font-semibold text-[var(--text)]">Buka Ulang Kasus</div>
                   {reopenErr && (
                     <div className="text-[12px] text-[var(--safety-danger-foreground)]">
                       {reopenErr}
@@ -1274,7 +1193,7 @@ export function CaseDetailPage() {
                   )}
                   {completedActions.length > 0 && (
                     <div className="space-y-1.5">
-                      <div className="text-[12px] text-[var(--faint)]">
+                      <div className="text-[12px] text-[var(--muted)]">
                         Pilih tindakan yang perlu dibuka ulang:
                       </div>
                       <div className="space-y-1">
@@ -1313,12 +1232,12 @@ export function CaseDetailPage() {
                       onChange={(e) => setReopenReason(e.target.value)}
                       placeholder="Alasan membuka ulang kasus..."
                       required
-                      className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                      className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                     />
                     <button
                       type="submit"
                       disabled={reopenBusy}
-                      className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--control)] px-4 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]"
+                      className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-4 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
                     >
                       Buka Ulang
                     </button>
@@ -1446,27 +1365,25 @@ export function CaseDetailPage() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Jenis Tindakan</label>
-                <select
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Jenis Tindakan</label>
+                <Select
                   value={editActionType}
                   onChange={(e) => setEditActionType(e.target.value as ActionType)}
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   {actionTypeOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">PIC Tindakan</label>
-                <select
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">PIC Tindakan</label>
+                <Select
                   value={editActionPicId}
                   onChange={(e) => setEditActionPicId(e.target.value)}
                   required
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   <option value="">Pilih PIC...</option>
                   {assignableUsers.map((u) => (
@@ -1474,38 +1391,38 @@ export function CaseDetailPage() {
                       {u.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[12px] text-[var(--muted)]">Judul Tindakan</label>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-semibold text-[var(--text)]">Judul Tindakan</label>
               <input
                 type="text"
                 value={editActionTitle}
                 onChange={(e) => setEditActionTitle(e.target.value)}
                 required
-                className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[12px] text-[var(--muted)]">Instruksi / Deskripsi</label>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-semibold text-[var(--text)]">Instruksi / Deskripsi</label>
               <textarea
                 rows={2}
                 value={editActionDesc}
                 onChange={(e) => setEditActionDesc(e.target.value)}
-                className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] p-3 text-[14px] text-[var(--text)]"
+                className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[12px] text-[var(--muted)]">Tenggat Waktu</label>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-semibold text-[var(--text)]">Tenggat Waktu</label>
               <input
                 type="datetime-local"
                 value={editActionDueAt}
                 onChange={(e) => setEditActionDueAt(e.target.value)}
-                className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
               />
             </div>
 

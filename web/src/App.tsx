@@ -7,6 +7,7 @@ import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { ThemeProvider } from '@/lib/theme'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AppShell } from '@/components/layout/AppShell'
+import { SectionLoading, WaveformLoader } from '@/components/ui/waveform-loader'
 import { ErrorBoundary } from '@/components/safety/ErrorBoundary'
 import { LoginPage } from '@/pages/LoginPage'
 import { QrResolvePage } from '@/pages/QrResolvePage'
@@ -72,19 +73,15 @@ const queryClient = new QueryClient({
 })
 
 function PageFallback() {
-  return (
-    <div className="py-12 flex items-center justify-center text-[13px] text-[var(--faint)]">
-      Memuat halaman...
-    </div>
-  )
+  return <SectionLoading label="Memuat halaman..." className="py-16" />
 }
 
 function HomeRedirect() {
   const { user, isLoading, isAuthenticated } = useAuth()
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--ground)] flex items-center justify-center text-[13px] text-[var(--faint)]">
-        Memuat SafetyLog...
+      <div className="min-h-screen bg-[var(--ground)] flex items-center justify-center p-6">
+        <WaveformLoader label="Memuat SafetyLog..." />
       </div>
     )
   }
@@ -180,7 +177,7 @@ export default function App() {
                 <Route
                   path="/my-actions"
                   element={
-                    <ProtectedRoute allowedRoles={['reporter', 'supervisor', 'hse', 'admin']}>
+                    <ProtectedRoute allowedRoles={['reporter']}>
                       <ShellPage>
                         <MyActionsPage />
                       </ShellPage>

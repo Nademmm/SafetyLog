@@ -62,3 +62,8 @@ php artisan test
 - **Jangan** menulis aturan bisnis (skor risiko, verifikator != PIC, wajib preventif, pembatasan peran/organisasi) tanpa feature test otomatis.
 - **Jangan** men-hardcode ambang skor risiko atau target waktu di controller/service; selalu baca dari `risk_configs` / `configurations`.
 - **Jangan** menggabungkan fitur di luar cakupan item backlog yang sedang dikerjakan tanpa persetujuan Product Owner (Afgan).
+
+## 7. Standar Desain UI/UX Frontend (`/web`)
+
+- Setiap kali membuat, mendesain ulang, atau memoles tampilan antarmuka di `/web`, **selalu gunakan skill `design-taste-frontend` (v2) dan `design-mobile-apps`** secara bersamaan.
+- Pastikan seluruh komponen responsif untuk perangkat mobile (`390px`), tablet (`768px`), dan desktop (`1440px`), mematuhi target sentuh minimal `44px`, tanpa gradien atau bayangan berlebih pada elemen diam, serta mendukung Mode Siang dan Mode Malam secara konsisten.

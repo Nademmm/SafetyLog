@@ -1,16 +1,38 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { Check, ChevronDown, ChevronRight, Filter, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { DashboardData, SiteRef } from '@/types/safetylog'
 
 export function DashboardPage() {
   const { user } = useAuth()
   const [siteId, setSiteId] = React.useState('')
+  const [filterOpen, setFilterOpen] = React.useState(false)
+  const filterPanelRef = React.useRef<HTMLDivElement | null>(null)
+
+  React.useEffect(() => {
+    if (!filterOpen) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFilterOpen(false)
+    }
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target as Node)) {
+        setFilterOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      window.removeEventListener('keydown', handleKey)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [filterOpen])
 
   const sitesQuery = useQuery({
     queryKey: ['sites-opt'],
@@ -45,21 +67,109 @@ export function DashboardPage() {
           </p>
         </div>
 
-        {(sitesQuery.data?.data?.length ?? 0) > 1 && (
-          <select
-            value={siteId}
-            onChange={(e) => setSiteId(e.target.value)}
-            aria-label="Filter site"
-            className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)]"
-          >
-            <option value="">Semua Site</option>
-            {sitesQuery.data!.data.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        )}
+        {(sitesQuery.data?.data?.length ?? 0) > 1 && (() => {
+          const sitesList = sitesQuery.data!.data
+          const activeSiteName = sitesList.find((s) => String(s.id) === siteId)?.name || 'Semua Site'
+          return (
+            <div ref={filterPanelRef} className="relative shrink-0 self-start">
+              <button
+                type="button"
+                onClick={() => setFilterOpen((v) => !v)}
+                aria-expanded={filterOpen}
+                aria-haspopup="dialog"
+                className={`inline-flex h-11 items-center gap-2 rounded-[6px] border px-3.5 text-[14px] transition-colors cursor-pointer ${
+                  filterOpen || siteId
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                    : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--text)] hover:bg-[var(--raised)]'
+                }`}
+              >
+                <Filter className={`h-4 w-4 shrink-0 ${siteId ? 'text-[var(--accent)]' : 'text-[var(--muted)]'}`} />
+                <span>Filter</span>
+                <span className="rounded-[4px] bg-[var(--ground)] border border-[var(--border)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--muted)]">
+                  {activeSiteName}
+                </span>
+                <ChevronDown
+                  className={`hidden sm:block h-4 w-4 text-[var(--faint)] transition-transform ${
+                    filterOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {filterOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/60 sm:hidden"
+                    onClick={() => setFilterOpen(false)}
+                    aria-hidden="true"
+                  />
+
+                  <div
+                    role="dialog"
+                    aria-label="Filter site dashboard"
+                    className="fixed inset-x-0 bottom-0 z-50 flex max-h-[75vh] flex-col rounded-t-[16px] border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-12px_32px_rgba(0,0,0,0.3)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[272px] sm:rounded-[8px] sm:border sm:p-2 sm:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
+                  >
+                    <div className="mb-3 space-y-2 sm:hidden">
+                      <div className="mx-auto h-1 w-10 rounded-full bg-[var(--control)]" />
+                      <div className="flex items-center justify-between">
+                        <span className="text-[15px] font-semibold text-[var(--text)]">
+                          Filter Site
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setFilterOpen(false)}
+                          aria-label="Tutup filter"
+                          className="flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)]"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 overflow-y-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSiteId('')
+                          setFilterOpen(false)
+                        }}
+                        className={`flex min-h-[44px] sm:min-h-[40px] w-full items-center justify-between rounded-[6px] px-3 text-left text-[14px] transition-colors cursor-pointer ${
+                          !siteId
+                            ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                            : 'font-normal text-[var(--muted)] hover:bg-[var(--hover-row)] hover:text-[var(--text)]'
+                        }`}
+                      >
+                        <span>Semua Site</span>
+                        {!siteId && <Check className="h-4 w-4 text-[var(--accent)] shrink-0 stroke-[2.2px]" />}
+                      </button>
+
+                      {sitesList.map((s) => {
+                        const active = String(s.id) === siteId
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              setSiteId(String(s.id))
+                              setFilterOpen(false)
+                            }}
+                            className={`flex min-h-[44px] sm:min-h-[40px] w-full items-center justify-between rounded-[6px] px-3 text-left text-[14px] transition-colors cursor-pointer ${
+                              active
+                                ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                                : 'font-normal text-[var(--muted)] hover:bg-[var(--hover-row)] hover:text-[var(--text)]'
+                            }`}
+                          >
+                            <span>{s.name}</span>
+                            {active && <Check className="h-4 w-4 text-[var(--accent)] shrink-0 stroke-[2.2px]" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {dashboardQuery.isError && (
@@ -110,7 +220,7 @@ export function DashboardPage() {
           </div>
 
           {dashboardQuery.isLoading ? (
-            <div className="text-[14px] text-[var(--faint)]">Memuat data mesin...</div>
+            <SectionLoading label="Memuat data mesin..." className="py-6" />
           ) : machines.length === 0 ? (
             <div className="text-[14px] text-[var(--faint)]">Belum ada data kasus per mesin.</div>
           ) : (
@@ -159,7 +269,7 @@ export function DashboardPage() {
           </div>
 
           {dashboardQuery.isLoading ? (
-            <div className="text-[14px] text-[var(--faint)]">Memuat kategori...</div>
+            <SectionLoading label="Memuat kategori..." className="py-6" />
           ) : categories.length === 0 ? (
             <div className="text-[14px] text-[var(--faint)]">Belum ada data kategori.</div>
           ) : (
@@ -212,49 +322,114 @@ export function DashboardPage() {
 
       {/* Overdue Actions Table */}
       <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-        <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-4">
-          <h2 className="text-[16px] font-semibold text-[var(--text)]">
-            Daftar Tindakan Terlambat
-          </h2>
-          <Link to="/cases" className="text-[13px] text-[var(--muted)] hover:text-[var(--text)]">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+              Daftar Tindakan Terlambat
+            </h2>
+            {(data?.overdue_actions?.length ?? 0) > 0 && (
+              <span className="shrink-0 rounded-[4px] bg-[var(--safety-danger-bg)] border border-[var(--safety-danger-border)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
+                {data!.overdue_actions.length}
+              </span>
+            )}
+          </div>
+          <Link
+            to="/cases"
+            className="shrink-0 text-[13px] font-medium text-[var(--accent)] hover:underline"
+          >
             Semua kasus
           </Link>
         </div>
-        <div className="divide-y divide-[var(--rule)]">
-          {(data?.overdue_actions?.length ?? 0) === 0 ? (
-            <div className="p-5 text-[14px] text-[var(--faint)]">
-              Tidak ada tindakan yang melewati tenggat SLA.
+
+        {(data?.overdue_actions?.length ?? 0) === 0 ? (
+          <div className="p-5 text-[14px] text-[var(--faint)]">
+            Tidak ada tindakan yang melewati tenggat SLA.
+          </div>
+        ) : (
+          <div>
+            {/* Desktop Column Header (flat hairline rule, no tinted header band) */}
+            <div className="hidden md:grid md:grid-cols-12 md:gap-4 border-b border-[var(--rule)] px-5 py-2.5 text-[12px] font-medium text-[var(--faint)]">
+              <div className="col-span-5">Tindakan &amp; Kasus</div>
+              <div className="col-span-2">PIC</div>
+              <div className="col-span-3">Tenggat SLA</div>
+              <div className="col-span-2 text-right">Status</div>
             </div>
-          ) : (
-            data!.overdue_actions.map((oa) => (
-              <Link
-                key={oa.id}
-                to={oa.safety_case ? `/cases/${oa.safety_case.id}` : '/cases'}
-                className="flex flex-col gap-1.5 px-5 py-3.5 hover:bg-[var(--hover-row)] sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[12px] text-[var(--accent)] tabular-nums">
-                      {oa.safety_case?.case_number}
-                    </span>
-                    <span className="text-[12px] text-[var(--faint)]">
-                      · {oa.safety_case?.machine?.code}
-                    </span>
+
+            <div className="divide-y divide-[var(--rule)]">
+              {data!.overdue_actions.map((oa) => (
+                <Link
+                  key={oa.id}
+                  to={oa.safety_case ? `/cases/${oa.safety_case.id}` : '/cases'}
+                  className="group block px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
+                >
+                  {/* Mobile & Small Tablet Layout (< md): Clean 3-tier hierarchy, zero overlap */}
+                  <div className="flex flex-col gap-2.5 md:hidden">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
+                          {oa.safety_case?.case_number || '—'}
+                        </span>
+                        {oa.safety_case?.machine?.code && (
+                          <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                            {oa.safety_case.machine.code}
+                          </span>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        <OverduePill label={`${oa.overdue_label} (${oa.days_overdue}h)`} />
+                      </div>
+                    </div>
+
+                    <div className="text-[14px] font-medium leading-snug text-[var(--text)] line-clamp-2">
+                      {oa.title}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-0.5 text-[12px] text-[var(--muted)]">
+                      <span className="truncate">
+                        PIC: <strong className="font-medium text-[var(--text)]">{oa.pic?.name || '—'}</strong>
+                      </span>
+                      <span className="shrink-0 tabular-nums text-[var(--faint)]">
+                        Tenggat {formatDateTime(oa.due_at)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="truncate text-[14px] font-medium text-[var(--text)]">
-                    {oa.title}
+
+                  {/* Desktop Layout (>= md): Crisp 12-col aligned table row */}
+                  <div className="hidden md:grid md:grid-cols-12 md:items-center md:gap-4">
+                    <div className="col-span-5 min-w-0 space-y-1">
+                      <div className="truncate text-[14px] font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
+                        {oa.title}
+                      </div>
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <span className="font-mono font-semibold text-[var(--accent)] tabular-nums">
+                          {oa.safety_case?.case_number || '—'}
+                        </span>
+                        {oa.safety_case?.machine?.code && (
+                          <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                            {oa.safety_case.machine.code}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="col-span-2 min-w-0 truncate text-[13px] font-medium text-[var(--text)]">
+                      {oa.pic?.name || '—'}
+                    </div>
+
+                    <div className="col-span-3 text-[13px] text-[var(--muted)] tabular-nums">
+                      {formatDateTime(oa.due_at)}
+                    </div>
+
+                    <div className="col-span-2 flex items-center justify-end gap-2">
+                      <OverduePill label={`${oa.overdue_label} (${oa.days_overdue}h)`} />
+                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
+                    </div>
                   </div>
-                  <div className="text-[12px] text-[var(--faint)]">
-                    PIC: {oa.pic?.name || '—'} · Tenggat: {formatDateTime(oa.due_at)}
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  <OverduePill label={`${oa.overdue_label} (${oa.days_overdue}h)`} />
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
     </div>
   )

@@ -5,8 +5,10 @@ import { QRCodeSVG } from 'qrcode.react'
 import {
   Archive,
   Check,
+  ChevronDown,
   Copy,
   Edit3,
+  Filter,
   Printer,
   QrCode,
   RefreshCw,
@@ -15,6 +17,8 @@ import {
 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
+import { Select } from '@/components/ui/FormField'
+import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { AreaRef, Machine, SiteRef } from '@/types/safetylog'
 
 type AdminTab = 'machines' | 'areas' | 'sites'
@@ -23,8 +27,28 @@ export function AdminMachinesPage() {
   const queryClient = useQueryClient()
   const [tab, setTab] = React.useState<AdminTab>('machines')
   const [showArchived, setShowArchived] = React.useState(false)
+  const [filterOpen, setFilterOpen] = React.useState(false)
+  const filterPanelRef = React.useRef<HTMLDivElement | null>(null)
   const [errMsg, setErrMsg] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!filterOpen) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFilterOpen(false)
+    }
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target as Node)) {
+        setFilterOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      window.removeEventListener('keydown', handleKey)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [filterOpen])
 
   const sitesQuery = useQuery({
     queryKey: ['admin-sites', showArchived],
@@ -335,7 +359,7 @@ export function AdminMachinesPage() {
     <div className="space-y-6">
       {/* Main Admin Workspace (hidden when printing QR sticker) */}
       <div className={`space-y-6 ${qrModalMachine ? 'print:hidden' : ''}`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
               Site, Area, Mesin &amp; Kode QR
@@ -345,44 +369,125 @@ export function AdminMachinesPage() {
             </p>
           </div>
 
-          <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] text-[var(--text)]">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-              className="h-4 w-4 accent-[var(--accent)]"
-            />
-            <span>Tampilkan yang diarsipkan</span>
-          </label>
-        </div>
+          {/* Unified Filter Button (Mobile Sheet & Desktop Popover) */}
+          {(() => {
+            const tabOptions = [
+              { key: 'machines' as const, label: `Mesin & QR (${machines.length})` },
+              { key: 'areas' as const, label: `Area & PIC (${areas.length})` },
+              { key: 'sites' as const, label: `Site / Pabrik (${sites.length})` },
+            ]
+            const activeTabLabel = tabOptions.find((item) => item.key === tab)?.label || 'Mesin & QR'
+            return (
+              <div ref={filterPanelRef} className="relative shrink-0 self-start">
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen((v) => !v)}
+                  aria-expanded={filterOpen}
+                  aria-haspopup="dialog"
+                  className={`inline-flex h-11 items-center gap-2 rounded-[6px] border px-3.5 text-[14px] transition-colors cursor-pointer ${
+                    filterOpen || showArchived || tab !== 'machines'
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                      : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--text)] hover:bg-[var(--raised)]'
+                  }`}
+                >
+                  <Filter
+                    className={`h-4 w-4 shrink-0 ${
+                      showArchived || tab !== 'machines' ? 'text-[var(--accent)]' : 'text-[var(--muted)]'
+                    }`}
+                  />
+                  <span>Filter</span>
+                  <span className="rounded-[4px] bg-[var(--ground)] border border-[var(--border)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--muted)]">
+                    {activeTabLabel}
+                    {showArchived ? ' · Arsip' : ''}
+                  </span>
+                  <ChevronDown
+                    className={`hidden sm:block h-4 w-4 text-[var(--faint)] transition-transform ${
+                      filterOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
 
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2" role="tablist">
-          {(
-            [
-              { key: 'machines', label: `Mesin & QR (${machines.length})` },
-              { key: 'areas', label: `Area & PIC (${areas.length})` },
-              { key: 'sites', label: `Site / Pabrik (${sites.length})` },
-            ] as const
-          ).map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === item.key}
-              onClick={() => {
-                setTab(item.key)
-                setErrMsg(null)
-              }}
-              className={`h-11 rounded-[6px] border px-4 text-[13px] font-medium transition-colors ${
-                tab === item.key
-                  ? 'border-[var(--accent)] bg-[var(--raised)] font-semibold text-[var(--text)]'
-                  : 'border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+                {filterOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40 bg-black/60 sm:hidden"
+                      onClick={() => setFilterOpen(false)}
+                      aria-hidden="true"
+                    />
+
+                    <div
+                      role="dialog"
+                      aria-label="Filter master data pabrik"
+                      className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[16px] border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-12px_32px_rgba(0,0,0,0.3)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[300px] sm:rounded-[8px] sm:border sm:p-3 sm:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
+                    >
+                      <div className="mb-3 space-y-2 sm:hidden">
+                        <div className="mx-auto h-1 w-10 rounded-full bg-[var(--control)]" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-[15px] font-semibold text-[var(--text)]">
+                            Filter Data Master
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setFilterOpen(false)}
+                            aria-label="Tutup filter"
+                            className="flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)]"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <span className="block px-1 text-[12px] font-medium text-[var(--faint)]">
+                            Tampilkan Kategori Data
+                          </span>
+                          <div className="space-y-1">
+                            {tabOptions.map((item) => {
+                              const active = tab === item.key
+                              return (
+                                <button
+                                  key={item.key}
+                                  type="button"
+                                  onClick={() => {
+                                    setTab(item.key)
+                                    setErrMsg(null)
+                                    setFilterOpen(false)
+                                  }}
+                                  className={`flex min-h-[44px] sm:min-h-[40px] w-full items-center justify-between rounded-[6px] px-3 text-left text-[14px] transition-colors cursor-pointer ${
+                                    active
+                                      ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent)]'
+                                      : 'font-normal text-[var(--muted)] hover:bg-[var(--hover-row)] hover:text-[var(--text)]'
+                                  }`}
+                                >
+                                  <span>{item.label}</span>
+                                  {active && <Check className="h-4 w-4 text-[var(--accent)] shrink-0 stroke-[2.2px]" />}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-[var(--rule)] pt-3">
+                          <label className="flex min-h-[44px] cursor-pointer items-center justify-between rounded-[6px] px-2 hover:bg-[var(--hover-row)]">
+                            <span className="text-[13px] font-medium text-[var(--text)]">
+                              Tampilkan yang diarsipkan
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={showArchived}
+                              onChange={(e) => setShowArchived(e.target.checked)}
+                              className="h-4 w-4 accent-[var(--accent)]"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {errMsg && (
@@ -407,11 +512,10 @@ export function AdminMachinesPage() {
             >
               <h2 className="text-[16px] font-semibold text-[var(--text)]">Tambah Mesin Baru</h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <select
+                <Select
                   value={newMachineAreaId}
                   onChange={(e) => setNewMachineAreaId(e.target.value)}
                   required
-                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   <option value="">Pilih Area...</option>
                   {activeAreas.map((a) => (
@@ -419,14 +523,14 @@ export function AdminMachinesPage() {
                       {a.name} ({a.code})
                     </option>
                   ))}
-                </select>
+                </Select>
 
                 <input
                   type="text"
                   value={newMachineCode}
                   onChange={(e) => setNewMachineCode(e.target.value)}
                   placeholder="Kode (opsional, otomatis bila kosong)"
-                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
 
                 <input
@@ -435,7 +539,7 @@ export function AdminMachinesPage() {
                   onChange={(e) => setNewMachineName(e.target.value)}
                   placeholder="Nama Mesin"
                   required
-                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
 
                 <input
@@ -443,7 +547,7 @@ export function AdminMachinesPage() {
                   value={newMachineDesc}
                   onChange={(e) => setNewMachineDesc(e.target.value)}
                   placeholder="Keterangan singkat (opsional)"
-                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
               <button
@@ -457,7 +561,7 @@ export function AdminMachinesPage() {
 
             <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
               {machinesQuery.isLoading ? (
-                <div className="p-5 text-[14px] text-[var(--faint)]">Memuat daftar mesin...</div>
+                <SectionLoading label="Memuat daftar mesin..." />
               ) : machines.length === 0 ? (
                 <div className="p-6 text-[14px] text-[var(--faint)]">
                   Belum ada mesin terdaftar.
@@ -550,30 +654,28 @@ export function AdminMachinesPage() {
                 Tambah Area &amp; PIC Area
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <select
+                <Select
                   value={newAreaSiteId || (activeSites[0] ? String(activeSites[0].id) : '')}
                   onChange={(e) => setNewAreaSiteId(e.target.value)}
                   required
-                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   {activeSites.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.code})
                     </option>
                   ))}
-                </select>
+                </Select>
                 <input
                   type="text"
                   value={newAreaName}
                   onChange={(e) => setNewAreaName(e.target.value)}
                   placeholder="Nama Area (mis. Produksi Line 1)"
                   required
-                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
-                <select
+                <Select
                   value={newAreaPicId}
                   onChange={(e) => setNewAreaPicId(e.target.value)}
-                  className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   <option value="">PIC Area (opsional)...</option>
                   {assignableUsers.map((u) => (
@@ -581,11 +683,11 @@ export function AdminMachinesPage() {
                       {u.name} ({u.role_label})
                     </option>
                   ))}
-                </select>
+                </Select>
                 <button
                   type="submit"
                   disabled={busy}
-                  className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                  className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                 >
                   {busy ? 'Menyimpan...' : 'Simpan Area'}
                 </button>
@@ -670,12 +772,12 @@ export function AdminMachinesPage() {
                   onChange={(e) => setNewSiteName(e.target.value)}
                   placeholder="Nama Site / Pabrik (mis. Plant Karawang)"
                   required
-                  className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
                 <button
                   type="submit"
                   disabled={busy}
-                  className="h-11 rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                  className="h-11 rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                 >
                   {busy ? 'Menyimpan...' : 'Simpan Site'}
                 </button>
@@ -760,41 +862,40 @@ export function AdminMachinesPage() {
               </button>
             </div>
             <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Area</label>
-                <select
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Area</label>
+                <Select
                   value={editingMachine.area_id ?? ''}
                   onChange={(e) =>
                     setEditingMachine({ ...editingMachine, area_id: Number(e.target.value) })
                   }
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   {activeAreas.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name} ({a.code})
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Nama Mesin</label>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Nama Mesin</label>
                 <input
                   type="text"
                   value={editingMachine.name}
                   onChange={(e) => setEditingMachine({ ...editingMachine, name: e.target.value })}
                   required
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Deskripsi</label>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Deskripsi</label>
                 <input
                   type="text"
                   value={editingMachine.description || ''}
                   onChange={(e) =>
                     setEditingMachine({ ...editingMachine, description: e.target.value })
                   }
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
             </div>
@@ -845,35 +946,34 @@ export function AdminMachinesPage() {
               </button>
             </div>
             <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Site</label>
-                <select
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Site</label>
+                <Select
                   value={editingArea.site_id ?? ''}
                   onChange={(e) =>
                     setEditingArea({ ...editingArea, site_id: Number(e.target.value) })
                   }
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   {activeSites.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.code})
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">Nama Area</label>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">Nama Area</label>
                 <input
                   type="text"
                   value={editingArea.name}
                   onChange={(e) => setEditingArea({ ...editingArea, name: e.target.value })}
                   required
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] text-[var(--muted)]">PIC Area</label>
-                <select
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-semibold text-[var(--text)]">PIC Area</label>
+                <Select
                   value={editingArea.pic_user_id ?? ''}
                   onChange={(e) =>
                     setEditingArea({
@@ -881,7 +981,6 @@ export function AdminMachinesPage() {
                       pic_user_id: e.target.value ? Number(e.target.value) : null,
                     })
                   }
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
                 >
                   <option value="">Tidak ada PIC khusus</option>
                   {assignableUsers.map((u) => (
@@ -889,7 +988,7 @@ export function AdminMachinesPage() {
                       {u.name} ({u.role_label})
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
             <div className="flex gap-2">
@@ -938,14 +1037,14 @@ export function AdminMachinesPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="space-y-1">
-              <label className="text-[12px] text-[var(--muted)]">Nama Site</label>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-semibold text-[var(--text)]">Nama Site</label>
               <input
                 type="text"
                 value={editingSite.name}
                 onChange={(e) => setEditingSite({ ...editingSite, name: e.target.value })}
                 required
-                className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[14px] text-[var(--text)]"
+                className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
               />
             </div>
             <div className="flex gap-2">

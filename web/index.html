@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="id" class="dark">
+<html lang="id" class="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#F5F7FA" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="SafetyLog" />
     <title>SafetyLog — Keselamatan Kerja &amp; Keandalan Mesin</title>
     <script>
@@ -18,13 +18,13 @@
           var params = new URLSearchParams(window.location.search);
           var urlTheme = params.get('theme');
           var saved = localStorage.getItem('safetylog_theme');
-          var theme = (urlTheme === 'light' || urlTheme === 'dark') ? urlTheme : (saved === 'light' ? 'light' : 'dark');
+          var theme = (urlTheme === 'light' || urlTheme === 'dark') ? urlTheme : (saved === 'dark' ? 'dark' : 'light');
           var root = document.documentElement;
           root.classList.remove('dark', 'light');
           root.classList.add(theme);
           root.setAttribute('data-theme', theme);
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', theme === 'light' ? '#f9fafb' : '#000000');
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0D1117' : '#F5F7FA');
         } catch (e) {}
       })();
     </script>
@@ -37,7 +37,7 @@
       rel="stylesheet"
     />
   </head>
-  <body class="min-h-screen antialiased selection:bg-[#F97316]/30">
+  <body class="min-h-screen antialiased selection:bg-[#F38020]/25">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
