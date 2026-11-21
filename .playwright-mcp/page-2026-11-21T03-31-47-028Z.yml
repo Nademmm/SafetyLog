@@ -1,0 +1,27 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - img "SafetyLog" [ref=e6]
+      - generic [ref=e14]: SafetyLog
+    - button "Aktifkan Mode Malam" [ref=e15] [cursor=pointer]
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - img "SafetyLog" [ref=e22]
+        - heading "Masuk ke SafetyLog" [level=1] [ref=e30]
+        - paragraph [ref=e31]: Gunakan akun perusahaan Anda untuk melanjutkan.
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]: Alamat Email
+          - textbox "Alamat Email" [ref=e37]:
+            - /placeholder: nama@perusahaan.com
+        - generic [ref=e38]:
+          - generic [ref=e39]: Kata Sandi
+          - generic [ref=e40]:
+            - textbox "Kata Sandi" [ref=e41]:
+              - /placeholder: Masukkan kata sandi
+            - button "Tampilkan kata sandi" [ref=e42] [cursor=pointer]
+        - button "Masuk" [ref=e46] [cursor=pointer]
+      - generic [ref=e50]:
+        - paragraph [ref=e51]: Kendala akses akun? Hubungi Administrator pabrik Anda.
+        - paragraph [ref=e52]: SafetyLog · Platform K3 & Keandalan Mesin

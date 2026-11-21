@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api'
 import { isRedirectAllowedForRole, roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
 import { SafetyLogMark } from '@/components/ui/SafetyLogMark'
+import { ShaderBackground } from '@/components/ui/waves-background'
 
 const loginSchema = z.object({
   email: z.string().email('Masukkan alamat email yang valid.'),
@@ -61,25 +62,22 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--ground)] text-[var(--text)] flex flex-col">
+    <div className="relative min-h-screen overflow-hidden bg-[var(--ground)] text-[var(--text)] flex flex-col">
+      {/* Animated WebGL Wave Background */}
+      <ShaderBackground className="pointer-events-none fixed inset-0 z-0" />
+
       {/* Minimal Enterprise Top Bar */}
-      <header className="flex h-16 items-center justify-between px-4 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <SafetyLogMark size={26} />
-          <span className="text-[15px] font-semibold tracking-tight text-[var(--text)]">
-            SafetyLog
-          </span>
-        </div>
+      <header className="relative z-10 flex h-16 items-center justify-end px-4 sm:px-8">
         <ThemeToggle />
       </header>
 
       {/* Centered Professional Auth Container */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6">
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:px-6">
         <div className="w-full max-w-[400px] space-y-6">
           {/* Brand Heading */}
           <div className="text-center space-y-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center">
-              <SafetyLogMark size={44} />
+            <div className="mx-auto flex h-14 w-14 items-center justify-center">
+              <SafetyLogMark size={52} />
             </div>
             <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
               Masuk ke SafetyLog

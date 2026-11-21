@@ -5,7 +5,7 @@ interface SafetyLogMarkProps {
   size?: number
 }
 
-export function SafetyLogMark({ className, size = 24 }: SafetyLogMarkProps) {
+export function SafetyLogMark({ className, size = 32 }: SafetyLogMarkProps) {
   return (
     <svg
       width={size}
@@ -17,16 +17,16 @@ export function SafetyLogMark({ className, size = 24 }: SafetyLogMarkProps) {
       className={cn('shrink-0', className)}
     >
       <rect
-        x="2"
-        y="2"
-        width="60"
-        height="60"
+        x="1"
+        y="1"
+        width="62"
+        height="62"
         rx="14"
         fill="#111418"
         stroke="#343D47"
         strokeWidth="2"
       />
-      <g transform="translate(8, 8)">
+      <g transform="translate(4.4, 4.4) scale(1.15)">
         <polygon
           points="24,3 42,13.5 42,34.5 24,45 6,34.5 6,13.5"
           fill="#1C2229"

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'safetylog-shell-v2'
-const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/favicon.svg?v=2']
+const CACHE_NAME = 'safetylog-shell-v3'
+const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/favicon.svg?v=3']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
