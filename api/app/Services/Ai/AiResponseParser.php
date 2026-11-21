@@ -17,15 +17,27 @@ class AiResponseParser
     {
         $text = trim($content);
 
-        if (str_starts_with($text, '```')) {
-            $text = preg_replace('/^```(?:json)?\s*/i', '', $text) ?? $text;
-            $text = preg_replace('/\s*```$/', '', $text) ?? $text;
-            $text = trim($text);
+        // Strip reasoning/thinking blocks emitted by reasoning models (e.g. <think>...</think>)
+        $text = preg_replace('/<(?:think|reasoning)>.*?<\/(?:think|reasoning)>/is', '', $text) ?? $text;
+        $text = trim($text);
+
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/i', $text, $fenceMatch) === 1) {
+            $text = trim($fenceMatch[1]);
         }
 
-        try {
-            $decoded = json_decode($text, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
+        $decoded = $this->decodeJson($text);
+
+        if ($decoded === null) {
+            $firstBrace = strpos($text, '{');
+            $lastBrace = strrpos($text, '}');
+
+            if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+                $candidate = substr($text, $firstBrace, $lastBrace - $firstBrace + 1);
+                $decoded = $this->decodeJson($candidate);
+            }
+        }
+
+        if ($decoded === null) {
             throw new AiUnavailableException('Respons AI tidak dapat dibaca.');
         }
 
@@ -35,6 +47,15 @@ class AiResponseParser
 
         /** @var array<string, mixed> $decoded */
         return $decoded;
+    }
+
+    private function decodeJson(string $text): mixed
+    {
+        try {
+            return json_decode($text, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
     }
 
     /**

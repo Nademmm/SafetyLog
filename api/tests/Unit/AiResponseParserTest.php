@@ -15,6 +15,22 @@ class AiResponseParserTest extends TestCase
         $this->assertSame(['headline' => 'Ringkasan'], $result);
     }
 
+    public function test_strips_think_block_before_parsing_json(): void
+    {
+        $raw = "<think>\nModel reasoning mentioning {\"ignored\":true} format.\n</think>\n\n{\"headline\":\"Ringkasan\",\"ok\":true}";
+        $result = (new AiResponseParser)->parseObject($raw);
+
+        $this->assertSame(['headline' => 'Ringkasan', 'ok' => true], $result);
+    }
+
+    public function test_strips_think_block_and_code_fence(): void
+    {
+        $raw = "<think>Analyzing...</think>\n```json\n{\"category_id\":2,\"severity\":4}\n```";
+        $result = (new AiResponseParser)->parseObject($raw);
+
+        $this->assertSame(['category_id' => 2, 'severity' => 4], $result);
+    }
+
     public function test_rejects_invalid_json(): void
     {
         $this->expectException(AiUnavailableException::class);
