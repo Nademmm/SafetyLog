@@ -22,6 +22,7 @@ import { apiFetch } from '@/lib/api'
 import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { SafetyLogMark } from '@/components/ui/SafetyLogMark'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
 import type { AppNotification, UserRole } from '@/types/safetylog'
 
@@ -116,28 +117,6 @@ const NAV_ITEMS: NavItem[] = [
     group: 'Administrasi',
   },
 ]
-
-function SafetyLogMark() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <rect x="2" y="2" width="20" height="20" rx="4" stroke="var(--accent)" strokeWidth="2" />
-      <path
-        d="M8 12.5L10.8 15.3L16.5 9.2"
-        stroke="var(--text)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
@@ -286,7 +265,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4" aria-label="Navigasi utama">
           {groups.map((group) => (
             <div key={group} className="space-y-1">
-              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--faint)]">
+              <div className="px-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--faint)]">
                 {group}
               </div>
               {visibleItems
@@ -299,7 +278,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       key={item.to}
                       to={item.to}
                       className={cn(
-                        'flex h-10 items-center gap-2.5 rounded-[6px] px-3 text-[14px] transition-colors',
+                        'flex min-h-[44px] items-center gap-2.5 rounded-[6px] px-3 text-[14px] transition-colors',
                         active
                           ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
                           : 'text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] font-medium',
@@ -329,7 +308,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-10 w-full items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]"
+            className="flex h-11 w-full items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] cursor-pointer"
           >
             <LogOut className="h-4 w-4 stroke-[1.75px]" />
             <span>Keluar</span>
@@ -491,7 +470,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="hidden lg:flex h-full items-center border-l border-[var(--rule)] pl-4 ml-2 gap-3">
               <div className="text-right">
                 <div className="text-[13px] font-medium text-[var(--text)]">{user.role_label}</div>
-                <div className="text-[11px] text-[var(--faint)]">
+                <div className="text-[12px] text-[var(--faint)]">
                   {user.site?.name || 'Site Utama'}
                 </div>
               </div>
@@ -565,7 +544,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         to={item.to}
                         onClick={() => setMobileMenuOpen(false)}
                         className={cn(
-                          'flex h-10 items-center gap-3 rounded-[6px] px-3 text-[14px] transition-colors',
+                          'flex min-h-[44px] items-center gap-3 rounded-[6px] px-3 text-[14px] transition-colors',
                           active
                             ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
                             : 'text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] font-medium',

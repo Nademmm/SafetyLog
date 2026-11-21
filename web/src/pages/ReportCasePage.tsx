@@ -354,7 +354,7 @@ export function ReportCasePage() {
             <button
               type="button"
               onClick={() => setShowManualPicker((v) => !v)}
-              className="inline-flex h-9 items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+              className="inline-flex h-11 items-center gap-1.5 rounded-[6px] px-2 text-[13px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
             >
               <ListFilter className="h-3.5 w-3.5" />
               <span>{showManualPicker ? 'Tutup Daftar' : 'Pilih Mesin Manual'}</span>

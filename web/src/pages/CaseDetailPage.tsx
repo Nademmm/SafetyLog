@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
   ArrowLeft,
+  Calendar,
+  CheckCircle2,
   Edit3,
   Lock,
   RotateCcw,
@@ -113,8 +115,16 @@ export function CaseDetailPage() {
   const [actionDescription, setActionDescription] = React.useState('')
   const [actionPicIdOverride, setActionPicIdOverride] = React.useState<string | null>(null)
   const [actionDueAt, setActionDueAt] = React.useState('')
+  const [actionDueFocused, setActionDueFocused] = React.useState(false)
   const [actionBusy, setActionBusy] = React.useState(false)
   const [actionErr, setActionErr] = React.useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!actionSuccess) return
+    const timer = window.setTimeout(() => setActionSuccess(null), 5000)
+    return () => window.clearTimeout(timer)
+  }, [actionSuccess])
 
   // Edit Action state
   const [editingAction, setEditingAction] = React.useState<CaseAction | null>(null)
@@ -136,6 +146,7 @@ export function CaseDetailPage() {
   const [completingAction, setCompletingAction] = React.useState<CaseAction | null>(null)
 
   // Verify / Reopen state (B-16, B-17)
+  const [verifyMode, setVerifyMode] = React.useState<'approve' | 'reject'>('approve')
   const [learningSummary, setLearningSummary] = React.useState('')
   const [verifyRejectReason, setVerifyRejectReason] = React.useState('')
   const [rejectReopenActionIdsOverride, setRejectReopenActionIdsOverride] = React.useState<
@@ -299,17 +310,21 @@ export function CaseDetailPage() {
     e.preventDefault()
     if (!caseData) return
     setActionErr(null)
+    setActionSuccess(null)
     if (!actionTitle.trim() || !actionPicId) {
       setActionErr('Judul tindakan dan PIC wajib diisi.')
       return
     }
+    const addedTitle = actionTitle.trim()
+    const assignedPicName =
+      assignableUsers.find((u) => String(u.id) === String(actionPicId))?.name || 'PIC'
     setActionBusy(true)
     try {
       await apiFetch(`/cases/${caseData.id}/actions`, {
         method: 'POST',
         json: {
           action_type: actionType,
-          title: actionTitle.trim(),
+          title: addedTitle,
           description: actionDescription.trim() || null,
           pic_user_id: Number(actionPicId),
           due_at: localInputToIso(actionDueAt),
@@ -318,6 +333,7 @@ export function CaseDetailPage() {
       setActionTitle('')
       setActionDescription('')
       setActionDueAt('')
+      setActionSuccess(`Tindakan "${addedTitle}" berhasil ditambahkan untuk ${assignedPicName}.`)
       refreshCase()
     } catch (err) {
       setActionErr(err instanceof ApiError ? err.message : 'Gagal menambah tindakan.')
@@ -420,6 +436,7 @@ export function CaseDetailPage() {
     )
   }
 
+  const canManageActions = Boolean(available?.can_manage_actions) && user?.role !== 'hse'
   const assignableUsers = assignableQuery.data?.data ?? []
   const similarCases = similarQuery.data?.data ?? []
   const completedActions = (caseData.actions ?? []).filter((a) => a.status === 'completed')
@@ -428,6 +445,11 @@ export function CaseDetailPage() {
     { value: 'corrective', label: 'Korektif' },
     { value: 'preventive', label: 'Preventif' },
   ]
+  const actionTypeHints: Record<string, string> = {
+    temporary: 'Penanganan cepat sementara',
+    corrective: 'Perbaikan akar masalah',
+    preventive: 'Cegah masalah berulang',
+  }
   const requiresPreventive = Boolean(currentRiskConfig?.requires_preventive_action)
   const hasCompletedPreventive = completedActions.some((a) => a.action_type === 'preventive')
   const duplicateCandidates = (duplicateCandidatesQuery.data?.data ?? []).filter(
@@ -816,13 +838,13 @@ export function CaseDetailPage() {
             </section>
           )}
 
-          {/* CAPA Actions (B-14, B-15) */}
-          <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4">
-            <div className="flex items-center justify-between">
+          {/* CAPA Actions List (B-14, B-15) */}
+          <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-[16px] font-semibold text-[var(--text)]">
                 Tindakan Korektif &amp; Preventif (CAPA)
               </h2>
-              <span className="text-[12px] text-[var(--faint)] tabular-nums">
+              <span className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] px-3 py-1 font-mono text-[13px] font-semibold text-[var(--text)] tabular-nums">
                 {caseData.actions?.length ?? 0} tindakan
               </span>
             </div>
@@ -838,7 +860,7 @@ export function CaseDetailPage() {
                   <div key={act.id} className="py-3.5 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted)]">
+                        <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[12px] font-medium text-[var(--muted)]">
                           {act.action_type_label}
                         </span>
                         <span className="text-[14px] font-medium text-[var(--text)]">
@@ -871,11 +893,11 @@ export function CaseDetailPage() {
                         · Tenggat: {formatDateTime(act.due_at)}
                       </span>
                       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        {available?.can_manage_actions && act.status !== 'completed' && (
+                        {canManageActions && act.status !== 'completed' && (
                           <button
                             type="button"
                             onClick={() => startEditAction(act)}
-                            className="inline-flex h-10 sm:h-9 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[12px] font-medium text-[var(--muted)] hover:text-[var(--text)]"
+                            className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
                             Edit
@@ -889,7 +911,7 @@ export function CaseDetailPage() {
                               setReopenActionReason('')
                               setReopenActionErr(null)
                             }}
-                            className="inline-flex h-10 sm:h-9 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[12px] font-medium text-[var(--muted)] hover:text-[var(--text)]"
+                            className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
                             Buka Ulang
@@ -899,7 +921,7 @@ export function CaseDetailPage() {
                           <button
                             type="button"
                             onClick={() => setCompletingAction(act)}
-                            className="h-11 sm:h-9 flex-1 sm:flex-none rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+                            className="h-11 flex-1 sm:flex-none rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
                           >
                             Selesaikan Tindakan
                           </button>
@@ -947,20 +969,20 @@ export function CaseDetailPage() {
                             onChange={(e) => setReopenActionReason(e.target.value)}
                             placeholder="Alasan membuka ulang tindakan..."
                             required
-                            className="h-10 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text)]"
+                            className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)]"
                           />
                           <div className="flex gap-2">
                             <button
                               type="submit"
                               disabled={reopenActionBusy}
-                              className="h-10 rounded-[6px] bg-[var(--primary)] px-3 text-[13px] font-semibold text-[var(--primary-ink)] disabled:opacity-50"
+                              className="h-11 rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] disabled:opacity-50 cursor-pointer"
                             >
                               Konfirmasi
                             </button>
                             <button
                               type="button"
                               onClick={() => setReopeningActionId(null)}
-                              className="h-10 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)]"
+                              className="h-11 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] text-[var(--muted)] cursor-pointer"
                             >
                               Batal
                             </button>
@@ -972,81 +994,149 @@ export function CaseDetailPage() {
                 ))}
               </div>
             )}
+          </section>
 
-            {/* Add Action Form */}
-            {available?.can_manage_actions && (
-              <form
-                onSubmit={handleAddAction}
-                className="border-t border-[var(--rule)] pt-4 space-y-3"
-              >
-                <div className="text-[14px] font-semibold text-[var(--text)]">
+          {/* Add Action Form (Box Terpisah) */}
+          {canManageActions && (
+            <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] pb-3">
+                <h2 className="text-[16px] font-semibold text-[var(--text)]">
                   Tambah Tindakan Baru
-                </div>
+                </h2>
+                <span className="text-[12px] text-[var(--faint)]">
+                  Pilih jenis, PIC pelaksana, dan tenggat
+                </span>
+              </div>
+              <form onSubmit={handleAddAction} className="space-y-3.5">
                 {actionErr && (
                   <div className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[13px] text-[var(--safety-danger-foreground)]">
                     {actionErr}
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Select
-                    value={actionType}
-                    onChange={(e) => setActionType(e.target.value as ActionType)}
+                {actionSuccess && (
+                  <div
+                    role="status"
+                    className="flex items-start justify-between gap-2.5 rounded-[6px] border border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--safety-safe-foreground)]"
                   >
-                    {actionTypeOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </Select>
+                    <div className="flex items-start gap-2 min-w-0">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>{actionSuccess}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActionSuccess(null)}
+                      aria-label="Tutup notifikasi"
+                      className="shrink-0 rounded-[4px] p-0.5 opacity-75 hover:opacity-100 cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="block text-[13px] font-semibold text-[var(--text)]">
+                      Jenis Tindakan <span className="text-[var(--safety-danger)]">*</span>
+                    </label>
+                    <Select
+                      value={actionType}
+                      onChange={(e) => setActionType(e.target.value as ActionType)}
+                    >
+                      {actionTypeOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                          {actionTypeHints[opt.value] ? ` — ${actionTypeHints[opt.value]}` : ''}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                  <Select
-                    value={actionPicId}
-                    onChange={(e) => setActionPicId(e.target.value)}
-                    required
-                  >
-                    <option value="">Pilih PIC...</option>
-                    {assignableUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </Select>
+                  <div className="space-y-1.5">
+                    <label className="block text-[13px] font-semibold text-[var(--text)]">
+                      PIC Pelaksana <span className="text-[var(--safety-danger)]">*</span>
+                    </label>
+                    <Select
+                      value={actionPicId}
+                      onChange={(e) => setActionPicId(e.target.value)}
+                      required
+                    >
+                      <option value="">Pilih PIC pelaksana...</option>
+                      {assignableUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} · {u.role_label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                  <input
-                    type="datetime-local"
-                    value={actionDueAt}
-                    onChange={(e) => setActionDueAt(e.target.value)}
-                    aria-label="Tenggat opsional"
-                    className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
-                  />
+                  <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
+                    <label className="block text-[13px] font-semibold text-[var(--text)]">
+                      Tenggat Waktu <span className="font-normal text-[var(--faint)]">(Opsional)</span>
+                    </label>
+                    <div className="relative">
+                      <Calendar
+                        aria-hidden="true"
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
+                      />
+                      {!actionDueAt && !actionDueFocused && (
+                        <span className="pointer-events-none absolute left-9 right-8 top-1/2 -translate-y-1/2 truncate text-[14px] text-[var(--faint)]">
+                          Pilih tanggal &amp; jam...
+                        </span>
+                      )}
+                      <input
+                        type="datetime-local"
+                        value={actionDueAt}
+                        onChange={(e) => setActionDueAt(e.target.value)}
+                        onFocus={() => setActionDueFocused(true)}
+                        onBlur={() => setActionDueFocused(false)}
+                        aria-label="Tenggat waktu opsional"
+                        className={`h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[14px] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15 cursor-pointer ${
+                          !actionDueAt && !actionDueFocused
+                            ? 'text-transparent'
+                            : 'text-[var(--text)]'
+                        }`}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  value={actionTitle}
-                  onChange={(e) => setActionTitle(e.target.value)}
-                  placeholder="Judul tindakan perbaikan atau pencegahan..."
-                  required
-                  className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
-                />
-                <div className="flex flex-col sm:flex-row gap-2.5">
+
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-semibold text-[var(--text)]">
+                    Judul Tindakan <span className="text-[var(--safety-danger)]">*</span>
+                  </label>
                   <input
                     type="text"
-                    value={actionDescription}
-                    onChange={(e) => setActionDescription(e.target.value)}
-                    placeholder="Instruksi detail tindakan (opsional)..."
-                    className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
+                    value={actionTitle}
+                    onChange={(e) => setActionTitle(e.target.value)}
+                    placeholder="Contoh: Pasang pelindung belt & periksa sensor..."
+                    required
+                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                   />
-                  <button
-                    type="submit"
-                    disabled={actionBusy}
-                    className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
-                  >
-                    {actionBusy ? 'Menambah...' : 'Tambah Tindakan'}
-                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-semibold text-[var(--text)]">
+                    Instruksi Detail <span className="font-normal text-[var(--faint)]">(Opsional)</span>
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <input
+                      type="text"
+                      value={actionDescription}
+                      onChange={(e) => setActionDescription(e.target.value)}
+                      placeholder="Catatan langkah kerja atau alat yang dibutuhkan..."
+                      className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
+                    />
+                    <button
+                      type="submit"
+                      disabled={actionBusy}
+                      className="h-11 w-full sm:w-auto shrink-0 rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
+                    >
+                      {actionBusy ? 'Menambah...' : 'Tambah Tindakan'}
+                    </button>
+                  </div>
                 </div>
               </form>
-            )}
-          </section>
+            </section>
+          )}
 
           {/* Verification Panel (hanya ditampilkan untuk peran Verifikator: K3 & Admin) */}
           {caseData.status === 'pending_verification' && isVerifierRole && (
@@ -1081,83 +1171,126 @@ export function CaseDetailPage() {
 
               {available?.can_verify && (
                 <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-[13px] font-semibold text-[var(--text)]">
-                      Ringkasan Pembelajaran (Wajib untuk Setujui &amp; Tutup)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={learningSummary}
-                      onChange={(e) => setLearningSummary(e.target.value)}
-                      placeholder="Apa pelajaran utama agar masalah tidak terulang..."
-                      className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
-                    />
+                  {/* Pilihan keputusan: hanya satu form tampil pada satu waktu */}
+                  <div role="radiogroup" aria-label="Keputusan verifikasi" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={verifyMode === 'approve'}
+                      onClick={() => {
+                        setVerifyMode('approve')
+                        setVerifyErr(null)
+                      }}
+                      className={`inline-flex h-11 items-center justify-center gap-2 rounded-[6px] border px-3.5 text-[14px] font-semibold transition-colors cursor-pointer ${
+                        verifyMode === 'approve'
+                          ? 'border-[var(--safety-safe)] bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]'
+                          : 'border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span>Setujui &amp; Tutup</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={verifyMode === 'reject'}
+                      onClick={() => {
+                        setVerifyMode('reject')
+                        setVerifyErr(null)
+                      }}
+                      className={`inline-flex h-11 items-center justify-center gap-2 rounded-[6px] border px-3.5 text-[14px] font-semibold transition-colors cursor-pointer ${
+                        verifyMode === 'reject'
+                          ? 'border-[var(--safety-danger)] bg-[var(--safety-danger-bg)] text-[var(--safety-danger-foreground)]'
+                          : 'border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      <RotateCcw className="h-4 w-4 shrink-0" />
+                      <span>Tolak &amp; Kembalikan</span>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    disabled={verifyBusy || (requiresPreventive && !hasCompletedPreventive)}
-                    onClick={() => void handleVerify('approve')}
-                    className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
-                  >
-                    Setujui &amp; Tutup Kasus
-                  </button>
 
-                  <div className="border-t border-[var(--rule)] pt-4 space-y-3">
-                    <label className="block text-[13px] font-semibold text-[var(--text)]">
-                      Atau Tolak Verifikasi (Alasan Wajib)
-                    </label>
-                    {completedActions.length > 0 && (
+                  {verifyMode === 'approve' ? (
+                    <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <div className="text-[12px] text-[var(--muted)]">
-                          Pilih tindakan yang akan dibuka ulang untuk diperbaiki PIC:
-                        </div>
-                        <div className="space-y-1">
-                          {completedActions.map((act) => {
-                            const checked = rejectReopenActionIds.includes(act.id)
-                            return (
-                              <label
-                                key={act.id}
-                                className="flex items-center gap-2 text-[13px] text-[var(--text)]"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() =>
-                                    setRejectReopenActionIds((prev) =>
-                                      checked
-                                        ? prev.filter((x) => x !== act.id)
-                                        : [...prev, act.id],
-                                    )
-                                  }
-                                  className="h-4 w-4 accent-[var(--accent)]"
-                                />
-                                <span>
-                                  {act.action_type_label}: {act.title}
-                                </span>
-                              </label>
-                            )
-                          })}
-                        </div>
+                        <label className="block text-[13px] font-semibold text-[var(--text)]">
+                          Ringkasan Pembelajaran <span className="text-[var(--safety-danger)]">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={learningSummary}
+                          onChange={(e) => setLearningSummary(e.target.value)}
+                          placeholder="Apa pelajaran utama agar masalah ini tidak terulang?"
+                          className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
+                        />
                       </div>
-                    )}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={verifyRejectReason}
-                        onChange={(e) => setVerifyRejectReason(e.target.value)}
-                        placeholder="Alasan dikembalikan ke Tindakan berjalan..."
-                        className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
-                      />
+                      <button
+                        type="button"
+                        disabled={verifyBusy || (requiresPreventive && !hasCompletedPreventive)}
+                        onClick={() => void handleVerify('approve')}
+                        className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
+                      >
+                        {verifyBusy ? 'Memproses...' : 'Setujui & Tutup Kasus'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {completedActions.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="text-[13px] font-semibold text-[var(--text)]">
+                            Tindakan yang dibuka ulang
+                          </div>
+                          <div className="divide-y divide-[var(--rule)] rounded-[6px] border border-[var(--control)]">
+                            {completedActions.map((act) => {
+                              const checked = rejectReopenActionIds.includes(act.id)
+                              return (
+                                <label
+                                  key={act.id}
+                                  className="flex min-h-[48px] cursor-pointer items-center gap-3 px-3.5 py-2.5 text-[14px] text-[var(--text)] hover:bg-[var(--hover-row)]"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() =>
+                                      setRejectReopenActionIds((prev) =>
+                                        checked
+                                          ? prev.filter((x) => x !== act.id)
+                                          : [...prev, act.id],
+                                      )
+                                    }
+                                    className="h-5 w-5 shrink-0 rounded-[4px] accent-[var(--accent)] cursor-pointer"
+                                  />
+                                  <span className="min-w-0">
+                                    <span className="font-semibold">{act.action_type_label}</span>
+                                    <span className="text-[var(--muted)]"> · {act.title}</span>
+                                  </span>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-1.5">
+                        <label className="block text-[13px] font-semibold text-[var(--text)]">
+                          Alasan Penolakan <span className="text-[var(--safety-danger)]">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={verifyRejectReason}
+                          onChange={(e) => setVerifyRejectReason(e.target.value)}
+                          placeholder="Jelaskan bagian mana yang perlu diperbaiki PIC..."
+                          className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
+                        />
+                      </div>
                       <button
                         type="button"
                         disabled={verifyBusy}
                         onClick={() => void handleVerify('reject')}
-                        className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-4 text-[13px] font-semibold text-[var(--safety-danger-foreground)] cursor-pointer"
+                        className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--safety-danger)] px-5 text-[14px] font-semibold text-white hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
-                        Tolak Verifikasi
+                        {verifyBusy ? 'Memproses...' : 'Tolak & Kembalikan ke PIC'}
                       </button>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </section>
@@ -1193,16 +1326,16 @@ export function CaseDetailPage() {
                   )}
                   {completedActions.length > 0 && (
                     <div className="space-y-1.5">
-                      <div className="text-[12px] text-[var(--muted)]">
+                      <div className="text-[13px] font-medium text-[var(--muted)]">
                         Pilih tindakan yang perlu dibuka ulang:
                       </div>
-                      <div className="space-y-1">
+                      <div className="divide-y divide-[var(--rule)] rounded-[6px] border border-[var(--control)]">
                         {completedActions.map((act) => {
                           const checked = caseReopenActionIds.includes(act.id)
                           return (
                             <label
                               key={act.id}
-                              className="flex items-center gap-2 text-[13px] text-[var(--text)]"
+                              className="flex min-h-[48px] cursor-pointer items-center gap-3 px-3.5 py-2.5 text-[14px] text-[var(--text)] hover:bg-[var(--hover-row)]"
                             >
                               <input
                                 type="checkbox"
@@ -1214,10 +1347,11 @@ export function CaseDetailPage() {
                                       : [...prev, act.id],
                                   )
                                 }
-                                className="h-4 w-4 accent-[var(--accent)]"
+                                className="h-5 w-5 shrink-0 rounded-[4px] accent-[var(--accent)] cursor-pointer"
                               />
-                              <span>
-                                {act.action_type_label}: {act.title}
+                              <span className="min-w-0">
+                                <span className="font-semibold">{act.action_type_label}</span>
+                                <span className="text-[var(--muted)]"> · {act.title}</span>
                               </span>
                             </label>
                           )
@@ -1277,7 +1411,7 @@ export function CaseDetailPage() {
                           {sc.case_number}
                           {sc.machine?.code ? ` · ${sc.machine.code}` : ''}
                         </span>
-                        <span className="font-mono text-[11px] rounded-[4px] bg-[var(--raised)] px-1.5 py-0.5 text-[var(--text)] tabular-nums">
+                        <span className="font-mono text-[12px] rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[var(--text)] tabular-nums">
                           {sc.similarity_percent}% cocok
                         </span>
                       </div>
@@ -1289,7 +1423,7 @@ export function CaseDetailPage() {
                           {sc.matching_reasons.map((r) => (
                             <span
                               key={r}
-                              className="rounded-[4px] bg-[var(--ground)] px-1.5 py-0.5 text-[11px] text-[var(--faint)]"
+                              className="rounded-[4px] bg-[var(--ground)] px-2 py-0.5 text-[12px] text-[var(--muted)]"
                             >
                               {r}
                             </span>
@@ -1352,7 +1486,7 @@ export function CaseDetailPage() {
                 type="button"
                 onClick={() => setEditingAction(null)}
                 aria-label="Tutup"
-                className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)]"
+                className="flex h-11 w-11 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)] hover:bg-[var(--raised)] cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>

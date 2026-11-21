@@ -173,7 +173,7 @@ export function AdminHomePage() {
                 >
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--text)]">
+                      <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-semibold text-[var(--text)]">
                         {m.machine_code}
                       </span>
                       <RecurringPill label={m.recurring_label || 'Berulang'} />
@@ -187,7 +187,7 @@ export function AdminHomePage() {
                       <div className="text-[16px] font-semibold text-[var(--text)] tabular-nums">
                         {m.cases_last_90_days}
                       </div>
-                      <div className="text-[11px] text-[var(--faint)]">
+                      <div className="text-[12px] text-[var(--faint)]">
                         kasus ({recurringRule.window_days}h)
                       </div>
                     </div>

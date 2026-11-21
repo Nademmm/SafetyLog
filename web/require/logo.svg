@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="sl-c3-icon-title">
+  <title id="sl-c3-icon-title">SafetyLog Hex Matrix Icon</title>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#111418" stroke="#343D47" stroke-width="2" />
+  <g transform="translate(8, 8)">
+    <polygon points="24,3 42,13.5 42,34.5 24,45 6,34.5 6,13.5" fill="#1C2229" stroke="#F4F5F6" stroke-width="2.75" stroke-linejoin="round" />
+    <rect x="15.5" y="15.5" width="7" height="7" rx="1.75" fill="#F4F5F6" />
+    <rect x="25.5" y="15.5" width="7" height="7" rx="1.75" fill="#F97316" />
+    <rect x="15.5" y="25.5" width="7" height="7" rx="1.75" fill="#A3AAB3" />
+    <rect x="25.5" y="25.5" width="7" height="7" rx="1.75" fill="#F4F5F6" />
+  </g>
+</svg>

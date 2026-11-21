@@ -145,7 +145,7 @@ export function K3HomePage() {
                         {c.case_number}
                       </span>
                       {c.machine?.code && (
-                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-medium text-[var(--muted)]">
                           {c.machine.code}
                         </span>
                       )}
@@ -215,7 +215,7 @@ export function K3HomePage() {
                         {c.case_number}
                       </span>
                       {c.machine?.code && (
-                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-medium text-[var(--muted)]">
                           {c.machine.code}
                         </span>
                       )}

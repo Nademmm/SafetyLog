@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Check, ChevronDown, Filter, X } from 'lucide-react'
+import { Check, ChevronDown, Clock, Filter, ShieldCheck, Wrench, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { OverduePill } from '@/components/safety/StatusPill'
@@ -16,6 +16,38 @@ const STATUS_FILTERS: Array<{ value: 'open' | 'completed' | 'all'; label: string
   { value: 'completed', label: 'Selesai' },
   { value: 'all', label: 'Semua' },
 ]
+
+const ACTION_TYPE_GUIDANCE: Record<
+  string,
+  {
+    boxClass: string
+    icon: React.ComponentType<{ className?: string }>
+    methodTitle: string
+    methodHint: string
+  }
+> = {
+  temporary: {
+    boxClass:
+      'border-[var(--safety-caution-border)] bg-[var(--safety-caution-bg)] text-[var(--safety-caution-foreground)]',
+    icon: Clock,
+    methodTitle: 'Penanganan Cepat / Sementara',
+    methodHint: 'Amankan mesin atau area terlebih dahulu agar aman dioperasikan sementara.',
+  },
+  corrective: {
+    boxClass:
+      'border-[var(--safety-info-border)] bg-[var(--safety-info-bg)] text-[var(--safety-info-foreground)]',
+    icon: Wrench,
+    methodTitle: 'Perbaikan Langsung (Korektif)',
+    methodHint: 'Perbaiki komponen yang rusak atau atasi akar masalah yang ditemukan.',
+  },
+  preventive: {
+    boxClass:
+      'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]',
+    icon: ShieldCheck,
+    methodTitle: 'Pencegahan Berulang (Preventif)',
+    methodHint: 'Lakukan langkah pencegahan permanen agar masalah yang sama tidak terulang.',
+  },
+}
 
 export function MyActionsPage() {
   const [statusFilter, setStatusFilter] = React.useState<'open' | 'completed' | 'all'>('open')
@@ -175,55 +207,95 @@ export function MyActionsPage() {
             Tidak ada tindakan pada filter ini.
           </div>
         ) : (
-          actions.map((a) => (
-            <div
-              key={a.id}
-              className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted)]">
-                    {a.action_type_label}
-                  </span>
+          actions.map((a) => {
+            const typeMeta = ACTION_TYPE_GUIDANCE[a.action_type] ?? {
+              boxClass: 'border-[var(--border)] bg-[var(--raised)] text-[var(--text)]',
+              icon: Wrench,
+              methodTitle: `Tindakan ${a.action_type_label}`,
+              methodHint: '',
+            }
+            const TypeIcon = typeMeta.icon
+            return (
+              <div
+                key={a.id}
+                className="flex flex-col gap-4 px-4 py-4 sm:px-5 sm:flex-row sm:items-start sm:justify-between"
+              >
+                <div className="min-w-0 flex-1 space-y-2.5">
+                  {/* Nomor Kasus & Status Overdue */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {a.safety_case && (
+                      <Link
+                        to={`/cases/${a.safety_case.id}`}
+                        className="font-mono text-[13px] font-semibold text-[var(--accent)] hover:underline tabular-nums"
+                      >
+                        {a.safety_case.case_number}
+                      </Link>
+                    )}
+                    <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-2 py-0.5 text-[12px] font-medium text-[var(--muted)]">
+                      {a.status_label}
+                    </span>
+                    {a.is_overdue && a.status !== 'completed' && (
+                      <OverduePill label={a.overdue_label} />
+                    )}
+                  </div>
+
+                  {/* Judul Tindakan */}
+                  <div className="text-[16px] font-semibold text-[var(--text)] leading-snug">
+                    {a.title}
+                  </div>
+
+                  {/* Kotak Penekanan Jenis & Metode Tindakan (Kritikal) */}
+                  <div
+                    className={`flex items-start gap-2.5 rounded-[6px] border px-3.5 py-2.5 ${typeMeta.boxClass}`}
+                  >
+                    <TypeIcon className="h-4 w-4 shrink-0 mt-0.5 stroke-[2.2px]" />
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-[13px] font-semibold leading-snug">
+                        Jenis: {a.action_type_label} — {typeMeta.methodTitle}
+                      </div>
+                      {typeMeta.methodHint && (
+                        <div className="text-[12px] opacity-90 leading-relaxed">
+                          {typeMeta.methodHint}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {a.description && (
+                    <div className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] px-3.5 py-2.5 text-[13px] text-[var(--muted)]">
+                      <span className="font-semibold text-[var(--text)]">Instruksi Kerja:</span>{' '}
+                      {a.description}
+                    </div>
+                  )}
+
+                  {/* Metadata Tenggat */}
+                  <div className="text-[12px] text-[var(--faint)] tabular-nums">
+                    Tenggat SLA: {formatDateTime(a.due_at)}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {a.can_complete && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveAction(a)}
+                      className="h-11 flex-1 sm:flex-none rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
+                    >
+                      Selesaikan
+                    </button>
+                  )}
                   {a.safety_case && (
                     <Link
                       to={`/cases/${a.safety_case.id}`}
-                      className="font-mono text-[12px] text-[var(--accent)] hover:underline tabular-nums"
+                      className="inline-flex h-11 flex-1 sm:flex-none items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]"
                     >
-                      {a.safety_case.case_number}
+                      Buka Kasus
                     </Link>
                   )}
-                  {a.is_overdue && a.status !== 'completed' && (
-                    <OverduePill label={a.overdue_label} />
-                  )}
-                </div>
-                <div className="text-[15px] font-medium text-[var(--text)]">{a.title}</div>
-                <div className="text-[12px] text-[var(--faint)] tabular-nums">
-                  Tenggat: {formatDateTime(a.due_at)} · Status: {a.status_label}
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {a.can_complete && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveAction(a)}
-                    className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
-                  >
-                    Selesaikan
-                  </button>
-                )}
-                {a.safety_case && (
-                  <Link
-                    to={`/cases/${a.safety_case.id}`}
-                    className="inline-flex h-11 items-center rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] text-[var(--text)] hover:bg-[var(--raised)]"
-                  >
-                    Buka Kasus
-                  </Link>
-                )}
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 

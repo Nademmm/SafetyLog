@@ -7,6 +7,7 @@ import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucid
 import { ApiError } from '@/lib/api'
 import { isRedirectAllowedForRole, roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
+import { SafetyLogMark } from '@/components/ui/SafetyLogMark'
 
 const loginSchema = z.object({
   email: z.string().email('Masukkan alamat email yang valid.'),
@@ -64,24 +65,7 @@ export function LoginPage() {
       {/* Minimal Enterprise Top Bar */}
       <header className="flex h-16 items-center justify-between px-4 sm:px-8">
         <div className="flex items-center gap-2.5">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect
-              x="2"
-              y="2"
-              width="20"
-              height="20"
-              rx="5"
-              stroke="var(--accent)"
-              strokeWidth="2"
-            />
-            <path
-              d="M8 12.5L10.8 15.3L16.5 9.2"
-              stroke="var(--text)"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <SafetyLogMark size={26} />
           <span className="text-[15px] font-semibold tracking-tight text-[var(--text)]">
             SafetyLog
           </span>
@@ -94,25 +78,8 @@ export function LoginPage() {
         <div className="w-full max-w-[400px] space-y-6">
           {/* Brand Heading */}
           <div className="text-center space-y-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)]">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect
-                  x="2"
-                  y="2"
-                  width="20"
-                  height="20"
-                  rx="5"
-                  stroke="var(--accent)"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M8 12.5L10.8 15.3L16.5 9.2"
-                  stroke="var(--text)"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center">
+              <SafetyLogMark size={44} />
             </div>
             <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
               Masuk ke SafetyLog
@@ -178,7 +145,7 @@ export function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-                    className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[6px] text-[var(--faint)] hover:text-[var(--text)] transition-colors"
+                    className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[6px] text-[var(--faint)] hover:text-[var(--text)] transition-colors cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>

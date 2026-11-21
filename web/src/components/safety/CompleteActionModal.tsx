@@ -289,13 +289,8 @@ export function CompleteActionModal({
 
           {/* Bagian 2: Analisis Akar Penyebab (5 Why & 6M) oleh PIC */}
           <div className="border-t border-[var(--rule)] pt-4 space-y-4">
-            <div>
-              <div className="text-[12px] font-medium uppercase tracking-wider text-[var(--faint)]">
-                2. Analisis Akar Penyebab (5 Why &amp; 6M)
-              </div>
-              <p className="mt-0.5 text-[12px] text-[var(--muted)]">
-                Diisi oleh PIC yang menangani masalah sebagai dasar pembelajaran dan pencegahan.
-              </p>
+            <div className="text-[12px] font-medium uppercase tracking-wider text-[var(--faint)]">
+              2. Analisis Akar Penyebab (5 Why &amp; 6M)
             </div>
 
             {/* Kategori 6M */}

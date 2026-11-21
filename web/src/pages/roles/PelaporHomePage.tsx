@@ -139,37 +139,37 @@ export function PelaporHomePage() {
                 <Link
                   key={c.id}
                   to={`/cases/${c.id}`}
-                  className="group flex flex-col gap-2 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
+                  className="group flex flex-col gap-2.5 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                       <span className="whitespace-nowrap font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
                         {c.case_number}
                       </span>
                       {c.machine?.code && (
-                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-medium text-[var(--muted)]">
                           {c.machine.code}
                         </span>
                       )}
                     </div>
-                    <CaseStatusPill status={c.status} label={c.status_label} />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
                   </div>
 
-                  <div className="text-[14px] font-medium leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                    {c.machine?.name || 'Mesin / Area'}
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 pt-0.5">
-                    <span className="text-[12px] text-[var(--muted)] line-clamp-1">
-                      {c.description}
-                    </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <RiskPill
-                        level={c.risk_assessment.risk_level}
-                        label={c.risk_assessment.risk_level_label}
-                      />
-                      <ChevronRight className="h-4 w-4 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="text-[14px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                      {c.machine?.name || 'Mesin / Area'}
                     </div>
+                    <div className="text-[13px] leading-snug text-[var(--muted)] line-clamp-2">
+                      {c.description}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <CaseStatusPill status={c.status} label={c.status_label} />
+                    <RiskPill
+                      level={c.risk_assessment.risk_level}
+                      label={c.risk_assessment.risk_level_label}
+                    />
                   </div>
                 </Link>
               ))
@@ -215,13 +215,13 @@ export function PelaporHomePage() {
                   to={a.safety_case ? `/cases/${a.safety_case.id}` : '/my-actions'}
                   className="group flex flex-col gap-2 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--muted)]">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                      <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--muted)]">
                         {a.action_type_label}
                       </span>
                       {a.safety_case?.case_number && (
-                        <span className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
+                        <span className="whitespace-nowrap font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
                           {a.safety_case.case_number}
                         </span>
                       )}

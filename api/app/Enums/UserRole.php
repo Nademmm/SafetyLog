@@ -31,7 +31,7 @@ enum UserRole: string
 
     public function canManageActions(): bool
     {
-        return in_array($this, [self::Supervisor, self::Hse, self::Admin], true);
+        return in_array($this, [self::Supervisor, self::Admin], true);
     }
 
     public function canVerify(): bool

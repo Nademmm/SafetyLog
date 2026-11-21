@@ -140,12 +140,12 @@ export function SupervisorHomePage() {
                         {c.case_number}
                       </span>
                       {c.machine?.code && (
-                        <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-medium text-[var(--muted)]">
                           {c.machine.code}
                         </span>
                       )}
                       {c.is_machine_stopped && (
-                        <span className="rounded-[4px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--safety-danger-foreground)]">
+                        <span className="rounded-[4px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--safety-danger-foreground)]">
                           Mesin berhenti
                         </span>
                       )}
@@ -210,7 +210,7 @@ export function SupervisorHomePage() {
                         {c.case_number}
                       </span>
                       {c.machine?.code && (
-                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
+                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-medium text-[var(--muted)]">
                           {c.machine.code}
                         </span>
                       )}

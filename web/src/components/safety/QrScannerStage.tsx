@@ -2,6 +2,7 @@ import * as React from 'react'
 import jsQR from 'jsqr'
 import { AlertCircle, Camera, RefreshCw, SwitchCamera, Upload } from 'lucide-react'
 import { WaveformLoader } from '@/components/ui/waveform-loader'
+import qrSuccessSoundUrl from '../../../require/mixkit-confirmation-tone-2867.wav'
 
 interface QrScannerStageProps {
   onDetected: (qrToken: string) => void
@@ -87,6 +88,22 @@ export function QrScannerStage({
   const streamRef = React.useRef<MediaStream | null>(null)
   const rafRef = React.useRef<number | null>(null)
   const lockedRef = React.useRef(false)
+  const successAudioRef = React.useRef<HTMLAudioElement | null>(null)
+
+  React.useEffect(() => {
+    const audio = new Audio(qrSuccessSoundUrl)
+    audio.preload = 'auto'
+    audio.volume = 0.85
+    successAudioRef.current = audio
+  }, [])
+
+  const playSuccessSound = React.useCallback(() => {
+    const audio = successAudioRef.current ?? new Audio(qrSuccessSoundUrl)
+    audio.currentTime = 0
+    void audio.play().catch(() => {
+      // Abaikan jika browser memblokir autoplay audio
+    })
+  }, [])
 
   const [facingMode, setFacingMode] = React.useState<'environment' | 'user'>('environment')
   const [cameraState, setCameraState] = React.useState<'starting' | 'active' | 'error'>('starting')
@@ -171,6 +188,7 @@ export function QrScannerStage({
                   if (token) {
                     lockedRef.current = true
                     stopCamera()
+                    playSuccessSound()
                     onDetected(token)
                     return
                   }
@@ -198,7 +216,7 @@ export function QrScannerStage({
       cancelled = true
       stopCamera()
     }
-  }, [facingMode, restartKey, errorMessage, onDetected, stopCamera])
+  }, [facingMode, restartKey, errorMessage, onDetected, playSuccessSound, stopCamera])
 
   const handleImageQr = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null)
@@ -221,6 +239,7 @@ export function QrScannerStage({
         return
       }
       stopCamera()
+      playSuccessSound()
       onDetected(token)
     } catch (err) {
       setUploadError(

@@ -260,16 +260,16 @@ export function AdminUsersPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[15px] font-medium text-[var(--text)]">{u.name}</span>
-                    <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
+                    <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[12px] text-[var(--muted)]">
                       {u.role_label}
                     </span>
                     {isSelf && (
-                      <span className="rounded-[4px] border border-[var(--accent)] px-2 py-0.5 text-[11px] text-[var(--accent)]">
+                      <span className="rounded-[4px] border border-[var(--accent)] px-2 py-0.5 text-[12px] font-medium text-[var(--accent)]">
                         Anda
                       </span>
                     )}
                     {!u.is_active && (
-                      <span className="rounded-[4px] bg-[var(--safety-danger-bg)] px-2 py-0.5 text-[11px] text-[var(--safety-danger-foreground)]">
+                      <span className="rounded-[4px] bg-[var(--safety-danger-bg)] px-2 py-0.5 text-[12px] text-[var(--safety-danger-foreground)]">
                         Nonaktif
                       </span>
                     )}
@@ -288,7 +288,7 @@ export function AdminUsersPage() {
                       setEditingUser({ ...u })
                       setEditPassword('')
                     }}
-                    className="inline-flex h-11 sm:h-10 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                    className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
                     Edit
@@ -298,7 +298,7 @@ export function AdminUsersPage() {
                     disabled={isSelf}
                     title={isSelf ? 'Anda tidak dapat menonaktifkan akun sendiri' : undefined}
                     onClick={() => void toggleActive(u)}
-                    className="h-11 sm:h-10 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="h-11 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {u.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                   </button>

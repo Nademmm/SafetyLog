@@ -107,13 +107,21 @@ class AuthAndRbacTest extends TestCase
             'learning_summary' => 'Sudah dicek.',
         ])->assertForbidden();
 
-        // K3/Verifikator cannot triage cases
+        // K3/Verifikator cannot triage cases or manage CAPA actions
         Sanctum::actingAs($fx['hse']);
         $this->postJson("/api/cases/{$caseId}/triage", [
             'decision' => 'assess',
             'severity' => 3,
             'likelihood' => 3,
         ])->assertForbidden();
+        $this->postJson("/api/cases/{$caseId}/actions", [
+            'action_type' => 'corrective',
+            'title' => 'Tindakan dari K3 seharusnya ditolak',
+            'pic_user_id' => $fx['reporter']->id,
+        ])->assertForbidden();
+        $this->getJson("/api/cases/{$caseId}")
+            ->assertOk()
+            ->assertJsonPath('data.available_actions.can_manage_actions', false);
 
         // Supervisor can triage, cannot verify
         Sanctum::actingAs($fx['supervisor']);

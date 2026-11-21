@@ -147,35 +147,39 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
                     aria-current={active ? 'step' : undefined}
                     aria-pressed={isSelected}
                     title={stage.shortLabel}
-                    className={`group inline-flex items-center justify-center rounded-full border transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
-                      active
-                        ? 'h-9 px-3 gap-1.5 border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] font-semibold shadow-sm'
-                        : done
-                          ? isClosed
-                            ? 'h-8 w-8 sm:h-9 sm:w-9 border-[var(--safety-safe)] bg-[var(--safety-safe)] text-white hover:scale-105'
-                            : 'h-8 w-8 sm:h-9 sm:w-9 border-[var(--accent)] bg-[var(--raised)] text-[var(--accent)] hover:scale-105'
-                          : 'h-8 w-8 sm:h-9 sm:w-9 border-[var(--control)] bg-[var(--ground)] text-[var(--faint)] hover:border-[var(--muted)] hover:text-[var(--muted)]'
-                    } ${
-                      isSelected && !active
-                        ? 'ring-2 ring-[var(--accent)]/40 scale-105'
-                        : ''
-                    }`}
+                    className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   >
-                    {active ? (
-                      <>
-                        <span className="relative flex h-2 w-2 shrink-0">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
-                        </span>
-                        <span className="text-[12px] sm:text-[13px] whitespace-nowrap">
-                          {stage.shortLabel}
-                        </span>
-                      </>
-                    ) : done ? (
-                      <Check className="h-3.5 w-3.5 stroke-[2.6px]" />
-                    ) : (
-                      <Icon className="h-3.5 w-3.5 stroke-[1.8px]" />
-                    )}
+                    <span
+                      className={`inline-flex items-center justify-center rounded-full border transition-all duration-200 ${
+                        active
+                          ? 'h-9 px-3 gap-1.5 border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] font-semibold shadow-sm'
+                          : done
+                            ? isClosed
+                              ? 'h-8 w-8 sm:h-9 sm:w-9 border-[var(--safety-safe)] bg-[var(--safety-safe)] text-white group-hover:scale-105'
+                              : 'h-8 w-8 sm:h-9 sm:w-9 border-[var(--accent)] bg-[var(--raised)] text-[var(--accent)] group-hover:scale-105'
+                            : 'h-8 w-8 sm:h-9 sm:w-9 border-[var(--control)] bg-[var(--ground)] text-[var(--faint)] group-hover:border-[var(--muted)] group-hover:text-[var(--muted)]'
+                      } ${
+                        isSelected && !active
+                          ? 'ring-2 ring-[var(--accent)]/40 scale-105'
+                          : ''
+                      }`}
+                    >
+                      {active ? (
+                        <>
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+                          </span>
+                          <span className="text-[12px] sm:text-[13px] whitespace-nowrap">
+                            {stage.shortLabel}
+                          </span>
+                        </>
+                      ) : done ? (
+                        <Check className="h-3.5 w-3.5 stroke-[2.6px]" />
+                      ) : (
+                        <Icon className="h-3.5 w-3.5 stroke-[1.8px]" />
+                      )}
+                    </span>
                   </button>
                 </li>
               )
@@ -210,7 +214,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
               className="transition-all duration-500 ease-out"
             />
           </svg>
-          <span className="absolute font-mono text-[10px] font-semibold text-[var(--text)] tabular-nums">
+          <span className="absolute font-mono text-[12px] font-semibold text-[var(--text)] tabular-nums">
             {isClosed ? '✓' : `${currentIndex + 1}/${STAGES.length}`}
           </span>
         </div>
@@ -228,7 +232,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
 
         <div className="flex items-center gap-2 shrink-0">
           {detail.meta && (
-            <span className="font-mono text-[11px] text-[var(--faint)] tabular-nums">
+            <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
               {detail.meta}
             </span>
           )}
@@ -236,7 +240,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
             <button
               type="button"
               onClick={() => setSelectedIndex(null)}
-              className="text-[11px] font-medium text-[var(--accent)] hover:underline cursor-pointer"
+              className="inline-flex min-h-[44px] items-center px-2 text-[12px] font-medium text-[var(--accent)] hover:underline cursor-pointer"
             >
               Tahap aktif
             </button>

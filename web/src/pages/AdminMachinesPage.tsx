@@ -595,14 +595,14 @@ export function AdminMachinesPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         to={`/machines/${m.id}/cases`}
-                        className="inline-flex h-11 sm:h-10 items-center rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                        className="inline-flex h-11 items-center rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)]"
                       >
                         Riwayat
                       </Link>
                       <button
                         type="button"
                         onClick={() => setEditingMachine({ ...m })}
-                        className="inline-flex h-11 sm:h-10 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                        className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                       >
                         <Edit3 className="h-3.5 w-3.5" />
                         Edit
@@ -610,7 +610,7 @@ export function AdminMachinesPage() {
                       <button
                         type="button"
                         onClick={() => void handleToggleMachineArchive(m)}
-                        className="inline-flex h-11 sm:h-10 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                        className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                       >
                         {m.is_active === false ? (
                           <>
@@ -629,7 +629,7 @@ export function AdminMachinesPage() {
                             setQrModalMachine(m)
                             setConfirmRegen(false)
                           }}
-                          className="inline-flex h-11 sm:h-10 items-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
+                          className="inline-flex h-11 items-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
                         >
                           <QrCode className="h-4 w-4" />
                           <span>Cetak QR</span>
@@ -727,7 +727,7 @@ export function AdminMachinesPage() {
                       <button
                         type="button"
                         onClick={() => setEditingArea({ ...a })}
-                        className="inline-flex h-11 sm:h-10 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                        className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                       >
                         <Edit3 className="h-3.5 w-3.5" />
                         Edit
@@ -735,7 +735,7 @@ export function AdminMachinesPage() {
                       <button
                         type="button"
                         onClick={() => void handleToggleAreaArchive(a)}
-                        className="inline-flex h-11 sm:h-10 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                        className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                       >
                         {a.is_active === false ? (
                           <>
@@ -807,7 +807,7 @@ export function AdminMachinesPage() {
                     <button
                       type="button"
                       onClick={() => setEditingSite({ ...s })}
-                      className="inline-flex h-11 sm:h-10 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                      className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
                       Edit
@@ -815,7 +815,7 @@ export function AdminMachinesPage() {
                     <button
                       type="button"
                       onClick={() => void handleToggleSiteArchive(s)}
-                      className="inline-flex h-11 sm:h-10 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                      className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                     >
                       {s.is_active === false ? (
                         <>
