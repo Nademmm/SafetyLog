@@ -81,6 +81,17 @@ class AiActionSuggestionsTest extends TestCase
         $this->postJson("/api/cases/{$caseId}/action-suggestions")->assertForbidden();
     }
 
+    public function test_admin_cannot_request_action_suggestions(): void
+    {
+        $fx = $this->createOrganizationFixture();
+        $caseId = $this->createCase($fx);
+        $this->fakeNexusRouter(['suggestions' => []]);
+
+        Sanctum::actingAs($fx['admin']);
+
+        $this->postJson("/api/cases/{$caseId}/action-suggestions")->assertForbidden();
+    }
+
     public function test_normal_action_workflow_still_applies_after_suggestions(): void
     {
         $fx = $this->createOrganizationFixture();

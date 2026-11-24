@@ -189,4 +189,27 @@ class TriageAndRiskAssessmentTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $originalId);
     }
+
+    public function test_admin_cannot_triage_case(): void
+    {
+        $fx = $this->createOrganizationFixture();
+
+        Sanctum::actingAs($fx['reporter']);
+        $caseId = (int) $this->postJson('/api/cases', [
+            'machine_id' => $fx['machine']->id,
+            'case_type_id' => $fx['abnormalityType']->id,
+            'description' => 'Kebocoran oli hidrolik pada selang utama.',
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($fx['admin']);
+        $this->getJson("/api/cases/{$caseId}")
+            ->assertOk()
+            ->assertJsonPath('data.available_actions.can_triage', false);
+
+        $this->postJson("/api/cases/{$caseId}/triage", [
+            'decision' => 'assess',
+            'severity' => 3,
+            'likelihood' => 3,
+        ])->assertForbidden();
+    }
 }

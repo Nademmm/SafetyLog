@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
-import { CaseStatusPill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
+import { CaseStatusPill, CaseTypePill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { DashboardData, SafetyCase } from '@/types/safetylog'
@@ -100,27 +100,27 @@ export function SupervisorHomePage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
         {/* Queue: Baru */}
-        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+              <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
                 Antrean Triase
               </h2>
               {newCasesTotal > 0 && (
-                <span className="shrink-0 rounded-[4px] bg-[var(--accent-soft)] border border-[var(--accent)]/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--accent)] tabular-nums">
-                  {newCasesTotal}
+                <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--accent)] tabular-nums">
+                  ({newCasesTotal})
                 </span>
               )}
             </div>
             <Link
               to="/cases?status=new"
-              className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
+              className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
               <span>Semua</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="divide-y divide-[var(--rule)]">
+          <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {newCasesQuery.isLoading ? (
               <SectionLoading label="Memuat antrean triase..." className="py-8" />
             ) : newCases.length === 0 ? (
@@ -128,69 +128,73 @@ export function SupervisorHomePage() {
                 Seluruh laporan baru sudah ditriase.
               </div>
             ) : (
-              newCases.map((c) => (
-                <Link
-                  key={c.id}
-                  to={`/cases/${c.id}`}
-                  className="group flex flex-col gap-2.5 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                      <span className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
-                        {c.case_number}
+              newCases.map((c) => {
+                const isCritical = c.is_machine_stopped || c.has_affected_people
+                return (
+                  <Link
+                    key={c.id}
+                    to={`/cases/${c.id}`}
+                    className={`group flex flex-col gap-1.5 px-4 py-3.5 sm:px-5 transition-colors ${
+                      isCritical
+                        ? 'bg-[var(--safety-danger-bg)]/20 hover:bg-[var(--safety-danger-bg)]/40'
+                        : 'hover:bg-[var(--hover-row)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                        <CaseTypePill caseType={c.case_type} />
+                        <span className="font-mono tabular-nums">{c.case_number}</span>
+                        {c.is_machine_stopped && (
+                          <span className="font-semibold text-[var(--safety-danger-foreground)]">
+                            · Mesin Berhenti
+                          </span>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-[12px] font-semibold text-[var(--accent)] group-hover:underline">
+                        Nilai Risiko
                       </span>
-                      {c.machine?.code && (
-                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-medium text-[var(--muted)]">
+                    </div>
+
+                    <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                      {c.machine?.name || 'Mesin / Area'}
+                      {c.machine?.code ? (
+                        <span className="ml-1.5 font-mono text-[12px] font-normal text-[var(--faint)]">
                           {c.machine.code}
                         </span>
-                      )}
-                      {c.is_machine_stopped && (
-                        <span className="rounded-[4px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--safety-danger-foreground)]">
-                          Mesin berhenti
-                        </span>
-                      )}
+                      ) : null}
                     </div>
-                    <span className="shrink-0 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-2.5 py-1 text-[12px] font-medium text-[var(--text)] transition-colors group-hover:border-[var(--accent)] group-hover:bg-[var(--accent-soft)] group-hover:text-[var(--accent)]">
-                      Nilai Risiko
-                    </span>
-                  </div>
-
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="truncate text-[14px] font-medium text-[var(--text)]">
-                      {c.machine?.name || 'Mesin / Area'}
-                    </div>
-                    <div className="line-clamp-1 text-[12px] text-[var(--muted)]">
+                    <p className="text-[13px] leading-snug text-[var(--muted)] line-clamp-2">
                       {c.description}
-                    </div>
-                  </div>
-                </Link>
-              ))
+                    </p>
+                  </Link>
+                )
+              })
             )}
           </div>
         </section>
 
         {/* Active Cases */}
-        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+              <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
                 Tindakan Sedang Berjalan
               </h2>
               {activeCases.length > 0 && (
-                <span className="shrink-0 rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--muted)] tabular-nums">
-                  {activeCases.length}
+                <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--muted)] tabular-nums">
+                  ({activeCases.length})
                 </span>
               )}
             </div>
             <Link
               to="/cases?status=in_progress"
-              className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
+              className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
               <span>Semua</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="divide-y divide-[var(--rule)]">
+          <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {activeCasesQuery.isLoading ? (
               <SectionLoading label="Memuat kasus aktif..." className="py-8" />
             ) : activeCases.length === 0 ? (
@@ -198,50 +202,56 @@ export function SupervisorHomePage() {
                 Belum ada kasus dengan tindakan berjalan.
               </div>
             ) : (
-              activeCases.map((c) => (
-                <Link
-                  key={c.id}
-                  to={`/cases/${c.id}`}
-                  className="group flex flex-col gap-2 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
-                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                      <span className="whitespace-nowrap font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
-                        {c.case_number}
-                      </span>
-                      {c.machine?.code && (
-                        <span className="whitespace-nowrap rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-medium text-[var(--muted)]">
-                          {c.machine.code}
+              activeCases.map((c) => {
+                const isCritical = c.risk_assessment.risk_level === 'high' || c.is_machine_stopped
+                return (
+                  <Link
+                    key={c.id}
+                    to={`/cases/${c.id}`}
+                    className={`group flex flex-col gap-1.5 px-4 py-3.5 sm:px-5 transition-colors ${
+                      isCritical
+                        ? 'bg-[var(--safety-danger-bg)]/20 hover:bg-[var(--safety-danger-bg)]/40'
+                        : 'hover:bg-[var(--hover-row)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                        <span className="font-mono font-medium text-[var(--accent)] tabular-nums">
+                          {c.case_number}
                         </span>
-                      )}
+                        {c.machine?.code && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span className="font-mono">{c.machine.code}</span>
+                          </>
+                        )}
+                      </div>
+                      <span className="shrink-0 font-mono text-[11.5px] text-[var(--faint)] tabular-nums">
+                        {formatDateTime(c.reported_at)}
+                      </span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <RiskPill
-                        level={c.risk_assessment.risk_level}
-                        score={c.risk_assessment.risk_score}
-                        label={c.risk_assessment.risk_level_label}
-                      />
-                      <CaseStatusPill status={c.status} label={c.status_label} />
+
+                    <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                      {c.machine?.name || 'Mesin / Area'}
                     </div>
-                  </div>
 
-                  <div className="truncate text-[14px] font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
-                    {c.machine?.name || 'Mesin / Area'}
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-[var(--muted)]">
-                    <span className="truncate">
-                      PIC:{' '}
-                      <strong className="font-medium text-[var(--text)]">
-                        {c.risk_assessment.assigned_pic?.name || '—'}
-                      </strong>
-                    </span>
-                    <span className="shrink-0 tabular-nums text-[var(--faint)]">
-                      {formatDateTime(c.reported_at)}
-                    </span>
-                  </div>
-                </Link>
-              ))
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <RiskPill
+                          level={c.risk_assessment.risk_level}
+                          score={c.risk_assessment.risk_score}
+                          label={c.risk_assessment.risk_level_label}
+                        />
+                        <CaseStatusPill status={c.status} label={c.status_label} />
+                        <span className="text-[12px] text-[var(--muted)]">
+                          · PIC: <strong className="font-medium text-[var(--text)]">{c.risk_assessment.assigned_pic?.name || '—'}</strong>
+                        </span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
+                    </div>
+                  </Link>
+                )
+              })
             )}
           </div>
         </section>

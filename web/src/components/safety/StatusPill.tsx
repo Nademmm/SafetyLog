@@ -91,3 +91,42 @@ export function RecurringPill({ label = 'Berulang' }: { label?: string | null })
     </span>
   )
 }
+
+const CASE_TYPE_STYLES: Record<string, string> = {
+  incident:
+    'bg-[var(--safety-danger-bg)] text-[var(--safety-danger-foreground)] border-[var(--safety-danger-border)]',
+  breakdown:
+    'bg-[var(--safety-warning-bg)] text-[var(--safety-warning-foreground)] border-[var(--safety-warning-border)]',
+  unsafe_condition:
+    'bg-[var(--safety-caution-bg)] text-[var(--safety-caution-foreground)] border-[var(--safety-caution-border)]',
+  machine_abnormality:
+    'bg-[var(--safety-info-bg)] text-[var(--safety-info-foreground)] border-[var(--safety-info-border)]',
+  near_miss:
+    'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30',
+}
+
+export function CaseTypePill({
+  caseType,
+  className,
+}: {
+  caseType: { code?: string | null; name: string; is_incident?: boolean } | null | undefined
+  className?: string
+}) {
+  if (!caseType?.name) return null
+  const styleKey = caseType.is_incident ? 'incident' : (caseType.code || '')
+  const styleClass =
+    CASE_TYPE_STYLES[styleKey] ||
+    'bg-[var(--raised)] text-[var(--text)] border-[var(--control)]'
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-[4px] border px-2 py-0.5 text-[11.5px] font-semibold leading-4 whitespace-nowrap',
+        styleClass,
+        className,
+      )}
+    >
+      {caseType.name}
+    </span>
+  )
+}

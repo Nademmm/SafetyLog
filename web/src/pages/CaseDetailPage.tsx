@@ -6,12 +6,17 @@ import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
+  ChevronRight,
   Edit3,
+  FileText,
   Lock,
   MapPin,
+  Power,
   RotateCcw,
+  ShieldAlert,
   Tag,
   User,
+  UserCheck,
   X,
 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
@@ -570,7 +575,7 @@ export function CaseDetailPage() {
     )
   }
 
-  const canManageActions = Boolean(available?.can_manage_actions) && user?.role !== 'hse'
+  const canManageActions = Boolean(available?.can_manage_actions) && user?.role === 'supervisor'
   const assignableUsers = assignableQuery.data?.data ?? []
   const actionPicCandidates = assignableUsers.filter((u) => u.role === 'reporter')
   const editActionPicCandidates = assignableUsers.filter(
@@ -737,43 +742,143 @@ export function CaseDetailPage() {
         {/* Left 2 Columns */}
         <div className="space-y-6 lg:col-span-2">
           {/* Incident Details & Photos */}
-          <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Laporan Kejadian</h2>
-            <p className="text-[15px] leading-relaxed text-[var(--text)]">{caseData.description}</p>
-            <div className="flex flex-wrap gap-2 text-[12px]">
-              <span
-                className={`rounded-[4px] border px-2.5 py-1 ${
-                  caseData.is_machine_stopped
-                    ? 'border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] text-[var(--safety-danger-foreground)]'
-                    : 'border-[var(--control)] bg-[var(--ground)] text-[var(--muted)]'
-                }`}
-              >
-                Mesin berhenti: {caseData.is_machine_stopped ? 'Ya' : 'Tidak'}
-              </span>
-              <span
-                className={`rounded-[4px] border px-2.5 py-1 ${
-                  caseData.has_affected_people
-                    ? 'border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] text-[var(--safety-danger-foreground)]'
-                    : 'border-[var(--control)] bg-[var(--ground)] text-[var(--muted)]'
-                }`}
-              >
-                Orang terdampak: {caseData.has_affected_people ? 'Ya' : 'Tidak'}
-              </span>
-              {caseData.area?.pic_user && (
-                <span className="rounded-[4px] border border-[var(--control)] bg-[var(--ground)] px-2.5 py-1 text-[var(--muted)]">
-                  PIC Area: {caseData.area.pic_user.name}
-                </span>
-              )}
-              {caseData.risk_assessment.assigned_pic && (
-                <span className="rounded-[4px] border border-[var(--control)] bg-[var(--ground)] px-2.5 py-1 text-[var(--muted)]">
-                  PIC Kasus: {caseData.risk_assessment.assigned_pic.name}
+          <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[var(--accent)] shrink-0" aria-hidden="true" />
+                <h2 className="text-[16px] font-semibold text-[var(--text)]">Laporan Kejadian</h2>
+              </div>
+              {(caseData.is_machine_stopped || caseData.has_affected_people) && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-2.5 py-0.5 text-[11.5px] font-semibold text-[var(--safety-danger-foreground)]">
+                  <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  Prioritas Kritis
                 </span>
               )}
             </div>
 
+            <div className="rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3.5 sm:p-4 space-y-1.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--faint)]">
+                Kronologi / Deskripsi Masalah
+              </div>
+              <p className="text-[14.5px] sm:text-[15px] leading-relaxed text-[var(--text)]">
+                {caseData.description}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--faint)]">
+                Informasi Detail Kondisi &amp; Penanggung Jawab
+              </div>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div
+                  className={`flex items-start gap-3 rounded-[6px] border p-3 ${
+                    caseData.is_machine_stopped
+                      ? 'border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)]'
+                      : 'border-[var(--rule)] bg-[var(--ground)]'
+                  }`}
+                >
+                  <div
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] border ${
+                      caseData.is_machine_stopped
+                        ? 'border-[var(--safety-danger-border)] bg-[var(--surface)] text-[var(--safety-danger-foreground)]'
+                        : 'border-[var(--control)] bg-[var(--surface)] text-[var(--muted)]'
+                    }`}
+                  >
+                    <Power className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 space-y-0.5">
+                    <dt
+                      className={`text-[11px] font-semibold uppercase tracking-wider ${
+                        caseData.is_machine_stopped
+                          ? 'text-[var(--safety-danger-foreground)] opacity-85'
+                          : 'text-[var(--faint)]'
+                      }`}
+                    >
+                      Status Mesin Berhenti
+                    </dt>
+                    <dd
+                      className={`text-[14px] font-semibold ${
+                        caseData.is_machine_stopped
+                          ? 'text-[var(--safety-danger-foreground)]'
+                          : 'text-[var(--text)]'
+                      }`}
+                    >
+                      {caseData.is_machine_stopped ? 'Ya — Mesin Dihentikan' : 'Tidak — Tetap Beroperasi'}
+                    </dd>
+                  </div>
+                </div>
+
+                <div
+                  className={`flex items-start gap-3 rounded-[6px] border p-3 ${
+                    caseData.has_affected_people
+                      ? 'border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)]'
+                      : 'border-[var(--rule)] bg-[var(--ground)]'
+                  }`}
+                >
+                  <div
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] border ${
+                      caseData.has_affected_people
+                        ? 'border-[var(--safety-danger-border)] bg-[var(--surface)] text-[var(--safety-danger-foreground)]'
+                        : 'border-[var(--control)] bg-[var(--surface)] text-[var(--muted)]'
+                    }`}
+                  >
+                    <ShieldAlert className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 space-y-0.5">
+                    <dt
+                      className={`text-[11px] font-semibold uppercase tracking-wider ${
+                        caseData.has_affected_people
+                          ? 'text-[var(--safety-danger-foreground)] opacity-85'
+                          : 'text-[var(--faint)]'
+                      }`}
+                    >
+                      Orang Terdampak / Korban
+                    </dt>
+                    <dd
+                      className={`text-[14px] font-semibold ${
+                        caseData.has_affected_people
+                          ? 'text-[var(--safety-danger-foreground)]'
+                          : 'text-[var(--text)]'
+                      }`}
+                    >
+                      {caseData.has_affected_people ? 'Ya — Ada Orang Terdampak' : 'Tidak Ada'}
+                    </dd>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)]">
+                    <UserCheck className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 space-y-0.5">
+                    <dt className="text-[11px] font-semibold uppercase tracking-wider text-[var(--faint)]">
+                      PIC Area
+                    </dt>
+                    <dd className="text-[14px] font-semibold text-[var(--text)] truncate">
+                      {caseData.area?.pic_user?.name || 'Belum ditentukan'}
+                    </dd>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--accent)]">
+                    <User className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 space-y-0.5">
+                    <dt className="text-[11px] font-semibold uppercase tracking-wider text-[var(--faint)]">
+                      PIC Kasus
+                    </dt>
+                    <dd className="text-[14px] font-semibold text-[var(--text)] truncate">
+                      {caseData.risk_assessment.assigned_pic?.name || 'Belum ditunjuk'}
+                    </dd>
+                  </div>
+                </div>
+              </dl>
+            </div>
+
             {(caseData.attachments?.length ?? 0) > 0 && (
-              <div className="space-y-2 pt-2">
-                <div className="text-[12px] text-[var(--faint)]">
+              <div className="space-y-2.5 border-t border-[var(--rule)] pt-4">
+                <div className="text-[12px] font-medium text-[var(--faint)]">
                   Foto Lampiran ({caseData.attachments!.length}) · Ketuk foto untuk membuka ukuran
                   penuh
                 </div>
@@ -1122,20 +1227,12 @@ export function CaseDetailPage() {
                         <div className="flex items-center gap-1.5">
                           {isOverdueOpen && <OverduePill label={act.overdue_label} />}
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${
+                            className={`inline-flex items-center rounded-[5px] border px-2.5 py-0.5 text-[12px] font-semibold ${
                               act.status === 'completed'
                                 ? 'border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]'
                                 : 'border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] text-[var(--safety-warning-foreground)]'
                             }`}
                           >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                act.status === 'completed'
-                                  ? 'bg-[var(--safety-safe)]'
-                                  : 'bg-[var(--safety-warning-foreground)]'
-                              }`}
-                              aria-hidden="true"
-                            />
                             {act.status_label}
                           </span>
                         </div>
@@ -1744,12 +1841,19 @@ export function CaseDetailPage() {
         {/* Right Column: Similar Cases (hidden for Reporters) & Append-Only Audit Log */}
         <div className="space-y-6">
           {user?.role !== 'reporter' && (
-            <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-3">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus Mirip</h2>
-                  <p className="text-[12px] text-[var(--faint)]">
-                    Berdasarkan kemiripan teks deskripsi &amp; mesin (non-AI).
+            <section className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
+              <div className="flex flex-col gap-2.5 border-b border-[var(--rule)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus Mirip</h2>
+                    {similarCases.length > 0 && (
+                      <span className="font-mono text-[12px] font-medium text-[var(--muted)] tabular-nums">
+                        ({similarCases.length})
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[12px] text-[var(--faint)]">
+                    Kemiripan teks &amp; mesin
                   </p>
                 </div>
                 <AiAssistButton
@@ -1759,11 +1863,14 @@ export function CaseDetailPage() {
                   loadingLabel="Menganalisis..."
                 />
               </div>
+
               <div className="divide-y divide-[var(--rule)]">
                 {similarQuery.isLoading ? (
-                  <div className="py-2 text-[13px] text-[var(--faint)]">Mencari kasus mirip...</div>
+                  <div className="px-4 py-4 sm:px-5 text-[13px] text-[var(--faint)]">
+                    Mencari kasus mirip...
+                  </div>
                 ) : similarCases.length === 0 ? (
-                  <div className="py-2 text-[13px] text-[var(--faint)]">
+                  <div className="px-4 py-4 sm:px-5 text-[13px] text-[var(--faint)]">
                     Tidak ada kasus mirip ditemukan.
                   </div>
                 ) : (
@@ -1771,100 +1878,96 @@ export function CaseDetailPage() {
                     <Link
                       key={sc.id}
                       to={`/cases/${sc.id}`}
-                      className="block py-2.5 hover:bg-[var(--hover-row)] space-y-1"
+                      className="group flex flex-col gap-1.5 px-4 py-3.5 sm:px-5 hover:bg-[var(--hover-row)] transition-colors"
                     >
-                      <div className="flex items-center justify-between gap-2 text-[12px]">
-                        <span className="font-mono text-[var(--accent)] tabular-nums">
-                          {sc.case_number}
-                          {sc.machine?.code ? ` · ${sc.machine.code}` : ''}
-                        </span>
-                        <span className="font-mono text-[12px] rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[var(--text)] tabular-nums">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                          <span className="font-mono font-semibold text-[var(--accent)] tabular-nums">
+                            {sc.case_number}
+                          </span>
+                          {sc.machine?.code && (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span className="font-mono text-[var(--muted)]">{sc.machine.code}</span>
+                            </>
+                          )}
+                        </div>
+                        <span className="shrink-0 font-mono text-[11.5px] font-semibold text-[var(--text)] tabular-nums">
                           {sc.similarity_percent}% cocok
                         </span>
                       </div>
-                      <div className="text-[13px] text-[var(--text)] line-clamp-2">
+
+                      <p className="text-[13px] leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">
                         {sc.description}
+                      </p>
+
+                      <div className="flex items-center justify-between gap-2 pt-0.5">
+                        <span className="text-[11.5px] text-[var(--faint)] truncate">
+                          {sc.matching_reasons?.length > 0
+                            ? sc.matching_reasons.join(' · ')
+                            : 'Kemiripan teks'}
+                        </span>
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
                       </div>
-                      {sc.matching_reasons?.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {sc.matching_reasons.map((r) => (
-                            <span
-                              key={r}
-                              className="rounded-[4px] bg-[var(--ground)] px-2 py-0.5 text-[12px] text-[var(--muted)]"
-                            >
-                              {r}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </Link>
                   ))
                 )}
               </div>
 
               {aiSimilarError && (
-                <div
-                  role="alert"
-                  className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[12px] text-[var(--safety-danger-foreground)]"
-                >
-                  {aiSimilarError}
+                <div className="border-t border-[var(--rule)] p-4 sm:px-5">
+                  <div
+                    role="alert"
+                    className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3 py-2 text-[12px] text-[var(--safety-danger-foreground)]"
+                  >
+                    {aiSimilarError}
+                  </div>
                 </div>
               )}
 
               {aiSimilar && (
-                <div role="status" className="space-y-3 border-t border-[var(--rule)] pt-3">
-                  <div className="flex items-center justify-between gap-2">
+                <div role="status" className="border-t border-[var(--rule)] bg-[var(--ground)]/50">
+                  <div className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2 sm:px-5">
                     <div className="text-[13px] font-semibold text-[var(--text)]">Analisis AI</div>
                     <div className="text-[11px] text-[var(--faint)]">Perlu ditinjau</div>
                   </div>
 
                   {aiSimilar.possible_duplicate && (
-                    <div className="rounded-[6px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] px-3 py-2 text-[12px] text-[var(--safety-warning-foreground)]">
+                    <div className="mx-4 mb-2 sm:mx-5 rounded-[6px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] px-3 py-2 text-[12px] text-[var(--safety-warning-foreground)]">
                       AI menemukan kemungkinan duplikat. Periksa sebelum melanjutkan.
                     </div>
                   )}
 
-                  <p className="text-[12px] text-[var(--muted)]">{aiSimilar.summary}</p>
+                  <p className="px-4 pb-3 sm:px-5 text-[12.5px] leading-relaxed text-[var(--muted)]">
+                    {aiSimilar.summary}
+                  </p>
 
                   {aiSimilar.matches.length === 0 ? (
-                    <div className="rounded-[6px] bg-[var(--ground)] px-3 py-2 text-[12px] text-[var(--faint)]">
+                    <div className="border-t border-[var(--rule)] px-4 py-3 sm:px-5 text-[12px] text-[var(--faint)]">
                       Tidak ada kandidat kasus historis yang relevan untuk dianalisis.
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="divide-y divide-[var(--rule)] border-t border-[var(--rule)]">
                       {aiSimilar.matches.map((match) => (
-                        <div
-                          key={`ai-${match.id}`}
-                          className="space-y-1.5 rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div key={`ai-${match.id}`} className="space-y-1 px-4 py-3 sm:px-5">
+                          <div className="flex items-center justify-between gap-2">
                             <Link
                               to={`/cases/${match.id}`}
                               className="font-mono text-[12px] font-semibold text-[var(--accent)] hover:underline"
                             >
                               {match.case_number}
                             </Link>
-                            <span className="text-[11px] font-medium text-[var(--text)] tabular-nums">
-                              {match.similarity_percent}% mirip
+                            <span className="font-mono text-[11px] font-medium text-[var(--muted)] tabular-nums">
+                              {match.similarity_percent}% mirip · {AI_DUPLICATE_LABELS[match.duplicate_assessment]}
                             </span>
                           </div>
-                          <div className="text-[12px] text-[var(--muted)]">
+                          <p className="text-[12.5px] leading-snug text-[var(--text)]">
                             {match.similarity_reason}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[11px] text-[var(--text)]">
-                              {AI_DUPLICATE_LABELS[match.duplicate_assessment]}
-                            </span>
-                            {match.database_reasons.length > 0 && (
-                              <span className="text-[11px] text-[var(--faint)]">
-                                Dasar database: {match.database_reasons.join(', ')}
-                              </span>
-                            )}
-                          </div>
+                          </p>
                           {match.differences.length > 0 && (
-                            <div className="text-[11px] text-[var(--faint)]">
+                            <p className="text-[11.5px] text-[var(--faint)]">
                               Perbedaan: {match.differences.join(' · ')}
-                            </div>
+                            </p>
                           )}
                         </div>
                       ))}

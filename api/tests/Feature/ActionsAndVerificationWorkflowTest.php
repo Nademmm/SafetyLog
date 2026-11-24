@@ -184,4 +184,44 @@ class ActionsAndVerificationWorkflowTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.status', CaseStatus::Closed->value);
     }
+
+    public function test_admin_cannot_add_or_edit_capa_actions(): void
+    {
+        $fx = $this->createOrganizationFixture();
+
+        Sanctum::actingAs($fx['reporter']);
+        $caseId = (int) $this->postJson('/api/cases', [
+            'machine_id' => $fx['machine']->id,
+            'case_type_id' => $fx['abnormalityType']->id,
+            'description' => 'Sensor pengaman pintu mesin tidak merespons.',
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($fx['supervisor']);
+        $this->postJson("/api/cases/{$caseId}/triage", [
+            'decision' => 'assess',
+            'severity' => 3,
+            'likelihood' => 2,
+        ])->assertOk();
+
+        $actionId = (int) $this->postJson("/api/cases/{$caseId}/actions", [
+            'action_type' => ActionType::Corrective->value,
+            'title' => 'Periksa kabel sensor pintu',
+            'pic_user_id' => $fx['reporter']->id,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($fx['admin']);
+        $this->getJson("/api/cases/{$caseId}")
+            ->assertOk()
+            ->assertJsonPath('data.available_actions.can_manage_actions', false);
+
+        $this->postJson("/api/cases/{$caseId}/actions", [
+            'action_type' => ActionType::Preventive->value,
+            'title' => 'Tindakan dari admin',
+            'pic_user_id' => $fx['reporter']->id,
+        ])->assertForbidden();
+
+        $this->patchJson("/api/actions/{$actionId}", [
+            'title' => 'Edit dari admin',
+        ])->assertForbidden();
+    }
 }

@@ -178,10 +178,10 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
     Route::get('/cases/{case}/histories', [SafetyCaseController::class, 'histories']);
     Route::post('/cases/{case}/attachments', [SafetyCaseController::class, 'storeAttachments']);
     Route::post('/cases/{case}/triage', [SafetyCaseController::class, 'triage'])
-        ->middleware('role:supervisor,admin');
+        ->middleware('role:supervisor');
     Route::post('/cases/{case}/root-cause', [SafetyCaseController::class, 'analyzeRootCause']);
     Route::post('/cases/{case}/actions', [SafetyCaseController::class, 'storeAction'])
-        ->middleware('role:supervisor,hse,admin');
+        ->middleware('role:supervisor');
     Route::post('/cases/{case}/verify', [SafetyCaseController::class, 'verify'])
         ->middleware('role:hse,admin');
     Route::post('/cases/{case}/reopen', [SafetyCaseController::class, 'reopen'])
@@ -190,7 +190,7 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
     // Actions: My Actions, Edit, Complete, Reopen, Proof Photos (B-14, B-15)
     Route::get('/my-actions', [CaseActionController::class, 'myActions']);
     Route::patch('/actions/{action}', [CaseActionController::class, 'update'])
-        ->middleware('role:supervisor,hse,admin');
+        ->middleware('role:supervisor');
     Route::post('/actions/{action}/complete', [CaseActionController::class, 'complete']);
     Route::post('/actions/{action}/reopen', [CaseActionController::class, 'reopen'])
         ->middleware('role:hse,admin');
@@ -208,7 +208,7 @@ Route::middleware(['auth:sanctum', 'role'])->group(function (): void {
     Route::post('/cases/{case}/similar-analysis', [AiController::class, 'caseSimilarAnalysis'])
         ->middleware('throttle:ai');
     Route::post('/cases/{case}/action-suggestions', [AiController::class, 'actionSuggestions'])
-        ->middleware(['role:supervisor,hse,admin', 'throttle:ai']);
+        ->middleware(['role:supervisor', 'throttle:ai']);
     Route::post('/ai/dashboard-summary', [AiController::class, 'dashboardSummary'])
         ->middleware(['role:supervisor,hse,admin', 'throttle:ai']);
 

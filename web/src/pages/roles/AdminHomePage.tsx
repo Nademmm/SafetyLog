@@ -136,27 +136,27 @@ export function AdminHomePage() {
 
       {/* Recurring Machines + Overdue Actions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+              <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
                 Mesin Masalah Berulang
               </h2>
               {recurringMachines.length > 0 && (
-                <span className="shrink-0 rounded-[4px] bg-[var(--accent-soft)] border border-[var(--accent)]/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--accent)] tabular-nums">
-                  {recurringMachines.length}
+                <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--accent)] tabular-nums">
+                  ({recurringMachines.length})
                 </span>
               )}
             </div>
             <Link
               to="/dashboard"
-              className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
+              className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
               <span>Semua mesin</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="divide-y divide-[var(--rule)]">
+          <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {dashboardQuery.isLoading ? (
               <SectionLoading label="Memuat data mesin..." className="py-8" />
             ) : recurringMachines.length === 0 ? (
@@ -169,16 +169,17 @@ export function AdminHomePage() {
                 <Link
                   key={m.machine_id}
                   to={`/machines/${m.machine_id}/cases`}
-                  className="group flex items-center justify-between gap-4 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
+                  className="group flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
                 >
                   <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[12px] font-semibold text-[var(--text)]">
+                    <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)]">
+                      <span className="font-mono font-semibold text-[var(--text)]">
                         {m.machine_code}
                       </span>
+                      <span aria-hidden="true">·</span>
                       <RecurringPill label={m.recurring_label || 'Berulang'} />
                     </div>
-                    <div className="truncate text-[14px] font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
+                    <div className="truncate text-[14.5px] font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
                       {m.machine_name}
                     </div>
                   </div>
@@ -187,7 +188,7 @@ export function AdminHomePage() {
                       <div className="text-[16px] font-semibold text-[var(--text)] tabular-nums">
                         {m.cases_last_90_days}
                       </div>
-                      <div className="text-[12px] text-[var(--faint)]">
+                      <div className="text-[11.5px] text-[var(--faint)]">
                         kasus ({recurringRule.window_days}h)
                       </div>
                     </div>
@@ -199,27 +200,27 @@ export function AdminHomePage() {
           </div>
         </section>
 
-        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+              <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
                 Tindakan Terlambat
               </h2>
               {overdueActions.length > 0 && (
-                <span className="shrink-0 rounded-[4px] bg-[var(--safety-danger-bg)] border border-[var(--safety-danger-border)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
-                  {overdueActions.length}
+                <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--safety-danger-foreground)] tabular-nums">
+                  ({overdueActions.length})
                 </span>
               )}
             </div>
             <Link
               to="/cases"
-              className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
+              className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
               <span>Cari kasus</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="divide-y divide-[var(--rule)]">
+          <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {dashboardQuery.isLoading ? (
               <SectionLoading label="Memuat tindakan terlambat..." className="py-8" />
             ) : overdueActions.length === 0 ? (
@@ -231,17 +232,18 @@ export function AdminHomePage() {
                 <Link
                   key={oa.id}
                   to={oa.safety_case ? `/cases/${oa.safety_case.id}` : '/cases'}
-                  className="group flex flex-col gap-2 px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
+                  className="group flex flex-col gap-1.5 bg-[var(--safety-danger-bg)]/20 px-4 py-3.5 sm:px-5 transition-colors hover:bg-[var(--safety-danger-bg)]/40"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
+                    <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                      <span className="font-mono font-medium text-[var(--accent)] tabular-nums">
                         {oa.safety_case?.case_number || '—'}
                       </span>
                       {oa.safety_case?.machine?.code && (
-                        <span className="rounded-[4px] border border-[var(--border)] bg-[var(--ground)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--muted)]">
-                          {oa.safety_case.machine.code}
-                        </span>
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span className="font-mono">{oa.safety_case.machine.code}</span>
+                        </>
                       )}
                     </div>
                     <div className="shrink-0">
@@ -249,15 +251,15 @@ export function AdminHomePage() {
                     </div>
                   </div>
 
-                  <div className="text-[14px] font-medium leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                  <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">
                     {oa.title}
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-[var(--muted)]">
+                  <div className="flex items-center justify-between gap-2 pt-0.5 text-[12px] text-[var(--muted)]">
                     <span className="truncate">
                       PIC: <strong className="font-medium text-[var(--text)]">{oa.pic?.name || '—'}</strong>
                     </span>
-                    <div className="flex items-center gap-1.5 shrink-0 tabular-nums text-[var(--faint)]">
+                    <div className="flex items-center gap-1.5 shrink-0 tabular-nums text-[var(--safety-danger-foreground)] font-medium">
                       <span>Tenggat {formatDateTime(oa.due_at)}</span>
                       <ChevronRight className="h-4 w-4 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
                     </div>

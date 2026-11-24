@@ -79,7 +79,7 @@ class SafetyCasePolicy
 
         return $user->role->canTriage()
             ? Response::allow()
-            : Response::deny('Hanya Supervisor atau Manajer/Admin yang dapat melakukan triase.');
+            : Response::deny('Hanya Supervisor yang dapat melakukan triase.');
     }
 
     public function manageActions(User $user, SafetyCase $case): Response
@@ -90,7 +90,7 @@ class SafetyCasePolicy
 
         return $user->role->canManageActions()
             ? Response::allow()
-            : Response::deny('Anda tidak memiliki hak akses untuk mengelola tindakan.');
+            : Response::deny('Hanya Supervisor yang dapat mengelola tindakan.');
     }
 
     public function analyzeRootCause(User $user, SafetyCase $case): Response

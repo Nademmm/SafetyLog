@@ -229,10 +229,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
                   >
                     {active ? (
                       <>
-                        <span className="relative flex h-2 w-2 shrink-0">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
-                        </span>
+                        <Icon className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" aria-hidden="true" />
                         <span className="text-[12px] sm:text-[13px] whitespace-nowrap">
                           {stage.shortLabel}
                         </span>

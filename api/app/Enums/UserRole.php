@@ -26,12 +26,12 @@ enum UserRole: string
 
     public function canTriage(): bool
     {
-        return in_array($this, [self::Supervisor, self::Admin], true);
+        return $this === self::Supervisor;
     }
 
     public function canManageActions(): bool
     {
-        return in_array($this, [self::Supervisor, self::Admin], true);
+        return $this === self::Supervisor;
     }
 
     public function canVerify(): bool
