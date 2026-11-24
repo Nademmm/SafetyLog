@@ -1041,11 +1041,11 @@ export function CaseDetailPage() {
 
           {/* CAPA Actions List (B-14, B-15) */}
           <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-[16px] font-semibold text-[var(--text)]">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              <h2 className="text-[16px] font-semibold text-[var(--text)] min-w-0">
                 Tindakan Korektif &amp; Preventif (CAPA)
               </h2>
-              <span className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] px-3 py-1 font-mono text-[13px] font-semibold text-[var(--text)] tabular-nums">
+              <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--ground)] px-3 py-1 font-mono text-[12.5px] font-semibold text-[var(--text)] tabular-nums">
                 {caseData.actions?.length ?? 0} tindakan
               </span>
             </div>
