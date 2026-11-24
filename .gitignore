@@ -4,7 +4,6 @@ node_modules/
 /yarn.lock
 
 # Laravel
-/api/vendor/
 /api/bootstrap/cache/*.php
 /api/storage/*.key
 .env
