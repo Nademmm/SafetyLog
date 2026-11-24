@@ -206,7 +206,10 @@ export function CaseDetailPage() {
   const [duplicateOfId, setDuplicateOfId] = React.useState('')
   const [triageBusy, setTriageBusy] = React.useState(false)
   const [triageErr, setTriageErr] = React.useState<string | null>(null)
-  const [triageSuccess, setTriageSuccess] = React.useState<string | null>(null)
+  const [triageSuccess, setTriageSuccess] = React.useState<{
+    title: string
+    description: string
+  } | null>(null)
 
   // Add Action state (B-14)
   const [actionType, setActionType] = React.useState<ActionType>('corrective')
@@ -414,10 +417,20 @@ export function CaseDetailPage() {
       await apiFetch(`/cases/${caseData.id}/triage`, { method: 'POST', json: payload })
       setTriageSuccess(
         triageMode === 'assess'
-          ? 'Penilaian risiko & triase berhasil disimpan.'
+          ? {
+              title: 'Penilaian Risiko Berhasil',
+              description:
+                'Risiko kasus telah sukses dinilai dan tersimpan. Kasus siap dilanjutkan ke tahap analisis.',
+            }
           : triageMode === 'reject'
-            ? 'Laporan berhasil ditolak.'
-            : 'Kasus berhasil ditandai sebagai duplikat.',
+            ? {
+                title: 'Laporan Ditolak',
+                description: 'Laporan kasus berhasil ditolak dan status telah diperbarui.',
+              }
+            : {
+                title: 'Ditandai sebagai Duplikat',
+                description: 'Kasus berhasil ditandai sebagai duplikat dari kasus yang dipilih.',
+              },
       )
       refreshCase()
     } catch (err) {
@@ -777,92 +790,6 @@ export function CaseDetailPage() {
               </div>
             )}
           </section>
-
-          {triageSuccess && (
-            <div
-              role="status"
-              className="flex items-start justify-between gap-2.5 rounded-[6px] border border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--safety-safe-foreground)]"
-            >
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>{triageSuccess}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setTriageSuccess(null)}
-                aria-label="Tutup notifikasi triase"
-                className="shrink-0 rounded-[4px] p-0.5 opacity-75 hover:opacity-100 cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Triage Summary Card (shown once triage assessment is created) */}
-          {!available?.can_triage &&
-            caseData.risk_assessment.triaged_at &&
-            caseData.status !== 'rejected' &&
-            caseData.status !== 'duplicate' && (
-              <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-[16px] font-semibold text-[var(--text)]">
-                      Hasil Penilaian Risiko &amp; Triase
-                    </h2>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] px-2.5 py-0.5 text-[11.5px] font-semibold text-[var(--safety-safe-foreground)]">
-                      <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden="true" />
-                      Sudah Ditriase
-                    </span>
-                  </div>
-                  <RiskPill
-                    level={caseData.risk_assessment.risk_level}
-                    score={caseData.risk_assessment.risk_score}
-                    label={caseData.risk_assessment.risk_level_label}
-                  />
-                </div>
-
-                <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3 text-[13px]">
-                  <div className="space-y-0.5">
-                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
-                      Matriks 5×5
-                    </dt>
-                    <dd className="font-mono font-semibold text-[var(--text)] tabular-nums">
-                      K {caseData.risk_assessment.severity ?? '—'} × P{' '}
-                      {caseData.risk_assessment.likelihood ?? '—'} ={' '}
-                      {caseData.risk_assessment.risk_score ?? '—'}
-                    </dd>
-                  </div>
-                  <div className="space-y-0.5">
-                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
-                      Kategori
-                    </dt>
-                    <dd className="font-medium text-[var(--text)] truncate">
-                      {caseData.category?.name || '—'}
-                    </dd>
-                  </div>
-                  <div className="space-y-0.5">
-                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
-                      PIC Kasus
-                    </dt>
-                    <dd className="font-medium text-[var(--text)] truncate">
-                      {caseData.risk_assessment.assigned_pic?.name || '—'}
-                    </dd>
-                  </div>
-                  <div className="space-y-0.5">
-                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
-                      Penilai Triase
-                    </dt>
-                    <dd className="text-[var(--muted)] truncate">
-                      {caseData.risk_assessment.triaged_by?.name || 'Supervisor'}
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="text-[12px] font-mono text-[var(--faint)] tabular-nums">
-                  Ditriase pada {formatDateTime(caseData.risk_assessment.triaged_at)}
-                </div>
-              </section>
-            )}
 
           {/* Triage Panel (B-12) */}
           {available?.can_triage && (
@@ -2101,6 +2028,41 @@ export function CaseDetailPage() {
           onClose={() => setCompletingAction(null)}
           onCompleted={refreshCase}
         />
+      )}
+
+      {/* Triage Success Pop-up Alert */}
+      {triageSuccess && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="triage-success-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setTriageSuccess(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]">
+              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 id="triage-success-title" className="text-[17px] font-bold text-[var(--text)]">
+                {triageSuccess.title}
+              </h3>
+              <p className="text-[13.5px] leading-relaxed text-[var(--muted)]">
+                {triageSuccess.description}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTriageSuccess(null)}
+              className="h-11 w-full rounded-[8px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] hover:opacity-90 cursor-pointer"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
