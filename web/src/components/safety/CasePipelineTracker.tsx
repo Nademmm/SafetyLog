@@ -56,7 +56,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
   const trackPercent = (currentIndex / (STAGES.length - 1)) * 100
 
   // SVG circular progress ring geometry
-  const ringRadius = 15
+  const ringRadius = 12
   const ringCircumference = 2 * Math.PI * ringRadius
   const ringOffset = ringCircumference * (1 - progressRatio)
 
@@ -128,36 +128,49 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
           </span>
         </div>
 
-        {/* Minimalist SVG Circular Progress Ring */}
+        {/* Sleek Progress Badge with Circular Progress Ring (Lebar & Tegas) */}
         <div
-          className="relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-raised)] py-1 pl-1.5 pr-3 shadow-2xs"
           title={`Tahap ${currentIndex + 1} dari ${STAGES.length}`}
         >
-          <svg className="h-8 w-8 sm:h-9 sm:w-9 -rotate-90" viewBox="0 0 38 38" aria-hidden="true">
-            <circle
-              cx="19"
-              cy="19"
-              r={ringRadius}
-              fill="none"
-              stroke="var(--control)"
-              strokeWidth="2.5"
-            />
-            <circle
-              cx="19"
-              cy="19"
-              r={ringRadius}
-              fill="none"
-              stroke={isClosed ? 'var(--safety-safe)' : 'var(--accent)'}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeDasharray={ringCircumference}
-              strokeDashoffset={ringOffset}
-              className="transition-all duration-500 ease-out"
-            />
-          </svg>
-          <span className="absolute font-mono text-[11px] font-semibold text-[var(--text)] tabular-nums">
-            {isClosed ? '✓' : `${currentIndex + 1}/${STAGES.length}`}
-          </span>
+          <div className="relative flex h-7 w-7 shrink-0 items-center justify-center">
+            <svg className="h-7 w-7 -rotate-90" viewBox="0 0 32 32" aria-hidden="true">
+              <circle
+                cx="16"
+                cy="16"
+                r={ringRadius}
+                fill="none"
+                stroke="var(--control)"
+                strokeWidth="2.6"
+              />
+              <circle
+                cx="16"
+                cy="16"
+                r={ringRadius}
+                fill="none"
+                stroke={isClosed ? 'var(--safety-safe)' : 'var(--accent)'}
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeDasharray={ringCircumference}
+                strokeDashoffset={ringOffset}
+                className="transition-all duration-500 ease-out"
+              />
+            </svg>
+            {isClosed && (
+              <span className="absolute text-[11px] font-bold text-[var(--safety-safe)]">
+                ✓
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-baseline gap-1 font-mono">
+            <span className="text-[13px] sm:text-[14px] font-bold text-[var(--text)] tabular-nums tracking-tight">
+              {isClosed ? 'Tuntas' : `${currentIndex + 1}/${STAGES.length}`}
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted)]">
+              {isClosed ? '' : 'tahap'}
+            </span>
+          </div>
         </div>
       </div>
 
