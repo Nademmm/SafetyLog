@@ -1,6 +1,4 @@
 ---
 deployment:
   tasks:
-    - /bin/mkdir -p /home/$USER/safetylog_api
-    - /bin/cp -a api/. /home/$USER/safetylog_api/
-    - /bin/cp -a web/dist/. /home/$USER/public_html/
+    - /bin/bash -c "mkdir -p $HOME/public_html $HOME/safetylog_api && cp -a web/dist/. $HOME/public_html/ && cp -a api/. $HOME/safetylog_api/"
