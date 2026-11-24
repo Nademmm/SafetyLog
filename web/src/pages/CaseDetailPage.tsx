@@ -1058,30 +1058,48 @@ export function CaseDetailPage() {
             ) : (
               <div className="divide-y divide-[var(--rule)]">
                 {caseData.actions!.map((act) => (
-                  <div key={act.id} className="py-3.5 space-y-2">
+                  <div key={act.id} className="py-4 space-y-2.5">
+                    {/* Top Badge Row: Action Type (Korektif/Preventif/Sementara) + Status (Terbuka/Selesai) */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[12px] font-medium text-[var(--muted)]">
-                          {act.action_type_label}
-                        </span>
-                        <span className="text-[14px] font-medium text-[var(--text)]">
-                          {act.title}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-[5px] border px-2.5 py-0.5 text-[12px] font-semibold ${
+                          act.action_type === 'preventive'
+                            ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]'
+                            : act.action_type === 'temporary'
+                              ? 'border-[var(--control)] bg-[var(--ground)] text-[var(--muted)]'
+                              : 'border-[var(--control)] bg-[var(--raised)] text-[var(--text)]'
+                        }`}
+                      >
+                        {act.action_type_label}
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
                         {act.is_overdue && act.status !== 'completed' && (
                           <OverduePill label={act.overdue_label} />
                         )}
                         <span
-                          className={`rounded-[4px] px-2 py-0.5 text-[12px] ${
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${
                             act.status === 'completed'
-                              ? 'bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]'
-                              : 'bg-[var(--raised)] text-[var(--muted)]'
+                              ? 'border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]'
+                              : 'border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] text-[var(--safety-warning-foreground)]'
                           }`}
                         >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              act.status === 'completed'
+                                ? 'bg-[var(--safety-safe)]'
+                                : 'bg-[var(--safety-warning-foreground)]'
+                            }`}
+                            aria-hidden="true"
+                          />
                           {act.status_label}
                         </span>
                       </div>
+                    </div>
+
+                    {/* Action Title */}
+                    <div className="text-[14.5px] sm:text-[15px] font-semibold leading-snug text-[var(--text)]">
+                      {act.title}
                     </div>
 
                     {act.description && (
