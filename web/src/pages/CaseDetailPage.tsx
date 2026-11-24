@@ -1149,116 +1149,151 @@ export function CaseDetailPage() {
                 {caseData.status === 'new' ? 'Lakukan triase terlebih dahulu.' : ''}
               </div>
             ) : (
-              <div className="divide-y divide-[var(--rule)]">
-                {caseData.actions!.map((act) => (
-                  <div key={act.id} className="py-4 space-y-2.5">
-                    {/* Top Badge Row: Action Type (Korektif/Preventif/Sementara) + Status (Terbuka/Selesai) */}
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-[5px] border px-2.5 py-0.5 text-[12px] font-semibold ${
-                          act.action_type === 'preventive'
-                            ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]'
-                            : act.action_type === 'temporary'
-                              ? 'border-[var(--control)] bg-[var(--ground)] text-[var(--muted)]'
-                              : 'border-[var(--control)] bg-[var(--raised)] text-[var(--text)]'
-                        }`}
-                      >
-                        {act.action_type_label}
-                      </span>
+              <div className="space-y-3">
+                {caseData.actions!.map((act) => {
+                  const isOverdueOpen = act.is_overdue && act.status !== 'completed'
+                  const hasFooterButtons =
+                    (canManageActions && act.status !== 'completed') ||
+                    (isVerifierRole && !caseData.is_locked && act.status === 'completed') ||
+                    act.can_complete
 
-                      <div className="flex items-center gap-1.5">
-                        {act.is_overdue && act.status !== 'completed' && (
-                          <OverduePill label={act.overdue_label} />
-                        )}
+                  return (
+                    <article
+                      key={act.id}
+                      className={`rounded-[8px] border p-3.5 sm:p-4 space-y-3 ${
+                        isOverdueOpen
+                          ? 'border-[var(--safety-danger-border)] bg-[var(--ground)]'
+                          : 'border-[var(--rule)] bg-[var(--ground)]'
+                      }`}
+                    >
+                      {/* Top Badge Row: Action Type + Status */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${
-                            act.status === 'completed'
-                              ? 'border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]'
-                              : 'border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] text-[var(--safety-warning-foreground)]'
+                          className={`inline-flex items-center rounded-[5px] border px-2.5 py-0.5 text-[12px] font-semibold ${
+                            act.action_type === 'preventive'
+                              ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]'
+                              : act.action_type === 'temporary'
+                                ? 'border-[var(--control)] bg-[var(--surface)] text-[var(--muted)]'
+                                : 'border-[var(--control)] bg-[var(--surface)] text-[var(--text)]'
                           }`}
                         >
+                          {act.action_type_label}
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          {isOverdueOpen && <OverduePill label={act.overdue_label} />}
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${
                               act.status === 'completed'
-                                ? 'bg-[var(--safety-safe)]'
-                                : 'bg-[var(--safety-warning-foreground)]'
+                                ? 'border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]'
+                                : 'border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] text-[var(--safety-warning-foreground)]'
                             }`}
-                            aria-hidden="true"
-                          />
-                          {act.status_label}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                act.status === 'completed'
+                                  ? 'bg-[var(--safety-safe)]'
+                                  : 'bg-[var(--safety-warning-foreground)]'
+                              }`}
+                              aria-hidden="true"
+                            />
+                            {act.status_label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Title & Description */}
+                      <div className="space-y-1">
+                        <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)]">
+                          {act.title}
+                        </h3>
+                        {act.description && (
+                          <p className="text-[13px] leading-relaxed text-[var(--muted)]">
+                            {act.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* PIC & Due Date Metadata */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-[var(--muted)]">
+                        <span className="inline-flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                          <span>
+                            PIC:{' '}
+                            <strong className="font-medium text-[var(--text)]">
+                              {act.pic?.name || '—'}
+                            </strong>
+                          </span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                          <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
+                            Tenggat: {formatDateTime(act.due_at)}
+                          </span>
                         </span>
                       </div>
-                    </div>
 
-                    {/* Action Title */}
-                    <div className="text-[14.5px] sm:text-[15px] font-semibold leading-snug text-[var(--text)]">
-                      {act.title}
-                    </div>
+                      {act.completion_note && (
+                        <div className="rounded-[6px] border border-[var(--safety-safe-border)] bg-[var(--surface)] px-3 py-2.5 space-y-0.5">
+                          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--safety-safe-foreground)]">
+                            Hasil Penyelesaian
+                          </div>
+                          <p className="text-[13px] leading-relaxed text-[var(--text)]">
+                            {act.completion_note}
+                          </p>
+                        </div>
+                      )}
 
-                    {act.description && (
-                      <p className="text-[13px] text-[var(--muted)]">{act.description}</p>
-                    )}
+                      {(act.attachments?.length ?? 0) > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-0.5">
+                          {act.attachments!.map((att) => (
+                            <AuthorizedImage
+                              key={att.id}
+                              attachmentId={att.id}
+                              alt={att.file_name}
+                              className="h-20 w-24 rounded-[6px] object-cover border border-[var(--control)]"
+                            />
+                          ))}
+                        </div>
+                      )}
 
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--faint)]">
-                      <span>
-                        PIC: <strong className="text-[var(--muted)]">{act.pic?.name || '—'}</strong>{' '}
-                        · Tenggat: {formatDateTime(act.due_at)}
-                      </span>
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        {canManageActions && act.status !== 'completed' && (
-                          <button
-                            type="button"
-                            onClick={() => startEditAction(act)}
-                            className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                        )}
-                        {isVerifierRole && !caseData.is_locked && act.status === 'completed' && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setReopeningActionId(act.id)
-                              setReopenActionReason('')
-                              setReopenActionErr(null)
-                            }}
-                            className="inline-flex h-11 items-center gap-1 rounded-[6px] border border-[var(--control)] px-3 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            Buka Ulang
-                          </button>
-                        )}
-                        {act.can_complete && (
-                          <button
-                            type="button"
-                            onClick={() => setCompletingAction(act)}
-                            className="h-11 flex-1 sm:flex-none rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
-                          >
-                            Selesaikan Tindakan
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {act.completion_note && (
-                      <div className="rounded-[4px] bg-[var(--ground)] p-3 text-[13px] text-[var(--muted)]">
-                        Hasil: {act.completion_note}
-                      </div>
-                    )}
-
-                    {(act.attachments?.length ?? 0) > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {act.attachments!.map((att) => (
-                          <AuthorizedImage
-                            key={att.id}
-                            attachmentId={att.id}
-                            alt={att.file_name}
-                            className="h-20 w-24 rounded-[4px] object-cover border border-[var(--control)]"
-                          />
-                        ))}
-                      </div>
-                    )}
+                      {hasFooterButtons && (
+                        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--rule)] pt-3">
+                          {canManageActions && act.status !== 'completed' && (
+                            <button
+                              type="button"
+                              onClick={() => startEditAction(act)}
+                              className="inline-flex h-11 items-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer transition-colors"
+                            >
+                              <Edit3 className="h-3.5 w-3.5 text-[var(--muted)]" />
+                              Edit
+                            </button>
+                          )}
+                          {isVerifierRole && !caseData.is_locked && act.status === 'completed' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReopeningActionId(act.id)
+                                setReopenActionReason('')
+                                setReopenActionErr(null)
+                              }}
+                              className="inline-flex h-11 items-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer transition-colors"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5 text-[var(--muted)]" />
+                              Buka Ulang
+                            </button>
+                          )}
+                          {act.can_complete && (
+                            <button
+                              type="button"
+                              onClick={() => setCompletingAction(act)}
+                              className="h-11 flex-1 sm:flex-none rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer transition-colors"
+                            >
+                              Selesaikan Tindakan
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                     {/* Inline Reopen Single Action Prompt */}
                     {reopeningActionId === act.id && (
@@ -1302,8 +1337,9 @@ export function CaseDetailPage() {
                         </div>
                       </form>
                     )}
-                  </div>
-                ))}
+                    </article>
+                  )
+                })}
               </div>
             )}
           </section>
