@@ -34,11 +34,13 @@ const STAGES: StageDef[] = [
 export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
   const rawIndex = STAGES.findIndex((s) => s.key === caseData.status)
   const currentIndex = rawIndex >= 0 ? rawIndex : 0
-  const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
-
-  React.useEffect(() => {
-    setSelectedIndex(null)
-  }, [caseData.id, caseData.status])
+  const currentCaseKey = `${caseData.id}-${caseData.status}`
+  const [selectedState, setSelectedState] = React.useState<{ caseKey: string; index: number | null }>({
+    caseKey: currentCaseKey,
+    index: null,
+  })
+  const selectedIndex = selectedState.caseKey === currentCaseKey ? selectedState.index : null
+  const setSelectedIndex = (index: number | null) => setSelectedState({ caseKey: currentCaseKey, index })
 
   if (caseData.status === 'rejected' || caseData.status === 'duplicate') {
     return null

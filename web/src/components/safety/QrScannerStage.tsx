@@ -88,21 +88,17 @@ export function QrScannerStage({
   const streamRef = React.useRef<MediaStream | null>(null)
   const rafRef = React.useRef<number | null>(null)
   const lockedRef = React.useRef(false)
-  const successAudioRef = React.useRef<HTMLAudioElement | null>(null)
-
-  React.useEffect(() => {
-    const audio = new Audio(qrSuccessSoundUrl)
-    audio.preload = 'auto'
-    audio.volume = 0.85
-    successAudioRef.current = audio
-  }, [])
 
   const playSuccessSound = React.useCallback(() => {
-    const audio = successAudioRef.current ?? new Audio(qrSuccessSoundUrl)
-    audio.currentTime = 0
-    void audio.play().catch(() => {
-      // Abaikan jika browser memblokir autoplay audio
-    })
+    try {
+      const audio = new Audio(qrSuccessSoundUrl)
+      audio.volume = 0.85
+      void audio.play().catch(() => {
+        // Abaikan jika browser memblokir autoplay audio
+      })
+    } catch {
+      // Abaikan error pembuatan audio
+    }
   }, [])
 
   const [facingMode, setFacingMode] = React.useState<'environment' | 'user'>('environment')

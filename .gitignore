@@ -19,7 +19,7 @@ node_modules/
 *.sqlite-journal
 
 # Build outputs
-
+/web/dist/
 
 # Logs & Temp
 *.zip

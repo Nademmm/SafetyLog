@@ -1,1 +1,0 @@
-import{n as e}from"./vendor-query-B4DMlWr_.js";import{c as t,o as n}from"./index-4AlU7Wqz.js";function r(){let{isAuthenticated:r}=n();return e({queryKey:[`reference-data`],queryFn:()=>t(`/reference-data`),enabled:r,staleTime:3e5})}export{r as t};
