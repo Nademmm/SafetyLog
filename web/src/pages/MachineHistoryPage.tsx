@@ -36,9 +36,9 @@ export function MachineHistoryPage() {
       <div className="space-y-2">
         <Link
           to="/dashboard"
-          className="inline-flex h-11 items-center gap-1.5 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13.5px] font-medium text-[var(--text)] hover:bg-[var(--raised)] hover:border-[var(--muted)] active:scale-[0.99] transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 shrink-0 text-[var(--muted)]" aria-hidden="true" />
           <span>Kembali ke Dashboard</span>
         </Link>
 
