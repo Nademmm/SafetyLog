@@ -8,7 +8,10 @@ import {
   CheckCircle2,
   Edit3,
   Lock,
+  MapPin,
   RotateCcw,
+  Tag,
+  User,
   X,
 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
@@ -601,12 +604,42 @@ export function CaseDetailPage() {
                 ? `${caseData.machine.code} — ${caseData.machine.name}`
                 : 'Detail Kasus'}
             </h1>
-            <div className="mt-1 text-[13px] text-[var(--faint)]">
-              {caseData.area?.name || 'Area'}
-              {caseData.area?.pic_user ? ` (PIC Area: ${caseData.area.pic_user.name})` : ''} ·
-              Jenis: {caseData.case_type?.name} · Dilaporkan oleh {caseData.reporter?.name} pada{' '}
-              {formatDateTime(caseData.reported_at)}
-            </div>
+            <dl className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] sm:text-[13px] text-[var(--muted)]">
+              <div className="inline-flex items-center gap-1.5 min-w-0">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                <dd className="truncate">
+                  <span className="font-medium text-[var(--text)]">
+                    {caseData.area?.name || 'Area'}
+                  </span>
+                  {caseData.area?.pic_user && (
+                    <span className="text-[var(--faint)]">
+                      {' '}· PIC {caseData.area.pic_user.name}
+                    </span>
+                  )}
+                </dd>
+              </div>
+
+              {caseData.case_type?.name && (
+                <div className="inline-flex items-center gap-1.5 min-w-0">
+                  <Tag className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                  <dd className="truncate">{caseData.case_type.name}</dd>
+                </div>
+              )}
+
+              {caseData.reporter?.name && (
+                <div className="inline-flex items-center gap-1.5 min-w-0">
+                  <User className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                  <dd className="truncate">{caseData.reporter.name}</dd>
+                </div>
+              )}
+
+              <div className="inline-flex items-center gap-1.5 min-w-0">
+                <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                <dd className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
+                  {formatDateTime(caseData.reported_at)}
+                </dd>
+              </div>
+            </dl>
           </div>
         </div>
       </div>
