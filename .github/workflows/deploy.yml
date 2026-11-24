@@ -1,64 +1,58 @@
- name: Deploy to cPanel
+name: Deploy to cPanel
 
-    on:
-      push:
-        branches: [main]
+on:
+  push:
+    branches: [main]
 
-    jobs:
-      deploy:
-        name: Build & Deploy to cPanel
-        runs-on: ubuntu-latest
+jobs:
+  deploy:
+    name: Build & Deploy to cPanel
+    runs-on: ubuntu-latest
 
-        steps:
-          # 1. Ambil kode dari repository
-          - name: Checkout Code
-            uses: actions/checkout@v4
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-          # 2. Siapkan Node.js 22 di server GitHub
-          - name: Setup Node.js 22
-            uses: actions/setup-node@v4
-            with:
-              node-version: 22
-              cache: 'npm'
-              cache-dependency-path: web/package-lock.json
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
 
-          # 3. Install dependency & build frontend React
-          - name: Install & Build Frontend
-            working-directory: web
-            run: |
-              npm ci
-              npm run build
+      - name: Install & Build Frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
 
-          # 4. Upload hasil build Frontend (web/dist) ke public_html cPanel
-          - name: Deploy Frontend ke public_html
-            uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-            with:
-              server: ${{ secrets.FTP_SERVER }}
-              username: ${{ secrets.FTP_USERNAME }}
-              password: ${{ secrets.FTP_PASSWORD }}
-              protocol: ftps
-              local-dir: web/dist/
-              server-dir: public_html/
+      - name: Deploy Frontend ke public_html
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: web/dist/
+          server-dir: public_html/
 
-          # 5. Upload core Backend Laravel ke safetylog_api cPanel
-          - name: Deploy Backend ke safetylog_api
-            uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-            with:
-              server: ${{ secrets.FTP_SERVER }}
-              username: ${{ secrets.FTP_USERNAME }}
-              password: ${{ secrets.FTP_PASSWORD }}
-              protocol: ftps
-              local-dir: api/
-              server-dir: safetylog_api/
-              exclude: |
-                **/.git*
-                **/.git*/**
-                **/.env*
-                **/vendor/**
-                **/storage/**
-                **/tests/**
+      - name: Deploy Backend ke safetylog_api
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: api/
+          server-dir: safetylog_api/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.env*
+            **/vendor/**
+            **/storage/**
+            **/tests/**
 
-          # 6. Pemicu otomatis migrasi database di background
-          - name: Jalankan Migrasi Database Otomatis
-            run: |
-              curl -s -f "https://api.safetylog.web.id/api/system/setup?key=${{ secrets.APP_SETUP_KEY }}" || true
+      - name: Jalankan Migrasi Database Otomatis
+        run: |
+          curl -s -f "https://api.safetylog.web.id/api/system/setup?key=${{ secrets.APP_SETUP_KEY }}" || true
