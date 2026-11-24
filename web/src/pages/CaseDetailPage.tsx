@@ -9,7 +9,6 @@ import {
   Edit3,
   Lock,
   RotateCcw,
-  UserCheck,
   X,
 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
@@ -876,21 +875,9 @@ export function CaseDetailPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="block text-[13px] font-semibold text-[var(--text)]">
-                            Tunjuk PIC Kasus
-                          </label>
-                          {caseData.area?.pic_user && (
-                            <button
-                              type="button"
-                              onClick={() => setTriagePicId(String(caseData.area!.pic_user!.id))}
-                              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
-                            >
-                              <UserCheck className="h-3.5 w-3.5" />
-                              Gunakan PIC Area
-                            </button>
-                          )}
-                        </div>
+                        <label className="block text-[13px] font-semibold text-[var(--text)]">
+                          Tunjuk PIC Kasus
+                        </label>
                         <Select
                           value={triagePicId}
                           onChange={(e) => setTriagePicId(e.target.value)}
