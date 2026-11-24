@@ -50,12 +50,20 @@ jobs:
           local-dir: api/
           server-dir: safetylog_api/
           exclude: |
+            .git*
+            .git*/**
             **/.git*
             **/.git*/**
+            .env*
             **/.env*
+            vendor/**
             **/vendor/**
+            storage/**
             **/storage/**
+            tests/**
             **/tests/**
+            node_modules/**
+            **/node_modules/**
 
       - name: Jalankan Migrasi Database Otomatis
         run: |
