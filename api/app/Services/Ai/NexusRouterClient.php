@@ -46,7 +46,10 @@ class NexusRouterClient
         try {
             $response = Http::baseUrl($baseUrl)
                 ->acceptJson()
-                ->withHeaders(['Authorization' => 'Bearer '.$virtualKey])
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$virtualKey,
+                    'x-virtual-key' => $virtualKey,
+                ])
                 ->connectTimeout(min(5, $timeout))
                 ->timeout($timeout)
                 ->retry(self::RETRY_ATTEMPTS, self::RETRY_DELAY_MS, function (Throwable $exception): bool {
@@ -71,18 +74,45 @@ class NexusRouterClient
                 previous: $exception,
             );
         } catch (RequestException $exception) {
-            $this->logResult($feature, 'http_'.$exception->response->status(), $startedAt);
+            $status = $exception->response ? $exception->response->status() : 500;
+            $errPayload = $exception->response ? $exception->response->json() : null;
+            $providerMessage = is_array($errPayload)
+                ? ($errPayload['error']['message'] ?? ($errPayload['message'] ?? null))
+                : null;
 
-            throw new AiUnavailableException(
-                'Layanan AI sedang mengalami gangguan.',
-                previous: $exception,
-            );
+            $this->logResult($feature, 'http_'.$status, $startedAt, extra: ['provider_message' => $providerMessage]);
+
+            $friendlyMessage = match ($status) {
+                401 => 'Kunci virtual key AI (NEXUSROUTER_VIRTUAL_KEY) tidak valid atau ditolak oleh gateway.',
+                429 => 'Batas kuota layanan AI tercapai (rate limit). Silakan coba lagi nanti.',
+                404 => 'Model AI atau endpoint layanan tidak ditemukan.',
+                default => is_string($providerMessage) && trim($providerMessage) !== ''
+                    ? "Layanan AI menolak permintaan: {$providerMessage}"
+                    : "Layanan AI sedang mengalami gangguan (HTTP {$status}).",
+            };
+
+            throw new AiUnavailableException($friendlyMessage, previous: $exception);
         }
 
         if (! $response->successful()) {
-            $this->logResult($feature, 'http_'.$response->status(), $startedAt);
+            $status = $response->status();
+            $errPayload = $response->json();
+            $providerMessage = is_array($errPayload)
+                ? ($errPayload['error']['message'] ?? ($errPayload['message'] ?? null))
+                : null;
 
-            throw new AiUnavailableException('Layanan AI sedang mengalami gangguan.');
+            $this->logResult($feature, 'http_'.$status, $startedAt, extra: ['provider_message' => $providerMessage]);
+
+            $friendlyMessage = match ($status) {
+                401 => 'Kunci virtual key AI (NEXUSROUTER_VIRTUAL_KEY) tidak valid atau ditolak oleh gateway.',
+                429 => 'Batas kuota layanan AI tercapai (rate limit). Silakan coba lagi nanti.',
+                404 => 'Model AI atau endpoint layanan tidak ditemukan.',
+                default => is_string($providerMessage) && trim($providerMessage) !== ''
+                    ? "Layanan AI menolak permintaan: {$providerMessage}"
+                    : "Layanan AI sedang mengalami gangguan (HTTP {$status}).",
+            };
+
+            throw new AiUnavailableException($friendlyMessage);
         }
 
         $payload = $response->json();
@@ -111,7 +141,10 @@ class NexusRouterClient
         return is_string($actual) && $actual !== '' ? $actual : $configuredModel;
     }
 
-    private function logResult(string $feature, string $status, float $startedAt, ?string $model = null): void
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function logResult(string $feature, string $status, float $startedAt, ?string $model = null, array $extra = []): void
     {
         $context = [
             'feature' => $feature,
@@ -121,6 +154,10 @@ class NexusRouterClient
 
         if ($model !== null) {
             $context['model'] = $model;
+        }
+
+        if ($extra !== []) {
+            $context = array_merge($context, $extra);
         }
 
         if ($status === 'success') {

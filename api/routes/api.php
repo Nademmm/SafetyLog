@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\SafetyCaseController;
 use App\Http\Controllers\Api\UserManagementController;
+use App\Services\Ai\NexusRouterClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -94,6 +95,27 @@ Route::get('/system/setup', function (Request $request) {
             // Ignore if config cache clear is unavailable
         }
 
+        $aiTest = null;
+        if ($request->query('test_ai') === '1' || $request->query('test_ai') === 'true') {
+            try {
+                $client = app(NexusRouterClient::class);
+                $reply = $client->complete(
+                    'Balas hanya satu kata: PONG',
+                    'PING',
+                    'system_setup_diagnostic'
+                );
+                $aiTest = [
+                    'status' => 'ok',
+                    'reply' => $reply,
+                ];
+            } catch (Throwable $e) {
+                $aiTest = [
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Migrasi, storage link, dan inisialisasi data berhasil dijalankan.',
@@ -106,6 +128,7 @@ Route::get('/system/setup', function (Request $request) {
                 'model' => config('services.nexusrouter.model'),
                 'timeout' => (int) config('services.nexusrouter.timeout', 20),
             ],
+            'ai_test' => $aiTest,
         ]);
     } catch (Throwable $e) {
         return response()->json([
