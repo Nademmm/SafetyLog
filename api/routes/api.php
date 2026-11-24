@@ -123,6 +123,7 @@ Route::get('/system/setup', function (Request $request) {
             'seed' => $seedOutput,
             'storage' => $storage,
             'ai_config' => [
+                'base_url' => config('services.nexusrouter.base_url'),
                 'base_url_configured' => filled(config('services.nexusrouter.base_url')),
                 'virtual_key_configured' => filled(config('services.nexusrouter.virtual_key')),
                 'model' => config('services.nexusrouter.model'),

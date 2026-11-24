@@ -27,6 +27,9 @@ class NexusRouterClient
     {
         $rawBaseUrl = rtrim((string) config('services.nexusrouter.base_url'), '/');
         $baseUrl = (string) (preg_replace('#/v1$#i', '', $rawBaseUrl) ?: $rawBaseUrl);
+        if (str_contains($baseUrl, 'api.groq.com') && ! str_contains($baseUrl, '/openai')) {
+            $baseUrl .= '/openai';
+        }
         $virtualKey = (string) config('services.nexusrouter.virtual_key');
         $model = (string) config('services.nexusrouter.model', 'auto');
         $timeout = max(5, min(120, (int) config('services.nexusrouter.timeout', 20)));
@@ -85,7 +88,9 @@ class NexusRouterClient
             $friendlyMessage = match ($status) {
                 401 => 'Kunci virtual key AI (NEXUSROUTER_VIRTUAL_KEY) tidak valid atau ditolak oleh gateway.',
                 429 => 'Batas kuota layanan AI tercapai (rate limit). Silakan coba lagi nanti.',
-                404 => 'Model AI atau endpoint layanan tidak ditemukan.',
+                404 => is_string($providerMessage) && trim($providerMessage) !== ''
+                    ? "Endpoint/model AI tidak ditemukan (404): {$providerMessage}"
+                    : 'Model AI atau endpoint layanan tidak ditemukan.',
                 default => is_string($providerMessage) && trim($providerMessage) !== ''
                     ? "Layanan AI menolak permintaan: {$providerMessage}"
                     : "Layanan AI sedang mengalami gangguan (HTTP {$status}).",
@@ -106,7 +111,9 @@ class NexusRouterClient
             $friendlyMessage = match ($status) {
                 401 => 'Kunci virtual key AI (NEXUSROUTER_VIRTUAL_KEY) tidak valid atau ditolak oleh gateway.',
                 429 => 'Batas kuota layanan AI tercapai (rate limit). Silakan coba lagi nanti.',
-                404 => 'Model AI atau endpoint layanan tidak ditemukan.',
+                404 => is_string($providerMessage) && trim($providerMessage) !== ''
+                    ? "Endpoint/model AI tidak ditemukan (404): {$providerMessage}"
+                    : 'Model AI atau endpoint layanan tidak ditemukan.',
                 default => is_string($providerMessage) && trim($providerMessage) !== ''
                     ? "Layanan AI menolak permintaan: {$providerMessage}"
                     : "Layanan AI sedang mengalami gangguan (HTTP {$status}).",
