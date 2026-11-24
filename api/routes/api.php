@@ -44,6 +44,21 @@ Route::get('/system/setup', function (Request $request) {
 
     try {
         if ($request->query('fresh') === '1') {
+            try {
+                Schema::disableForeignKeyConstraints();
+                $dbName = DB::getDatabaseName();
+                $tables = DB::select('SHOW TABLES');
+                $prop = "Tables_in_{$dbName}";
+                foreach ($tables as $table) {
+                    if (isset($table->$prop)) {
+                        Schema::dropIfExists($table->$prop);
+                    }
+                }
+                Schema::enableForeignKeyConstraints();
+            } catch (Throwable) {
+                // Ignore fallback to standard migrate:fresh
+            }
+
             Artisan::call('migrate:fresh', ['--force' => true]);
         } else {
             Artisan::call('migrate', ['--force' => true]);
