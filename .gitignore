@@ -17,8 +17,7 @@ node_modules/
 *.sqlite-journal
 
 # Build outputs
-/web/dist/
-/web/dist-ssr/
+
 
 # Logs & Temp
 *.pid
