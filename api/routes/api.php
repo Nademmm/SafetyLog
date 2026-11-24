@@ -33,13 +33,26 @@ Route::get('/system/setup', function (Request $request) {
     Artisan::call('migrate', ['--force' => true]);
     $migrate = Artisan::output();
 
+    $seedOutput = null;
+    if ($request->query('seed') === 'demo') {
+        Artisan::call('db:seed', [
+            '--class' => 'Database\\Seeders\\DemoSeeder',
+            '--force' => true,
+        ]);
+        $seedOutput = Artisan::output();
+    } elseif ($request->query('seed') === '1' || $request->query('seed') === 'true') {
+        Artisan::call('db:seed', ['--force' => true]);
+        $seedOutput = Artisan::output();
+    }
+
     Artisan::call('storage:link');
     $storage = Artisan::output();
 
     return response()->json([
         'status' => 'success',
-        'message' => 'Migrasi dan storage link berhasil dijalankan.',
+        'message' => 'Migrasi, storage link, dan inisialisasi data berhasil dijalankan.',
         'migrate' => $migrate,
+        'seed' => $seedOutput,
         'storage' => $storage,
     ]);
 });

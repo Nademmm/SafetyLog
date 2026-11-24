@@ -37,4 +37,30 @@ class SystemSetupTest extends TestCase
                 'status' => 'success',
             ]);
     }
+
+    public function test_setup_endpoint_supports_seeding(): void
+    {
+        putenv('APP_SETUP_KEY=secret123');
+        Artisan::shouldReceive('call')
+            ->with('migrate', ['--force' => true])
+            ->once();
+        Artisan::shouldReceive('call')
+            ->with('db:seed', [
+                '--class' => 'Database\\Seeders\\DemoSeeder',
+                '--force' => true,
+            ])
+            ->once();
+        Artisan::shouldReceive('call')
+            ->with('storage:link')
+            ->once();
+        Artisan::shouldReceive('output')
+            ->andReturn('Seeder output');
+
+        $response = $this->getJson('/api/system/setup?key=secret123&seed=demo');
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'seed' => 'Seeder output',
+            ]);
+    }
 }
