@@ -134,38 +134,64 @@ export function SupervisorHomePage() {
                   <Link
                     key={c.id}
                     to={`/cases/${c.id}`}
-                    className={`group flex flex-col gap-1.5 px-4 py-3.5 sm:px-5 transition-colors ${
+                    className={`group flex flex-col gap-2.5 px-4 py-4 sm:px-5 transition-colors ${
                       isCritical
                         ? 'bg-[var(--safety-danger-bg)]/20 hover:bg-[var(--safety-danger-bg)]/40'
                         : 'hover:bg-[var(--hover-row)]'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                         <CaseTypePill caseType={c.case_type} />
-                        <span className="font-mono tabular-nums">{c.case_number}</span>
+                        <span className="font-mono text-[12.5px] font-medium text-[var(--muted)] tabular-nums">
+                          {c.case_number}
+                        </span>
+                      </div>
+                      <span className="shrink-0 font-mono text-[12px] text-[var(--faint)] tabular-nums">
+                        {formatDateTime(c.reported_at)}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 min-w-0">
+                      <div className="text-[15.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
+                        {c.machine?.name || 'Mesin / Area'}
+                        {c.machine?.code ? (
+                          <span className="ml-1.5 font-mono text-[12.5px] font-normal text-[var(--faint)]">
+                            {c.machine.code}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-[13.5px] leading-relaxed text-[var(--muted)] line-clamp-2">
+                        {c.description}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                      <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[var(--muted)]">
+                        {c.reporter?.name && (
+                          <span>
+                            Pelapor:{' '}
+                            <strong className="font-medium text-[var(--text)]">
+                              {c.reporter.name}
+                            </strong>
+                          </span>
+                        )}
                         {c.is_machine_stopped && (
                           <span className="font-semibold text-[var(--safety-danger-foreground)]">
                             · Mesin Berhenti
                           </span>
                         )}
+                        {c.has_affected_people && (
+                          <span className="font-semibold text-[var(--safety-danger-foreground)]">
+                            · Ada Korban
+                          </span>
+                        )}
                       </div>
-                      <span className="shrink-0 text-[12px] font-semibold text-[var(--accent)] group-hover:underline">
-                        Nilai Risiko
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-[5px] border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-2.5 py-1 text-[12.5px] font-semibold text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)] transition-colors">
+                        <span>Nilai Risiko</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
-
-                    <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                      {c.machine?.name || 'Mesin / Area'}
-                      {c.machine?.code ? (
-                        <span className="ml-1.5 font-mono text-[12px] font-normal text-[var(--faint)]">
-                          {c.machine.code}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="text-[13px] leading-snug text-[var(--muted)] line-clamp-2">
-                      {c.description}
-                    </p>
                   </Link>
                 )
               })
@@ -208,14 +234,14 @@ export function SupervisorHomePage() {
                   <Link
                     key={c.id}
                     to={`/cases/${c.id}`}
-                    className={`group flex flex-col gap-1.5 px-4 py-3.5 sm:px-5 transition-colors ${
+                    className={`group flex flex-col gap-2 px-4 py-4 sm:px-5 transition-colors ${
                       isCritical
                         ? 'bg-[var(--safety-danger-bg)]/20 hover:bg-[var(--safety-danger-bg)]/40'
                         : 'hover:bg-[var(--hover-row)]'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-[var(--faint)] min-w-0">
                         <span className="font-mono font-medium text-[var(--accent)] tabular-nums">
                           {c.case_number}
                         </span>
@@ -226,12 +252,12 @@ export function SupervisorHomePage() {
                           </>
                         )}
                       </div>
-                      <span className="shrink-0 font-mono text-[11.5px] text-[var(--faint)] tabular-nums">
+                      <span className="shrink-0 font-mono text-[12px] text-[var(--faint)] tabular-nums">
                         {formatDateTime(c.reported_at)}
                       </span>
                     </div>
 
-                    <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                    <div className="text-[15.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
                       {c.machine?.name || 'Mesin / Area'}
                     </div>
 
@@ -257,85 +283,87 @@ export function SupervisorHomePage() {
         </section>
       </div>
 
-      {/* Overdue preview strip (clean responsive 12-col table on desktop, 3-tier on mobile) */}
+      {/* Overdue preview strip (clean responsive 12-col table on desktop, minimalist rows on mobile) */}
       {overdueActions.length > 0 && (
-        <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
+              <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] leading-snug">
                 Tindakan Melewati Tenggat SLA
               </h2>
-              <span className="shrink-0 rounded-[4px] bg-[var(--safety-danger-bg)] border border-[var(--safety-danger-border)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
-                {overdueActions.length}
+              <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--safety-danger-foreground)] tabular-nums">
+                ({overdueActions.length})
               </span>
             </div>
             <Link
               to="/dashboard"
-              className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
+              className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
               <span>Lihat Dashboard</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          <div className="hidden md:grid md:grid-cols-12 md:gap-4 border-b border-[var(--rule)] px-5 py-2.5 text-[12px] font-medium text-[var(--faint)]">
-            <div className="col-span-5">Tindakan &amp; Kasus</div>
-            <div className="col-span-3">PIC</div>
-            <div className="col-span-2">Tenggat SLA</div>
-            <div className="col-span-2 text-right">Status</div>
-          </div>
+          <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
+            <div className="hidden md:grid md:grid-cols-12 md:gap-4 border-b border-[var(--rule)] px-5 py-2.5 text-[12px] font-medium text-[var(--faint)]">
+              <div className="col-span-5">Tindakan &amp; Kasus</div>
+              <div className="col-span-3">PIC</div>
+              <div className="col-span-2">Tenggat SLA</div>
+              <div className="col-span-2 text-right">Status</div>
+            </div>
 
-          <div className="divide-y divide-[var(--rule)]">
-            {overdueActions.slice(0, 4).map((oa) => (
-              <Link
-                key={oa.id}
-                to={oa.safety_case ? `/cases/${oa.safety_case.id}` : '/cases'}
-                className="group block px-4 py-4 sm:px-5 transition-colors hover:bg-[var(--hover-row)]"
-              >
-                {/* Mobile */}
-                <div className="flex flex-col gap-2 md:hidden">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
-                      {oa.safety_case?.case_number || '—'}
-                    </span>
-                    <OverduePill label={oa.overdue_label} />
-                  </div>
-                  <div className="text-[14px] font-medium leading-snug text-[var(--text)] line-clamp-2">
-                    {oa.title}
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-[var(--muted)]">
-                    <span>
-                      PIC: <strong className="font-medium text-[var(--text)]">{oa.pic?.name || '—'}</strong>
-                    </span>
-                    <span className="tabular-nums text-[var(--faint)]">
-                      {formatDateTime(oa.due_at)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Desktop */}
-                <div className="hidden md:grid md:grid-cols-12 md:items-center md:gap-4">
-                  <div className="col-span-5 min-w-0 space-y-0.5">
-                    <div className="truncate text-[14px] font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
+            <div className="divide-y divide-[var(--rule)]">
+              {overdueActions.slice(0, 4).map((oa) => (
+                <Link
+                  key={oa.id}
+                  to={oa.safety_case ? `/cases/${oa.safety_case.id}` : '/cases'}
+                  className="group block bg-[var(--safety-danger-bg)]/15 px-4 py-3.5 sm:px-5 transition-colors hover:bg-[var(--safety-danger-bg)]/35"
+                >
+                  {/* Mobile */}
+                  <div className="flex flex-col gap-1.5 md:hidden">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
+                        {oa.safety_case?.case_number || '—'}
+                      </span>
+                      <OverduePill label={oa.overdue_label} />
+                    </div>
+                    <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] line-clamp-2">
                       {oa.title}
                     </div>
-                    <div className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
-                      {oa.safety_case?.case_number || '—'}
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-[var(--muted)]">
+                      <span>
+                        PIC: <strong className="font-medium text-[var(--text)]">{oa.pic?.name || '—'}</strong>
+                      </span>
+                      <span className="tabular-nums font-medium text-[var(--safety-danger-foreground)]">
+                        {formatDateTime(oa.due_at)}
+                      </span>
                     </div>
                   </div>
-                  <div className="col-span-3 truncate text-[13px] font-medium text-[var(--text)]">
-                    {oa.pic?.name || '—'}
+
+                  {/* Desktop */}
+                  <div className="hidden md:grid md:grid-cols-12 md:items-center md:gap-4">
+                    <div className="col-span-5 min-w-0 space-y-0.5">
+                      <div className="truncate text-[14px] font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
+                        {oa.title}
+                      </div>
+                      <div className="font-mono text-[12px] font-semibold text-[var(--accent)] tabular-nums">
+                        {oa.safety_case?.case_number || '—'}
+                      </div>
+                    </div>
+                    <div className="col-span-3 truncate text-[13px] font-medium text-[var(--text)]">
+                      {oa.pic?.name || '—'}
+                    </div>
+                    <div className="col-span-2 text-[13px] text-[var(--muted)] tabular-nums">
+                      {formatDateTime(oa.due_at)}
+                    </div>
+                    <div className="col-span-2 flex items-center justify-end gap-2">
+                      <OverduePill label={oa.overdue_label} />
+                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
+                    </div>
                   </div>
-                  <div className="col-span-2 text-[13px] text-[var(--muted)] tabular-nums">
-                    {formatDateTime(oa.due_at)}
-                  </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2">
-                    <OverduePill label={oa.overdue_label} />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       )}

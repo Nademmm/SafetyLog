@@ -188,7 +188,7 @@ export function K3HomePage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
+              <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] leading-snug">
                 Kasus Risiko Tinggi Terbuka
               </h2>
               {highRiskCases.length > 0 && (
@@ -219,8 +219,8 @@ export function K3HomePage() {
                   to={`/cases/${c.id}`}
                   className="group flex flex-col gap-1.5 bg-[var(--safety-danger-bg)]/20 px-4 py-3.5 sm:px-5 transition-colors hover:bg-[var(--safety-danger-bg)]/40"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0">
                       <span className="font-mono font-medium text-[var(--accent)] tabular-nums">
                         {c.case_number}
                       </span>

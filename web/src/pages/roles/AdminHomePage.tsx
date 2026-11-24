@@ -234,8 +234,8 @@ export function AdminHomePage() {
                   to={oa.safety_case ? `/cases/${oa.safety_case.id}` : '/cases'}
                   className="group flex flex-col gap-1.5 bg-[var(--safety-danger-bg)]/20 px-4 py-3.5 sm:px-5 transition-colors hover:bg-[var(--safety-danger-bg)]/40"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0">
                       <span className="font-mono font-medium text-[var(--accent)] tabular-nums">
                         {oa.safety_case?.case_number || '—'}
                       </span>

@@ -243,7 +243,7 @@ export function PelaporHomePage() {
                       </div>
                     </div>
 
-                    <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                    <div className="text-[15px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">
                       {a.title}
                     </div>
 
@@ -321,17 +321,19 @@ export function PelaporHomePage() {
                         : 'hover:bg-[var(--hover-row)]'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-[12px] text-[var(--faint)] min-w-0 truncate">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                         <CaseTypePill caseType={c.case_type} />
-                        <span className="font-mono tabular-nums">{c.case_number}</span>
+                        <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
+                          {c.case_number}
+                        </span>
                       </div>
                       <span className="shrink-0 font-mono text-[11.5px] text-[var(--faint)] tabular-nums">
                         {formatDateTime(c.reported_at)}
                       </span>
                     </div>
 
-                    <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                    <div className="text-[15px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
                       {c.machine?.name || 'Mesin / Area'}
                       {c.machine?.code ? (
                         <span className="ml-1.5 font-mono text-[12px] font-normal text-[var(--faint)]">
@@ -340,7 +342,7 @@ export function PelaporHomePage() {
                       ) : null}
                     </div>
 
-                    <p className="text-[13px] leading-snug text-[var(--muted)] line-clamp-2">
+                    <p className="text-[13.5px] leading-relaxed text-[var(--muted)] line-clamp-2">
                       {c.description}
                     </p>
 
