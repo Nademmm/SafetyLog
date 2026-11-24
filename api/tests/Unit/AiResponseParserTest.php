@@ -58,4 +58,19 @@ class AiResponseParserTest extends TestCase
 
         $this->assertSame(['Aman', 'Kedua'], $result);
     }
+
+    public function test_string_list_wraps_single_string_response(): void
+    {
+        $result = (new AiResponseParser)->stringList('  <b>Alasan tunggal</b>  ', 3, 200);
+
+        $this->assertSame(['Alasan tunggal'], $result);
+    }
+
+    public function test_strips_unclosed_think_block_before_json(): void
+    {
+        $raw = "<think>\nReasoning without closing tag\n{\"headline\":\"Ringkasan\"}";
+        $result = (new AiResponseParser)->parseObject($raw);
+
+        $this->assertSame(['headline' => 'Ringkasan'], $result);
+    }
 }

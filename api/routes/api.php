@@ -88,12 +88,24 @@ Route::get('/system/setup', function (Request $request) {
             $storage = 'Symlink creation skipped (exec disabled on shared hosting).';
         }
 
+        try {
+            Artisan::call('config:clear');
+        } catch (Throwable) {
+            // Ignore if config cache clear is unavailable
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Migrasi, storage link, dan inisialisasi data berhasil dijalankan.',
             'migrate' => $migrate,
             'seed' => $seedOutput,
             'storage' => $storage,
+            'ai_config' => [
+                'base_url_configured' => filled(config('services.nexusrouter.base_url')),
+                'virtual_key_configured' => filled(config('services.nexusrouter.virtual_key')),
+                'model' => config('services.nexusrouter.model'),
+                'timeout' => (int) config('services.nexusrouter.timeout', 20),
+            ],
         ]);
     } catch (Throwable $e) {
         return response()->json([

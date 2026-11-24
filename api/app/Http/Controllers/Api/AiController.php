@@ -86,6 +86,7 @@ class AiController extends Controller
                 $statistics,
                 $siteId,
                 $request->boolean('refresh'),
+                $organizationId,
             ),
             'meta' => $this->meta(),
         ]);

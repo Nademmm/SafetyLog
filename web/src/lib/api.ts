@@ -105,9 +105,14 @@ export async function apiFetch<T>(
       unauthorizedHandler?.()
     }
 
+    const fallbackMessage =
+      res.status === 502 || res.status === 503 || res.status === 504
+        ? `Layanan server atau AI tidak merespons tepat waktu (${res.status}). Silakan coba lagi.`
+        : `Permintaan gagal (${res.status}).`
+
     const message =
       (typeof data.message === 'string' && data.message) ||
-      `Permintaan gagal (${res.status}).`
+      fallbackMessage
     throw new ApiError(message, res.status, {
       error_code: typeof data.error_code === 'string' ? data.error_code : undefined,
       errors: data.errors as Record<string, string[]> | undefined,

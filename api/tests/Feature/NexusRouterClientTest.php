@@ -67,7 +67,7 @@ class NexusRouterClientTest extends TestCase
             $this->assertSame('AI_UNAVAILABLE', $exception->errorCode);
         }
 
-        Http::assertSentCount(3);
+        Http::assertSentCount(2);
     }
 
     public function test_http_error_is_handled_without_retrying_authentication_failures(): void
@@ -109,5 +109,22 @@ class NexusRouterClientTest extends TestCase
         $this->expectException(AiUnavailableException::class);
 
         app(NexusRouterClient::class)->complete('system', 'user', 'test_feature');
+    }
+
+    public function test_normalizes_base_url_with_or_without_v1_suffix(): void
+    {
+        config()->set('services.nexusrouter.base_url', 'https://ai.test/v1');
+
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://ai.test/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => '{"ok":true}']]],
+            ]),
+        ]);
+
+        $content = app(NexusRouterClient::class)->complete('sys', 'usr', 'feature');
+
+        $this->assertSame('{"ok":true}', $content);
+        Http::assertSent(fn (Request $req): bool => $req->url() === 'https://ai.test/v1/chat/completions');
     }
 }

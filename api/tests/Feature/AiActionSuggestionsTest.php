@@ -38,6 +38,13 @@ class AiActionSuggestionsTest extends TestCase
                     'rationale' => 'Tipe di luar enum.',
                 ],
                 [
+                    'action_type' => 'Tindakan Korektif',
+                    'title' => 'Perbaiki baut pelindung',
+                    'description' => 'Kencangkan ulang baut pelindung mesin.',
+                    'rationale' => 'Mengatasi bagian yang kendor.',
+                    'priority' => 'medium',
+                ],
+                [
                     'action_type' => 'preventif',
                     'title' => 'Jadwalkan pelumasan bearing',
                     'description' => 'Lumasi bearing setiap minggu sesuai standar.',
@@ -52,10 +59,11 @@ class AiActionSuggestionsTest extends TestCase
 
         $this->postJson("/api/cases/{$caseId}/action-suggestions")
             ->assertOk()
-            ->assertJsonCount(2, 'data.suggestions')
+            ->assertJsonCount(3, 'data.suggestions')
             ->assertJsonPath('data.suggestions.0.action_type', ActionType::Temporary->value)
-            ->assertJsonPath('data.suggestions.1.action_type', ActionType::Preventive->value)
-            ->assertJsonPath('data.suggestions.1.action_type_label', 'Preventif')
+            ->assertJsonPath('data.suggestions.1.action_type', ActionType::Corrective->value)
+            ->assertJsonPath('data.suggestions.2.action_type', ActionType::Preventive->value)
+            ->assertJsonPath('data.suggestions.2.action_type_label', 'Preventif')
             ->assertJsonPath('data.requires_review', true);
 
         $this->assertSame(0, CaseAction::count());

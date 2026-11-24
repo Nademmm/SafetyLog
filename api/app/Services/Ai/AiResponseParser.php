@@ -17,8 +17,11 @@ class AiResponseParser
     {
         $text = trim($content);
 
-        // Strip reasoning/thinking blocks emitted by reasoning models (e.g. <think>...</think>)
+        // Strip reasoning/thinking blocks emitted by reasoning models (including unclosed trailing blocks)
         $text = preg_replace('/<(?:think|reasoning)>.*?<\/(?:think|reasoning)>/is', '', $text) ?? $text;
+        if (preg_match('/<(?:think|reasoning)>/i', $text) === 1 && ! str_contains(strtolower($text), '</think>') && ! str_contains(strtolower($text), '</reasoning>')) {
+            $text = preg_replace('/<(?:think|reasoning)>[\s\S]*?(?=\{|```)/i', '', $text) ?? $text;
+        }
         $text = trim($text);
 
         if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/i', $text, $fenceMatch) === 1) {
@@ -63,6 +66,12 @@ class AiResponseParser
      */
     public function stringList(mixed $value, int $maxItems, int $maxLength): array
     {
+        if (is_string($value)) {
+            $clean = trim(strip_tags($value));
+
+            return $clean === '' ? [] : [mb_substr($clean, 0, $maxLength)];
+        }
+
         if (! is_array($value) || array_is_list($value) === false) {
             return [];
         }

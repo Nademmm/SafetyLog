@@ -15,8 +15,8 @@ use Throwable;
  */
 class NexusRouterClient
 {
-    /** Total HTTP attempts: one initial request plus two retries. */
-    private const RETRY_ATTEMPTS = 3;
+    /** Total HTTP attempts: one initial request plus one retry (safe within cPanel gateway timeouts). */
+    private const RETRY_ATTEMPTS = 2;
 
     private const RETRY_DELAY_MS = 250;
 
@@ -25,10 +25,11 @@ class NexusRouterClient
      */
     public function complete(string $systemPrompt, string $userPrompt, string $feature): string
     {
-        $baseUrl = rtrim((string) config('services.nexusrouter.base_url'), '/');
+        $rawBaseUrl = rtrim((string) config('services.nexusrouter.base_url'), '/');
+        $baseUrl = (string) (preg_replace('#/v1$#i', '', $rawBaseUrl) ?: $rawBaseUrl);
         $virtualKey = (string) config('services.nexusrouter.virtual_key');
         $model = (string) config('services.nexusrouter.model', 'auto');
-        $timeout = max(5, min(120, (int) config('services.nexusrouter.timeout', 30)));
+        $timeout = max(5, min(120, (int) config('services.nexusrouter.timeout', 20)));
 
         if ($baseUrl === '' || $virtualKey === '') {
             Log::warning('ai.nexusrouter.misconfigured', ['feature' => $feature]);
@@ -122,6 +123,12 @@ class NexusRouterClient
             $context['model'] = $model;
         }
 
-        Log::info('ai.nexusrouter.request', $context);
+        if ($status === 'success') {
+            Log::info('ai.nexusrouter.request', $context);
+
+            return;
+        }
+
+        Log::warning('ai.nexusrouter.request', $context);
     }
 }

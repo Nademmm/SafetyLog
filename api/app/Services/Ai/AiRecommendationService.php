@@ -263,8 +263,8 @@ class AiRecommendationService
                     continue;
                 }
 
-                $actionType = ActionType::fromInput(
-                    $this->parser->text($rawSuggestion['action_type'] ?? null, 40),
+                $actionType = $this->resolveActionType(
+                    $this->parser->text($rawSuggestion['action_type'] ?? null, 60),
                 );
                 $title = $this->parser->text($rawSuggestion['title'] ?? null, 180);
                 $description = $this->parser->text($rawSuggestion['description'] ?? null, 1000);
@@ -308,9 +308,10 @@ class AiRecommendationService
      * @param  array<string, mixed>  $statistics
      * @return array<string, mixed>
      */
-    public function summarizeDashboard(array $statistics, ?int $siteId, bool $refresh = false): array
+    public function summarizeDashboard(array $statistics, ?int $siteId, bool $refresh = false, ?int $organizationId = null): array
     {
-        $cacheKey = 'ai.dashboard_summary.'.($siteId ?? 'all').'.'.md5((string) json_encode($statistics));
+        $orgScope = $organizationId !== null ? "org_{$organizationId}." : '';
+        $cacheKey = 'ai.dashboard_summary.'.$orgScope.($siteId ?? 'all').'.'.md5((string) json_encode($statistics));
 
         if ($refresh) {
             Cache::forget($cacheKey);
@@ -453,6 +454,34 @@ class AiRecommendationService
             $number = (int) trim($value);
 
             return $number > 0 ? $number : null;
+        }
+
+        return null;
+    }
+
+    private function resolveActionType(?string $value): ?ActionType
+    {
+        $direct = ActionType::fromInput($value);
+        if ($direct !== null) {
+            return $direct;
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = mb_strtolower(trim($value));
+
+        if (str_contains($normalized, 'preventif') || str_contains($normalized, 'preventive') || str_contains($normalized, 'cegah')) {
+            return ActionType::Preventive;
+        }
+
+        if (str_contains($normalized, 'korektif') || str_contains($normalized, 'corrective') || str_contains($normalized, 'perbaik')) {
+            return ActionType::Corrective;
+        }
+
+        if (str_contains($normalized, 'sementara') || str_contains($normalized, 'temporary') || str_contains($normalized, 'darurat')) {
+            return ActionType::Temporary;
         }
 
         return null;
