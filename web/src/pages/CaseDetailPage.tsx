@@ -594,66 +594,78 @@ export function CaseDetailPage() {
           <span>Kembali</span>
         </button>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-mono text-[14px] font-semibold text-[var(--accent)] tabular-nums">
-                {caseData.case_number}
-              </span>
-              <CaseStatusPill status={caseData.status} label={caseData.status_label} />
-              <RiskPill
-                level={caseData.risk_assessment.risk_level}
-                score={caseData.risk_assessment.risk_score}
-                label={caseData.risk_assessment.risk_level_label}
+        <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 space-y-3">
+          {/* Top Identifier & Status Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center rounded-[5px] border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2.5 py-1 font-mono text-[13px] font-bold tracking-tight text-[var(--accent)] tabular-nums">
+              {caseData.case_number}
+            </span>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <CaseStatusPill
+                status={caseData.status}
+                label={caseData.status_label}
+                className="px-2.5 py-1 text-[12px] font-semibold"
               />
+              {caseData.risk_assessment.risk_level && (
+                <RiskPill
+                  level={caseData.risk_assessment.risk_level}
+                  score={caseData.risk_assessment.risk_score}
+                  label={caseData.risk_assessment.risk_level_label}
+                  className="px-2.5 py-1 text-[12px] font-semibold"
+                />
+              )}
               {caseData.is_locked && (
-                <span className="inline-flex items-center gap-1 rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[12px] text-[var(--muted)]">
-                  <Lock className="h-3 w-3" /> Terkunci
+                <span className="inline-flex items-center gap-1 rounded-[4px] border border-[var(--control)] bg-[var(--raised)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)]">
+                  <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  Terkunci
                 </span>
               )}
             </div>
-            <h1 className="mt-2 text-[22px] sm:text-[24px] font-semibold tracking-tight text-[var(--text)]">
-              {caseData.machine
-                ? `${caseData.machine.code} — ${caseData.machine.name}`
-                : 'Detail Kasus'}
-            </h1>
-            <dl className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] sm:text-[13px] text-[var(--muted)]">
-              <div className="inline-flex items-center gap-1.5 min-w-0">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
-                <dd className="truncate">
-                  <span className="font-medium text-[var(--text)]">
-                    {caseData.area?.name || 'Area'}
-                  </span>
-                  {caseData.area?.pic_user && (
-                    <span className="text-[var(--faint)]">
-                      {' '}· PIC {caseData.area.pic_user.name}
-                    </span>
-                  )}
-                </dd>
-              </div>
-
-              {caseData.case_type?.name && (
-                <div className="inline-flex items-center gap-1.5 min-w-0">
-                  <Tag className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
-                  <dd className="truncate">{caseData.case_type.name}</dd>
-                </div>
-              )}
-
-              {caseData.reporter?.name && (
-                <div className="inline-flex items-center gap-1.5 min-w-0">
-                  <User className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
-                  <dd className="truncate">{caseData.reporter.name}</dd>
-                </div>
-              )}
-
-              <div className="inline-flex items-center gap-1.5 min-w-0">
-                <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
-                <dd className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
-                  {formatDateTime(caseData.reported_at)}
-                </dd>
-              </div>
-            </dl>
           </div>
+
+          <h1 className="text-[20px] sm:text-[24px] font-semibold leading-snug tracking-tight text-[var(--text)]">
+            {caseData.machine
+              ? `${caseData.machine.code} — ${caseData.machine.name}`
+              : 'Detail Kasus'}
+          </h1>
+
+          <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--rule)] pt-3 text-[12.5px] sm:text-[13px] text-[var(--muted)]">
+            <div className="inline-flex items-center gap-1.5 min-w-0">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+              <dd className="truncate">
+                <span className="font-medium text-[var(--text)]">
+                  {caseData.area?.name || 'Area'}
+                </span>
+                {caseData.area?.pic_user && (
+                  <span className="text-[var(--faint)]">
+                    {' '}· PIC {caseData.area.pic_user.name}
+                  </span>
+                )}
+              </dd>
+            </div>
+
+            {caseData.case_type?.name && (
+              <div className="inline-flex items-center gap-1.5 min-w-0">
+                <Tag className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                <dd className="truncate">{caseData.case_type.name}</dd>
+              </div>
+            )}
+
+            {caseData.reporter?.name && (
+              <div className="inline-flex items-center gap-1.5 min-w-0">
+                <User className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+                <dd className="truncate">{caseData.reporter.name}</dd>
+              </div>
+            )}
+
+            <div className="inline-flex items-center gap-1.5 min-w-0">
+              <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
+              <dd className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
+                {formatDateTime(caseData.reported_at)}
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
 
