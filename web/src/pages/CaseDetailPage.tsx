@@ -91,7 +91,7 @@ export function CaseDetailPage() {
   const assignableQuery = useQuery({
     queryKey: ['assignable-users'],
     queryFn: () =>
-      apiFetch<{ data: Array<{ id: number; name: string; role_label: string }> }>(
+      apiFetch<{ data: Array<{ id: number; name: string; role: string; role_label: string }> }>(
         '/users/assignable',
       ),
     enabled: Boolean(available?.can_triage || available?.can_manage_actions),
@@ -550,6 +550,10 @@ export function CaseDetailPage() {
 
   const canManageActions = Boolean(available?.can_manage_actions) && user?.role !== 'hse'
   const assignableUsers = assignableQuery.data?.data ?? []
+  const actionPicCandidates = assignableUsers.filter((u) => u.role === 'reporter')
+  const editActionPicCandidates = assignableUsers.filter(
+    (u) => u.role === 'reporter' || String(u.id) === String(editActionPicId),
+  )
   const similarCases = similarQuery.data?.data ?? []
   const completedActions = (caseData.actions ?? []).filter((a) => a.status === 'completed')
   const actionTypeOptions = refQuery.data?.action_types ?? [
@@ -1331,7 +1335,7 @@ export function CaseDetailPage() {
                       required
                     >
                       <option value="">Pilih PIC pelaksana...</option>
-                      {assignableUsers.map((u) => (
+                      {actionPicCandidates.map((u) => (
                         <option key={u.id} value={u.id}>
                           {u.name} · {u.role_label}
                         </option>
@@ -1872,9 +1876,9 @@ export function CaseDetailPage() {
                   required
                 >
                   <option value="">Pilih PIC...</option>
-                  {assignableUsers.map((u) => (
+                  {editActionPicCandidates.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.name}
+                      {u.name} · {u.role_label}
                     </option>
                   ))}
                 </Select>
