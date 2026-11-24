@@ -1,9 +1,6 @@
 ---
 deployment:
   tasks:
-    - export CORE_API_PATH=/home/$USER/safetylog_api
-    - export FRONTEND_PATH=/home/$USER/public_html
-    - /bin/mkdir -p $CORE_API_PATH
-    - /bin/mkdir -p $FRONTEND_PATH
-    - /bin/rsync -av --delete --exclude='.env' --exclude='storage' --exclude='vendor' api/ $CORE_API_PATH/
-    - /bin/rsync -av --delete web/dist/ $FRONTEND_PATH/
+    - /bin/mkdir -p /home/$USER/safetylog_api
+    - /bin/cp -a api/. /home/$USER/safetylog_api/
+    - /bin/cp -a web/dist/. /home/$USER/public_html/
