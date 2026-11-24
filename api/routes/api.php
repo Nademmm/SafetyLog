@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\SafetyCaseController;
 use App\Http\Controllers\Api\UserManagementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => response()->json([
@@ -30,31 +31,51 @@ Route::get('/system/setup', function (Request $request) {
         return response()->json(['error' => 'Akses ditolak.'], 403);
     }
 
-    Artisan::call('migrate', ['--force' => true]);
-    $migrate = Artisan::output();
-
-    $seedOutput = null;
-    if ($request->query('seed') === 'demo') {
-        Artisan::call('db:seed', [
-            '--class' => 'Database\\Seeders\\DemoSeeder',
-            '--force' => true,
-        ]);
-        $seedOutput = Artisan::output();
-    } elseif ($request->query('seed') === '1' || $request->query('seed') === 'true') {
-        Artisan::call('db:seed', ['--force' => true]);
-        $seedOutput = Artisan::output();
+    try {
+        DB::connection()->getPdo();
+    } catch (Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'step' => 'database_connection',
+            'message' => $e->getMessage(),
+            'hint' => 'Periksa DB_DATABASE, DB_USERNAME, DB_PASSWORD, dan DB_HOST di file .env Anda.',
+        ], 500);
     }
 
-    Artisan::call('storage:link');
-    $storage = Artisan::output();
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        $migrate = Artisan::output();
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Migrasi, storage link, dan inisialisasi data berhasil dijalankan.',
-        'migrate' => $migrate,
-        'seed' => $seedOutput,
-        'storage' => $storage,
-    ]);
+        $seedOutput = null;
+        if ($request->query('seed') === 'demo') {
+            Artisan::call('db:seed', [
+                '--class' => 'Database\\Seeders\\DemoSeeder',
+                '--force' => true,
+            ]);
+            $seedOutput = Artisan::output();
+        } elseif ($request->query('seed') === '1' || $request->query('seed') === 'true') {
+            Artisan::call('db:seed', ['--force' => true]);
+            $seedOutput = Artisan::output();
+        }
+
+        Artisan::call('storage:link');
+        $storage = Artisan::output();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Migrasi, storage link, dan inisialisasi data berhasil dijalankan.',
+            'migrate' => $migrate,
+            'seed' => $seedOutput,
+            'storage' => $storage,
+        ]);
+    } catch (Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'step' => 'artisan_execution',
+            'message' => $e->getMessage(),
+            'file' => $e->getFile().':'.$e->getLine(),
+        ], 500);
+    }
 });
 
 Route::prefix('auth')->group(function (): void {
