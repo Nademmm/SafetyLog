@@ -16,6 +16,7 @@ import { ApiError, apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import { compressImageFile } from '@/lib/image-compress'
 import { useReferenceData } from '@/lib/reference'
+import { AiAssistButton } from '@/components/safety/AiAssistButton'
 import { QrScannerStage } from '@/components/safety/QrScannerStage'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
 import type {
@@ -698,14 +699,13 @@ export function ReportCasePage() {
                   Saran untuk dipertimbangkan supervisor. Tidak mengubah laporan yang dikirim.
                 </div>
               </div>
-              <button
-                type="button"
+              <AiAssistButton
                 onClick={() => triageSuggestion.mutate()}
-                disabled={triageSuggestion.isPending || description.trim().length < 5}
-                className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
-              >
-                {triageSuggestion.isPending ? 'Meminta saran...' : 'Minta Saran AI'}
-              </button>
+                disabled={description.trim().length < 5}
+                loading={triageSuggestion.isPending}
+                label="Minta Saran AI"
+                loadingLabel="Meminta saran..."
+              />
             </div>
 
             {aiTriageError && (

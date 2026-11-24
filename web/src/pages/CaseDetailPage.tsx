@@ -19,6 +19,7 @@ import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
 import { useReferenceData } from '@/lib/reference'
 import { AuthorizedImage } from '@/components/safety/AuthorizedImage'
+import { AiAssistButton } from '@/components/safety/AiAssistButton'
 import { CasePipelineTracker } from '@/components/safety/CasePipelineTracker'
 import { CompleteActionModal } from '@/components/safety/CompleteActionModal'
 import { CaseStatusPill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
@@ -805,14 +806,12 @@ export function CaseDetailPage() {
                         Rekomendasi awal, tetap tinjau dan simpan melalui triase resmi.
                       </div>
                     </div>
-                    <button
-                      type="button"
+                    <AiAssistButton
                       onClick={() => triageSuggestion.mutate()}
-                      disabled={triageSuggestion.isPending}
-                      className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
-                    >
-                      {triageSuggestion.isPending ? 'Meminta saran...' : 'Minta Saran AI'}
-                    </button>
+                      loading={triageSuggestion.isPending}
+                      label="Minta Saran AI"
+                      loadingLabel="Meminta saran..."
+                    />
                   </div>
 
                   {aiTriageError && (
@@ -1262,14 +1261,12 @@ export function CaseDetailPage() {
                         Pilih draf lalu sesuaikan judul dan instruksi sebelum disimpan.
                       </div>
                     </div>
-                    <button
-                      type="button"
+                    <AiAssistButton
                       onClick={() => actionSuggestions.mutate()}
-                      disabled={actionSuggestions.isPending}
-                      className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
-                    >
-                      {actionSuggestions.isPending ? 'Meminta saran...' : 'Sarankan Tindakan'}
-                    </button>
+                      loading={actionSuggestions.isPending}
+                      label="Sarankan Tindakan"
+                      loadingLabel="Meminta saran..."
+                    />
                   </div>
 
                   {aiActionsError && (
@@ -1686,14 +1683,12 @@ export function CaseDetailPage() {
                     Berdasarkan kemiripan teks deskripsi &amp; mesin (non-AI).
                   </p>
                 </div>
-                <button
-                  type="button"
+                <AiAssistButton
                   onClick={() => similarAnalysis.mutate()}
-                  disabled={similarAnalysis.isPending}
-                  className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
-                >
-                  {similarAnalysis.isPending ? 'Menganalisis...' : 'Analisis AI'}
-                </button>
+                  loading={similarAnalysis.isPending}
+                  label="Analisis AI"
+                  loadingLabel="Menganalisis..."
+                />
               </div>
               <div className="divide-y divide-[var(--rule)]">
                 {similarQuery.isLoading ? (
