@@ -24,11 +24,11 @@ interface StageDef {
 
 const STAGES: StageDef[] = [
   { key: 'new', shortLabel: 'Baru', hint: 'Laporan masuk, menunggu triase Supervisor.', icon: FilePlus2 },
-  { key: 'assessed', shortLabel: 'Dinilai', hint: 'Risiko dinilai, menunggu tindakan & analisis PIC.', icon: Gauge },
-  { key: 'analyzed', shortLabel: 'Dianalisis', hint: 'Akar masalah 5W & 6M tercatat oleh PIC.', icon: SearchCheck },
-  { key: 'in_progress', shortLabel: 'Tindakan', hint: 'PIC sedang mengerjakan tindakan CAPA.', icon: Wrench },
+  { key: 'assessed', shortLabel: 'Dinilai', hint: 'Menunggu penilaian risiko & penunjukan PIC oleh Supervisor.', icon: Gauge },
+  { key: 'analyzed', shortLabel: 'Dianalisis', hint: 'Menunggu analisis akar masalah (5W & 6M) oleh PIC.', icon: SearchCheck },
+  { key: 'in_progress', shortLabel: 'Tindakan', hint: 'Menunggu pelaksanaan tindakan perbaikan (CAPA).', icon: Wrench },
   { key: 'pending_verification', shortLabel: 'Verifikasi', hint: 'Menunggu verifikasi independen K3.', icon: ShieldCheck },
-  { key: 'closed', shortLabel: 'Selesai', hint: 'Kasus tuntas & terkunci.', icon: Lock },
+  { key: 'closed', shortLabel: 'Selesai', hint: 'Menunggu penutupan & penguncian kasus.', icon: Lock },
 ]
 
 export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
@@ -71,14 +71,18 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
       case 'assessed':
         return caseData.risk_assessment.triaged_at
           ? {
-              text: `Ditriase oleh ${caseData.risk_assessment.triaged_by?.name || 'Supervisor'}`,
+              text: `Dinilai oleh ${caseData.risk_assessment.triaged_by?.name || 'Supervisor'}`,
               meta: formatDateTime(caseData.risk_assessment.triaged_at),
             }
           : { text: stage.hint, meta: null }
       case 'analyzed':
         return caseData.root_cause.analyzed_at
           ? {
-              text: `5W & 6M (${caseData.root_cause.root_cause_category || '—'}) oleh ${caseData.root_cause.analyzed_by?.name || 'PIC'}`,
+              text: `Dianalisis oleh ${caseData.root_cause.analyzed_by?.name || 'PIC'}${
+                caseData.root_cause.root_cause_category
+                  ? ` (${caseData.root_cause.root_cause_category})`
+                  : ''
+              }`,
               meta: formatDateTime(caseData.root_cause.analyzed_at),
             }
           : { text: stage.hint, meta: null }
@@ -99,7 +103,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
       case 'closed':
         return caseData.verification.closed_at
           ? {
-              text: 'Kasus selesai & terkunci permanen',
+              text: 'Ditutup & terkunci permanen',
               meta: formatDateTime(caseData.verification.closed_at),
             }
           : { text: stage.hint, meta: null }
@@ -246,32 +250,41 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
         </ol>
       </div>
 
-      {/* Single-Line Interactive Status Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-[var(--rule)] pt-2.5 text-[12px]">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-[var(--text)] shrink-0">
+      {/* Interactive Stage Detail Strip */}
+      <div className="flex flex-col gap-2 border-t border-[var(--rule)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start sm:items-center gap-2 min-w-0">
+          <span
+            className={`inline-flex shrink-0 items-center rounded-[5px] px-2 py-0.5 text-[11.5px] font-semibold ${
+              inspectIndex < currentIndex || isClosed
+                ? 'bg-[var(--safety-safe-bg)] text-[var(--safety-safe-foreground)]'
+                : inspectIndex === currentIndex
+                  ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                  : 'bg-[var(--raised)] text-[var(--muted)]'
+            }`}
+          >
             {inspectedStage.shortLabel}
           </span>
-          <span className="text-[var(--faint)]">·</span>
-          <span className="text-[var(--muted)] truncate">{detail.text}</span>
+          <span className="text-[13px] leading-snug text-[var(--muted)]">{detail.text}</span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {detail.meta && (
-            <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
-              {detail.meta}
-            </span>
-          )}
-          {isInspectingOther && (
-            <button
-              type="button"
-              onClick={() => setSelectedIndex(null)}
-              className="inline-flex min-h-[44px] items-center px-2 text-[12px] font-medium text-[var(--accent)] hover:underline cursor-pointer"
-            >
-              Tahap aktif
-            </button>
-          )}
-        </div>
+        {(detail.meta || isInspectingOther) && (
+          <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
+            {detail.meta && (
+              <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
+                {detail.meta}
+              </span>
+            )}
+            {isInspectingOther && (
+              <button
+                type="button"
+                onClick={() => setSelectedIndex(null)}
+                className="inline-flex min-h-[36px] sm:min-h-[44px] items-center rounded-[5px] border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-ink)] cursor-pointer transition-colors"
+              >
+                Ke tahap aktif
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </section>
   )
