@@ -206,6 +206,7 @@ export function CaseDetailPage() {
   const [duplicateOfId, setDuplicateOfId] = React.useState('')
   const [triageBusy, setTriageBusy] = React.useState(false)
   const [triageErr, setTriageErr] = React.useState<string | null>(null)
+  const [triageSuccess, setTriageSuccess] = React.useState<string | null>(null)
 
   // Add Action state (B-14)
   const [actionType, setActionType] = React.useState<ActionType>('corrective')
@@ -411,6 +412,13 @@ export function CaseDetailPage() {
               }
 
       await apiFetch(`/cases/${caseData.id}/triage`, { method: 'POST', json: payload })
+      setTriageSuccess(
+        triageMode === 'assess'
+          ? 'Penilaian risiko & triase berhasil disimpan.'
+          : triageMode === 'reject'
+            ? 'Laporan berhasil ditolak.'
+            : 'Kasus berhasil ditandai sebagai duplikat.',
+      )
       refreshCase()
     } catch (err) {
       setTriageErr(err instanceof ApiError ? err.message : 'Gagal menyimpan triase.')
@@ -757,6 +765,92 @@ export function CaseDetailPage() {
               </div>
             )}
           </section>
+
+          {triageSuccess && (
+            <div
+              role="status"
+              className="flex items-start justify-between gap-2.5 rounded-[6px] border border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--safety-safe-foreground)]"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{triageSuccess}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTriageSuccess(null)}
+                aria-label="Tutup notifikasi triase"
+                className="shrink-0 rounded-[4px] p-0.5 opacity-75 hover:opacity-100 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Triage Summary Card (shown once triage assessment is created) */}
+          {!available?.can_triage &&
+            caseData.risk_assessment.triaged_at &&
+            caseData.status !== 'rejected' &&
+            caseData.status !== 'duplicate' && (
+              <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[16px] font-semibold text-[var(--text)]">
+                      Hasil Penilaian Risiko &amp; Triase
+                    </h2>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--safety-safe-border)] bg-[var(--safety-safe-bg)] px-2.5 py-0.5 text-[11.5px] font-semibold text-[var(--safety-safe-foreground)]">
+                      <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      Sudah Ditriase
+                    </span>
+                  </div>
+                  <RiskPill
+                    level={caseData.risk_assessment.risk_level}
+                    score={caseData.risk_assessment.risk_score}
+                    label={caseData.risk_assessment.risk_level_label}
+                  />
+                </div>
+
+                <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] p-3 text-[13px]">
+                  <div className="space-y-0.5">
+                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
+                      Matriks 5×5
+                    </dt>
+                    <dd className="font-mono font-semibold text-[var(--text)] tabular-nums">
+                      K {caseData.risk_assessment.severity ?? '—'} × P{' '}
+                      {caseData.risk_assessment.likelihood ?? '—'} ={' '}
+                      {caseData.risk_assessment.risk_score ?? '—'}
+                    </dd>
+                  </div>
+                  <div className="space-y-0.5">
+                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
+                      Kategori
+                    </dt>
+                    <dd className="font-medium text-[var(--text)] truncate">
+                      {caseData.category?.name || '—'}
+                    </dd>
+                  </div>
+                  <div className="space-y-0.5">
+                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
+                      PIC Kasus
+                    </dt>
+                    <dd className="font-medium text-[var(--text)] truncate">
+                      {caseData.risk_assessment.assigned_pic?.name || '—'}
+                    </dd>
+                  </div>
+                  <div className="space-y-0.5">
+                    <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--faint)]">
+                      Penilai Triase
+                    </dt>
+                    <dd className="text-[var(--muted)] truncate">
+                      {caseData.risk_assessment.triaged_by?.name || 'Supervisor'}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="text-[12px] font-mono text-[var(--faint)] tabular-nums">
+                  Ditriase pada {formatDateTime(caseData.risk_assessment.triaged_at)}
+                </div>
+              </section>
+            )}
 
           {/* Triage Panel (B-12) */}
           {available?.can_triage && (
