@@ -103,7 +103,7 @@ return new class extends Migration
             $table->unsignedInteger('file_size');
             $table->timestamps();
 
-            $table->index(['organization_id', 'attachable_type', 'attachable_id']);
+            $table->index(['organization_id', 'attachable_type', 'attachable_id'], 'attachments_org_attachable_idx');
         });
 
         Schema::create('case_status_histories', function (Blueprint $table) {
@@ -118,7 +118,7 @@ return new class extends Migration
             $table->json('metadata')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['organization_id', 'safety_case_id', 'created_at']);
+            $table->index(['organization_id', 'safety_case_id', 'created_at'], 'case_status_hist_org_case_idx');
         });
 
         Schema::create('app_notifications', function (Blueprint $table) {

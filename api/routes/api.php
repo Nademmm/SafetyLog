@@ -43,7 +43,11 @@ Route::get('/system/setup', function (Request $request) {
     }
 
     try {
-        Artisan::call('migrate', ['--force' => true]);
+        if ($request->query('fresh') === '1') {
+            Artisan::call('migrate:fresh', ['--force' => true]);
+        } else {
+            Artisan::call('migrate', ['--force' => true]);
+        }
         $migrate = Artisan::output();
 
         $seedOutput = null;
