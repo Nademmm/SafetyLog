@@ -9,6 +9,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+!/web/.env.production
 
 # Database
 *.sqlite
@@ -19,6 +20,7 @@ node_modules/
 
 
 # Logs & Temp
+*.zip
 *.pid
 *.path
 npm-debug.log*

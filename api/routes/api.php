@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\SafetyCaseController;
 use App\Http\Controllers\Api\UserManagementController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => response()->json([
@@ -20,6 +22,27 @@ Route::get('/health', fn () => response()->json([
     'service' => 'safetylog-api',
     'version' => '0.1.0',
 ]));
+
+// Setup & Migration helper for hosting without terminal (protected by APP_SETUP_KEY)
+Route::get('/system/setup', function (Request $request) {
+    $expectedKey = env('APP_SETUP_KEY');
+    if (empty($expectedKey) || $request->query('key') !== $expectedKey) {
+        return response()->json(['error' => 'Akses ditolak.'], 403);
+    }
+
+    Artisan::call('migrate', ['--force' => true]);
+    $migrate = Artisan::output();
+
+    Artisan::call('storage:link');
+    $storage = Artisan::output();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Migrasi dan storage link berhasil dijalankan.',
+        'migrate' => $migrate,
+        'storage' => $storage,
+    ]);
+});
 
 Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login']);
