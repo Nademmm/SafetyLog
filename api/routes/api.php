@@ -77,8 +77,16 @@ Route::get('/system/setup', function (Request $request) {
             $seedOutput = Artisan::output();
         }
 
-        Artisan::call('storage:link');
-        $storage = Artisan::output();
+        $storage = null;
+        try {
+            if (! file_exists(public_path('storage'))) {
+                @symlink(storage_path('app/public'), public_path('storage'));
+            }
+            Artisan::call('storage:link');
+            $storage = Artisan::output();
+        } catch (Throwable) {
+            $storage = 'Symlink creation skipped (exec disabled on shared hosting).';
+        }
 
         return response()->json([
             'status' => 'success',
