@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { caseKeys, dashboardKeys } from '@/data/query-keys'
 import { CaseStatusPill, CaseTypePill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
@@ -10,18 +11,18 @@ import type { DashboardData, SafetyCase } from '@/types/safetylog'
 
 export function SupervisorHomePage() {
   const newCasesQuery = useQuery({
-    queryKey: ['cases', 'supervisor-new'],
+    queryKey: caseKeys.list({ scope: 'supervisor-new', status: 'new', per_page: 6 }),
     queryFn: () =>
       apiFetch<{ data: SafetyCase[]; meta?: { total: number } }>('/cases?status=new&per_page=6'),
   })
 
   const activeCasesQuery = useQuery({
-    queryKey: ['cases', 'supervisor-active'],
+    queryKey: caseKeys.list({ scope: 'supervisor-active', status: 'in_progress', per_page: 6 }),
     queryFn: () => apiFetch<{ data: SafetyCase[] }>('/cases?status=in_progress&per_page=6'),
   })
 
   const dashboardQuery = useQuery({
-    queryKey: ['dashboard', 'supervisor-home'],
+    queryKey: dashboardKeys.summary(),
     queryFn: () => apiFetch<{ data: DashboardData }>('/dashboard'),
   })
 

@@ -1,24 +1,23 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { QRCodeSVG } from 'qrcode.react'
 import {
   Archive,
   Check,
   ChevronDown,
-  Copy,
   Edit3,
   Filter,
-  Printer,
   QrCode,
-  RefreshCw,
   RotateCcw,
   X,
 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
+import { areaKeys, machineKeys, siteKeys, userKeys } from '@/data/query-keys'
+import { invalidateMasterDataMutation } from '@/data/invalidation'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { Select } from '@/components/ui/FormField'
 import { SectionLoading } from '@/components/ui/waveform-loader'
+import { QrStickerModal } from '@/features/admin-assets/QrStickerModal'
 import type { AreaRef, Machine, SiteRef } from '@/types/safetylog'
 
 type AdminTab = 'machines' | 'areas' | 'sites'
@@ -51,25 +50,25 @@ export function AdminMachinesPage() {
   }, [filterOpen])
 
   const sitesQuery = useQuery({
-    queryKey: ['admin-sites', showArchived],
+    queryKey: siteKeys.list({ include_archived: showArchived }),
     queryFn: () =>
       apiFetch<{ data: SiteRef[] }>(`/sites${showArchived ? '?include_archived=1' : ''}`),
   })
 
   const areasQuery = useQuery({
-    queryKey: ['admin-areas', showArchived],
+    queryKey: areaKeys.list({ include_archived: showArchived }),
     queryFn: () =>
       apiFetch<{ data: AreaRef[] }>(`/areas${showArchived ? '?include_archived=1' : ''}`),
   })
 
   const machinesQuery = useQuery({
-    queryKey: ['admin-machines', showArchived],
+    queryKey: machineKeys.list({ include_archived: showArchived }),
     queryFn: () =>
       apiFetch<{ data: Machine[] }>(`/machines${showArchived ? '?include_archived=1' : ''}`),
   })
 
   const assignableQuery = useQuery({
-    queryKey: ['assignable-users'],
+    queryKey: userKeys.list({ scope: 'assignable' }),
     queryFn: () =>
       apiFetch<{ data: Array<{ id: number; name: string; role_label: string }> }>(
         '/users/assignable',
@@ -100,26 +99,9 @@ export function AdminMachinesPage() {
 
   // QR modal state
   const [qrModalMachine, setQrModalMachine] = React.useState<Machine | null>(null)
-  const [confirmRegen, setConfirmRegen] = React.useState(false)
-  const [copiedQrUrl, setCopiedQrUrl] = React.useState(false)
-
-  React.useEffect(() => {
-    if (!qrModalMachine) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setQrModalMachine(null)
-        setConfirmRegen(false)
-      }
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [qrModalMachine])
 
   const invalidateMasterData = () => {
-    void queryClient.invalidateQueries({ queryKey: ['admin-machines'] })
-    void queryClient.invalidateQueries({ queryKey: ['admin-areas'] })
-    void queryClient.invalidateQueries({ queryKey: ['admin-sites'] })
-    void queryClient.invalidateQueries({ queryKey: ['machines'] })
+    void invalidateMasterDataMutation(queryClient)
   }
 
   const handleCreateMachine = async (e: React.FormEvent) => {
@@ -322,33 +304,9 @@ export function AdminMachinesPage() {
         method: 'POST',
       })
       setQrModalMachine(res.data)
-      setConfirmRegen(false)
       invalidateMasterData()
     } catch (err) {
       setErrMsg(err instanceof ApiError ? err.message : 'Gagal membuat ulang token QR.')
-    }
-  }
-
-  const handleCopyQrUrl = async (token: string) => {
-    const fullUrl = `${window.location.origin}/qr/${token}`
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(fullUrl)
-      } else {
-        const ta = document.createElement('textarea')
-        ta.value = fullUrl
-        ta.style.position = 'fixed'
-        ta.style.opacity = '0'
-        document.body.appendChild(ta)
-        ta.focus()
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-      }
-      setCopiedQrUrl(true)
-      window.setTimeout(() => setCopiedQrUrl(false), 2000)
-    } catch {
-      setCopiedQrUrl(false)
     }
   }
 
@@ -625,10 +583,7 @@ export function AdminMachinesPage() {
                       {m.is_active !== false && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setQrModalMachine(m)
-                            setConfirmRegen(false)
-                          }}
+                          onClick={() => setQrModalMachine(m)}
                           className="inline-flex h-11 items-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
                         >
                           <QrCode className="h-4 w-4" />
@@ -1068,125 +1023,11 @@ export function AdminMachinesPage() {
       )}
 
       {/* Printable QR Sticker Modal (B-07) */}
-      {qrModalMachine && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 print:static print:bg-white print:p-0"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => {
-            setQrModalMachine(null)
-            setConfirmRegen(false)
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="qr-sticker-card w-full max-w-sm rounded-[8px] border border-[var(--control)] bg-[var(--surface)] p-6 space-y-5 print:border-2 print:border-black print:bg-white print:text-black print:shadow-none"
-          >
-            <div className="text-center space-y-1">
-              <div className="text-[12px] font-mono font-semibold text-[var(--accent)] print:text-black">
-                SAFETYLOG · QR MESIN
-              </div>
-              <h2 className="text-[20px] font-bold text-[var(--text)] print:text-black">
-                {qrModalMachine.code}
-              </h2>
-              <p className="text-[14px] font-medium text-[var(--muted)] print:text-black">
-                {qrModalMachine.name}
-              </p>
-              {qrModalMachine.area?.name && (
-                <p className="text-[12px] text-[var(--faint)] print:text-black">
-                  Area: {qrModalMachine.area.name}
-                </p>
-              )}
-            </div>
-
-            <div className="mx-auto flex w-fit items-center justify-center rounded-[8px] bg-white p-4 border border-black/10">
-              <QRCodeSVG
-                value={`${window.location.origin}/qr/${qrModalMachine.qr_token}`}
-                size={200}
-                level="M"
-              />
-            </div>
-
-            <div className="text-center space-y-2">
-              <div className="text-[12px] text-[var(--faint)] print:text-black">
-                Pindai QR ini untuk lapor masalah mesin ≤ 60 detik
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleCopyQrUrl(qrModalMachine.qr_token)}
-                className="print:hidden inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[12px] text-[var(--text)] hover:bg-[var(--raised)]"
-              >
-                {copiedQrUrl ? (
-                  <>
-                    <Check className="h-3.5 w-3.5 text-[var(--safety-safe-foreground)]" />
-                    <span>URL QR Tersalin</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5 text-[var(--muted)]" />
-                    <span>Salin URL QR</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {confirmRegen && (
-              <div className="print:hidden rounded-[6px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] p-3 space-y-2 text-[12px] text-[var(--safety-warning-foreground)]">
-                <p>
-                  Mengacak ulang token akan membuat stiker QR lama tidak bisa dipindai lagi.
-                  Lanjutkan?
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void handleRegenerateQr(qrModalMachine)}
-                    className="h-9 flex-1 rounded-[6px] bg-[var(--safety-danger)] px-3 text-[12px] font-semibold text-white"
-                  >
-                    Ya, Acak Ulang
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmRegen(false)}
-                    className="h-9 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[12px] text-[var(--text)]"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="print:hidden flex gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmRegen(true)}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
-                title="Buat ulang token QR"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>Acak Ulang</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
-              >
-                <Printer className="h-4 w-4" />
-                <span>Cetak</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setQrModalMachine(null)
-                  setConfirmRegen(false)
-                }}
-                className="inline-flex h-11 items-center justify-center rounded-[6px] border border-[var(--control)] px-4 text-[14px] text-[var(--text)]"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <QrStickerModal
+        machine={qrModalMachine}
+        onClose={() => setQrModalMachine(null)}
+        onRegenerate={handleRegenerateQr}
+      />
     </div>
   )
 }

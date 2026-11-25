@@ -122,3 +122,38 @@ export async function apiFetch<T>(
 
   return data as T
 }
+
+export async function apiFetchBlob(
+  path: string,
+  options: RequestInit = {},
+): Promise<Blob> {
+  const token = getStoredToken()
+  const headers = new Headers(options.headers)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  let res: Response
+  try {
+    res = await fetch(apiUrl(path), {
+      ...options,
+      headers,
+    })
+  } catch {
+    throw new ApiError(
+      'Tidak dapat terhubung ke server. Periksa koneksi jaringan Anda.',
+      0,
+      { error_code: 'NETWORK_ERROR' },
+    )
+  }
+
+  if (!res.ok) {
+    if (res.status === 401 && !path.startsWith('/auth/login')) {
+      setStoredToken(null)
+      unauthorizedHandler?.()
+    }
+    throw new ApiError(`Gagal memuat berkas (${res.status}).`, res.status)
+  }
+
+  return res.blob()
+}

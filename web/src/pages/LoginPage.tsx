@@ -3,26 +3,24 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { ApiError } from '@/lib/api'
 import { isRedirectAllowedForRole, roleHomePath, useAuth } from '@/lib/auth-helpers'
+import { useTheme } from '@/lib/theme-helpers'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
-import { SafetyLogMark } from '@/components/ui/SafetyLogMark'
-import { ShaderBackground } from '@/components/ui/waves-background'
+import { DitheringShader } from '@/components/ui/dithering-shader'
+import { SignIn6, type SignIn6FormValues } from '@/components/ui/sign-in-6'
 
 const loginSchema = z.object({
   email: z.string().email('Masukkan alamat email yang valid.'),
   password: z.string().min(1, 'Kata sandi wajib diisi.'),
 })
 
-type LoginFormValues = z.infer<typeof loginSchema>
-
 export function LoginPage() {
   const { login, isAuthenticated, user } = useAuth()
+  const { theme } = useTheme()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [serverError, setServerError] = React.useState<string | null>(null)
-  const [showPassword, setShowPassword] = React.useState(false)
 
   const redirectTo = searchParams.get('redirect')
 
@@ -39,12 +37,12 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({
+  } = useForm<SignIn6FormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   })
 
-  const onSubmit = async (values: LoginFormValues) => {
+  const onSubmit = async (values: SignIn6FormValues) => {
     setServerError(null)
     try {
       const loggedUser = await login(values.email, values.password)
@@ -61,125 +59,39 @@ export function LoginPage() {
     }
   }
 
-  return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--ground)] text-[var(--text)] flex flex-col">
-      {/* Animated WebGL Wave Background */}
-      <ShaderBackground className="pointer-events-none fixed inset-0 z-0" />
+  const shaderBack = theme === 'dark' ? '#0D1117' : '#F5F7FA'
+  const shaderFront = theme === 'dark' ? '#F38020' : '#D95300'
 
-      {/* Minimal Enterprise Top Bar */}
+  return (
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[var(--ground)] text-[var(--text)] flex flex-col">
+      {/* Running WebGL Bayer 8x8 Dotted Wave Background */}
+      <DitheringShader
+        shape="wave"
+        type="8x8"
+        colorBack={shaderBack}
+        colorFront={shaderFront}
+        pxSize={3}
+        speed={0.6}
+        className="pointer-events-none fixed inset-0 z-0"
+      />
+
+      {/* Top Bar with Theme Switcher */}
       <header className="relative z-10 flex h-16 items-center justify-end px-4 sm:px-8">
-        <ThemeToggle />
+        <div className="rounded-[8px] bg-[var(--surface)]/90 p-0.5">
+          <ThemeToggle />
+        </div>
       </header>
 
-      {/* Centered Professional Auth Container */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:px-6">
-        <div className="w-full max-w-[400px] space-y-6">
-          {/* Brand Heading */}
-          <div className="text-center space-y-2">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center">
-              <SafetyLogMark size={52} />
-            </div>
-            <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-              Masuk ke SafetyLog
-            </h1>
-            <p className="text-[14px] text-[var(--muted)]">
-              Gunakan akun perusahaan Anda untuk melanjutkan.
-            </p>
-          </div>
-
-          {/* Flat Cloudflare-style Login Card */}
-          <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7 space-y-5">
-            {serverError && (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-3.5 py-3 text-[13px] text-[var(--safety-danger-foreground)]"
-              >
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{serverError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-[13px] font-semibold text-[var(--text)]">
-                  Alamat Email
-                </label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--faint)]" />
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="nama@perusahaan.com"
-                    {...register('email')}
-                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-10 pr-3.5 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-[12px] text-[var(--safety-danger-foreground)]">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="password"
-                  className="block text-[13px] font-semibold text-[var(--text)]"
-                >
-                  Kata Sandi
-                </label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--faint)]" />
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    placeholder="Masukkan kata sandi"
-                    {...register('password')}
-                    className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-10 pr-11 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] transition-colors focus:border-[var(--accent)] focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-                    className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[6px] text-[var(--faint)] hover:text-[var(--text)] transition-colors cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-[12px] text-[var(--safety-danger-foreground)]">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Memverifikasi...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Masuk</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Subtle Support & Copyright Footer */}
-          <div className="text-center space-y-1 text-[12px] text-[var(--faint)]">
-            <p>Kendala akses akun? Hubungi Administrator pabrik Anda.</p>
-            <p className="opacity-80">SafetyLog · Platform K3 &amp; Keandalan Mesin</p>
-          </div>
+      {/* Centered Split SignIn6 Card */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 pb-10 pt-2 sm:px-6">
+        <div className="w-full max-w-3xl">
+          <SignIn6
+            register={register}
+            errors={errors}
+            isSubmitting={isSubmitting}
+            serverError={serverError}
+            onSubmit={handleSubmit(onSubmit)}
+          />
         </div>
       </main>
     </div>

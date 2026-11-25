@@ -1,16 +1,16 @@
 import * as React from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ApiError } from '@/lib/api'
 import { AuthProvider } from '@/lib/auth'
 import { roleHomePath, useAuth } from '@/lib/auth-helpers'
+import { ROUTE_ALLOWED_ROLES } from '@/domain/access-policy'
 import { ThemeProvider } from '@/lib/theme'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AppShell } from '@/components/layout/AppShell'
 import { SectionLoading, WaveformLoader } from '@/components/ui/waveform-loader'
 import { ErrorBoundary } from '@/components/safety/ErrorBoundary'
 import { LoginPage } from '@/pages/LoginPage'
-import { QrResolvePage } from '@/pages/QrResolvePage'
 
 const PelaporHomePage = React.lazy(() =>
   import('@/pages/roles/PelaporHomePage').then((m) => ({ default: m.PelaporHomePage })),
@@ -99,6 +99,11 @@ function ShellPage({ children }: { children: React.ReactNode }) {
   )
 }
 
+function QrResolveRedirect() {
+  const { qrToken } = useParams<{ qrToken: string }>()
+  return <Navigate to={`/report?qr=${encodeURIComponent(qrToken || '')}`} replace />
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -108,14 +113,14 @@ export default function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/qr/:qrToken" element={<QrResolvePage />} />
+                <Route path="/qr/:qrToken" element={<QrResolveRedirect />} />
                 <Route path="/" element={<HomeRedirect />} />
 
                 {/* Role-Specific Home Workspaces */}
                 <Route
                   path="/pelapor"
                   element={
-                    <ProtectedRoute allowedRoles={['reporter', 'admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.pelaporHome}>
                       <ShellPage>
                         <PelaporHomePage />
                       </ShellPage>
@@ -125,7 +130,7 @@ export default function App() {
                 <Route
                   path="/supervisor"
                   element={
-                    <ProtectedRoute allowedRoles={['supervisor', 'admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.supervisorHome}>
                       <ShellPage>
                         <SupervisorHomePage />
                       </ShellPage>
@@ -135,7 +140,7 @@ export default function App() {
                 <Route
                   path="/k3"
                   element={
-                    <ProtectedRoute allowedRoles={['hse', 'admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.k3Home}>
                       <ShellPage>
                         <K3HomePage />
                       </ShellPage>
@@ -145,7 +150,7 @@ export default function App() {
                 <Route
                   path="/admin"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.adminHome}>
                       <ShellPage>
                         <AdminHomePage />
                       </ShellPage>
@@ -157,7 +162,7 @@ export default function App() {
                 <Route
                   path="/report"
                   element={
-                    <ProtectedRoute allowedRoles={['reporter']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.report}>
                       <ShellPage>
                         <ReportCasePage />
                       </ShellPage>
@@ -167,7 +172,7 @@ export default function App() {
                 <Route
                   path="/my-cases"
                   element={
-                    <ProtectedRoute allowedRoles={['reporter']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.myCases}>
                       <ShellPage>
                         <MyCasesPage />
                       </ShellPage>
@@ -177,7 +182,7 @@ export default function App() {
                 <Route
                   path="/my-actions"
                   element={
-                    <ProtectedRoute allowedRoles={['reporter']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.myActions}>
                       <ShellPage>
                         <MyActionsPage />
                       </ShellPage>
@@ -201,7 +206,7 @@ export default function App() {
                 <Route
                   path="/cases"
                   element={
-                    <ProtectedRoute allowedRoles={['supervisor', 'hse', 'admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.casesQueue}>
                       <ShellPage>
                         <CasesQueuePage />
                       </ShellPage>
@@ -211,7 +216,7 @@ export default function App() {
                 <Route
                   path="/dashboard"
                   element={
-                    <ProtectedRoute allowedRoles={['supervisor', 'hse', 'admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.dashboard}>
                       <ShellPage>
                         <DashboardPage />
                       </ShellPage>
@@ -221,7 +226,7 @@ export default function App() {
                 <Route
                   path="/machines/:id/cases"
                   element={
-                    <ProtectedRoute allowedRoles={['supervisor', 'hse', 'admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.machineHistory}>
                       <ShellPage>
                         <MachineHistoryPage />
                       </ShellPage>
@@ -231,7 +236,7 @@ export default function App() {
                 <Route
                   path="/audit-logs"
                   element={
-                    <ProtectedRoute allowedRoles={['supervisor', 'hse', 'admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.auditLogs}>
                       <ShellPage>
                         <AuditLogsPage />
                       </ShellPage>
@@ -243,7 +248,7 @@ export default function App() {
                 <Route
                   path="/admin/machines"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.adminMachines}>
                       <ShellPage>
                         <AdminMachinesPage />
                       </ShellPage>
@@ -253,7 +258,7 @@ export default function App() {
                 <Route
                   path="/admin/users"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.adminUsers}>
                       <ShellPage>
                         <AdminUsersPage />
                       </ShellPage>
@@ -263,7 +268,7 @@ export default function App() {
                 <Route
                   path="/admin/config"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute allowedRoles={ROUTE_ALLOWED_ROLES.adminConfig}>
                       <ShellPage>
                         <AdminConfigPage />
                       </ShellPage>

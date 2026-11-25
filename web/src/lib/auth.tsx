@@ -8,7 +8,13 @@ import {
   setUnauthorizedHandler,
 } from '@/lib/api'
 import { AuthContext } from '@/lib/auth-helpers'
+import { unwrapUser } from '@/data/normalizers'
 import type { User, UserRole } from '@/types/safetylog'
+
+async function fetchCurrentUser(): Promise<User | null> {
+  const res = await apiFetch<{ data?: User; user?: User }>('/auth/me')
+  return unwrapUser(res)
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
@@ -31,8 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
     try {
-      const res = await apiFetch<{ data?: User; user?: User }>('/auth/me')
-      setUser(res.data || res.user || (res as unknown as User))
+      setUser(await fetchCurrentUser())
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         setStoredToken(null)
@@ -47,10 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = getStoredToken()
     if (!token) return
     let active = true
-    apiFetch<{ data?: User; user?: User }>('/auth/me')
-      .then((res) => {
+    fetchCurrentUser()
+      .then((resolved) => {
         if (!active) return
-        setUser(res.data || res.user || (res as unknown as User))
+        setUser(resolved)
       })
       .catch((err: unknown) => {
         if (!active) return

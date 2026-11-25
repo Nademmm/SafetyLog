@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import { Download, ExternalLink, Maximize2, X } from 'lucide-react'
-import { apiUrl, getStoredToken } from '@/lib/api'
+import { apiFetchBlob } from '@/lib/api'
 
 export function AuthorizedImage({
   attachmentId,
@@ -21,15 +21,8 @@ export function AuthorizedImage({
   React.useEffect(() => {
     let active = true
     let objectUrl: string | null = null
-    const token = getStoredToken()
 
-    fetch(apiUrl(`/attachments/${attachmentId}`), {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Gagal memuat foto')
-        return res.blob()
-      })
+    apiFetchBlob(`/attachments/${attachmentId}`)
       .then((blob) => {
         if (!active) return
         objectUrl = URL.createObjectURL(blob)

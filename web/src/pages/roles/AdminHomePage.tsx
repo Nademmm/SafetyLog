@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight, Settings, Users, Wrench } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { dashboardKeys } from '@/data/query-keys'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
@@ -10,7 +11,7 @@ import type { DashboardData } from '@/types/safetylog'
 
 export function AdminHomePage() {
   const dashboardQuery = useQuery({
-    queryKey: ['dashboard', 'admin-home'],
+    queryKey: dashboardKeys.summary(),
     queryFn: () => apiFetch<{ data: DashboardData }>('/dashboard'),
   })
 

@@ -5,6 +5,7 @@ import { Check, ChevronDown, ChevronRight, Filter, X } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
+import { dashboardKeys, siteKeys } from '@/data/query-keys'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
@@ -36,14 +37,14 @@ export function DashboardPage() {
   }, [filterOpen])
 
   const sitesQuery = useQuery({
-    queryKey: ['sites-opt'],
+    queryKey: siteKeys.list({ scope: 'active' }),
     queryFn: () => apiFetch<{ data: SiteRef[] }>('/sites'),
     enabled: user?.role === 'admin',
     retry: false,
   })
 
   const dashboardQuery = useQuery({
-    queryKey: ['dashboard', siteId],
+    queryKey: dashboardKeys.summary(siteId || null),
     queryFn: () =>
       apiFetch<{ data: DashboardData }>(`/dashboard${siteId ? `?site_id=${siteId}` : ''}`),
   })

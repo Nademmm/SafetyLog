@@ -13,9 +13,13 @@ import {
   X,
 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
+import { copyToClipboard } from '@/lib/clipboard'
 import { formatDateTime } from '@/lib/format'
 import { compressImageFile } from '@/lib/image-compress'
 import { useReferenceData } from '@/lib/reference'
+import { machineKeys } from '@/data/query-keys'
+import { unwrapQrMachine } from '@/data/normalizers'
+import { invalidateCaseMutation } from '@/data/invalidation'
 import { AiAssistButton } from '@/components/safety/AiAssistButton'
 import { QrScannerStage } from '@/components/safety/QrScannerStage'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
@@ -48,7 +52,7 @@ export function ReportCasePage() {
   const refQuery = useReferenceData()
 
   const qrQuery = useQuery({
-    queryKey: ['machine-qr', qrToken],
+    queryKey: machineKeys.qr(qrToken ?? ''),
     queryFn: () =>
       apiFetch<{
         machine?: Machine
@@ -64,12 +68,12 @@ export function ReportCasePage() {
   const [manualSearch, setManualSearch] = React.useState('')
 
   const machinesQuery = useQuery({
-    queryKey: ['machines', 'manual-report-picker'],
+    queryKey: machineKeys.list({ scope: 'active' }),
     queryFn: () => apiFetch<{ data: Machine[] }>('/machines'),
     enabled: showManualPicker,
   })
 
-  const machine = qrQuery.data?.machine ?? qrQuery.data?.data ?? null
+  const machine = unwrapQrMachine(qrQuery.data) ?? null
   const [caseTypeId, setCaseTypeId] = React.useState<string>('')
   const [description, setDescription] = React.useState('')
   const [isMachineStopped, setIsMachineStopped] = React.useState(false)
@@ -113,24 +117,12 @@ export function ReportCasePage() {
   })
 
   const handleCopyCaseNumber = async (caseNumber: string) => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(caseNumber)
-      } else {
-        const textarea = document.createElement('textarea')
-        textarea.value = caseNumber
-        textarea.style.position = 'fixed'
-        textarea.style.opacity = '0'
-        document.body.appendChild(textarea)
-        textarea.focus()
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
-      }
+    const ok = await copyToClipboard(caseNumber)
+    if (ok) {
       setCopiedCaseNumber(true)
       if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current)
       copyTimerRef.current = window.setTimeout(() => setCopiedCaseNumber(false), 2000)
-    } catch {
+    } else {
       setCopiedCaseNumber(false)
     }
   }
@@ -263,9 +255,7 @@ export function ReportCasePage() {
         caseData: res.data,
         emergencyReminder: res.emergency_reminder,
       })
-      void queryClient.invalidateQueries({ queryKey: ['my-cases'] })
-      void queryClient.invalidateQueries({ queryKey: ['cases'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      void invalidateCaseMutation(queryClient, res.data.id)
     } catch (err) {
       if (err instanceof ApiError) {
         setSubmitError(err.message)

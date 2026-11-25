@@ -4,9 +4,9 @@ import { Camera, Check, ImagePlus, Plus, Trash2, X } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { compressImageFile } from '@/lib/image-compress'
 import { useReferenceData } from '@/lib/reference'
+import { parseRootCauseCategories } from '@/data/normalizers'
+import { invalidateActionMutation } from '@/data/invalidation'
 import type { CaseAction } from '@/types/safetylog'
-
-const DEFAULT_6M = ['Manusia', 'Mesin', 'Metode', 'Material', 'Pengukuran', 'Lingkungan']
 
 export interface ExistingRootCause {
   root_cause_category: string | null
@@ -34,20 +34,10 @@ export function CompleteActionModal({
   const queryClient = useQueryClient()
   const refQuery = useReferenceData()
 
-  const categories6M = React.useMemo(() => {
-    const configs = refQuery.data?.configurations
-    const raw = configs?.root_cause_categories ?? configs?.root_cause_categories_6m
-    if (typeof raw === 'string') {
-      try {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(String)
-      } catch {
-        // ignore
-      }
-    }
-    if (Array.isArray(raw) && raw.length > 0) return raw.map(String)
-    return DEFAULT_6M
-  }, [refQuery.data])
+  const categories6M = React.useMemo(
+    () => parseRootCauseCategories(refQuery.data?.configurations),
+    [refQuery.data?.configurations],
+  )
 
   const [completionNote, setCompletionNote] = React.useState('')
   const [photos, setPhotos] = React.useState<File[]>([])
@@ -134,12 +124,7 @@ export function CompleteActionModal({
         body: formData,
       })
 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['my-actions'] }),
-        queryClient.invalidateQueries({ queryKey: ['case', String(caseId)] }),
-        queryClient.invalidateQueries({ queryKey: ['cases'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
-      ])
+      await invalidateActionMutation(queryClient, caseId)
 
       onCompleted?.()
       onClose()

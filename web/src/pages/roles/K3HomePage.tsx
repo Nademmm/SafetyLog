@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { caseKeys, dashboardKeys } from '@/data/query-keys'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
@@ -10,7 +11,7 @@ import type { DashboardData, SafetyCase } from '@/types/safetylog'
 
 export function K3HomePage() {
   const pendingVerifyQuery = useQuery({
-    queryKey: ['cases', 'k3-pending-verification'],
+    queryKey: caseKeys.list({ scope: 'k3-pending', status: 'pending_verification', per_page: 8 }),
     queryFn: () =>
       apiFetch<{ data: SafetyCase[]; meta?: { total: number } }>(
         '/cases?status=pending_verification&per_page=8',
@@ -18,7 +19,7 @@ export function K3HomePage() {
   })
 
   const highRiskQuery = useQuery({
-    queryKey: ['cases', 'k3-high-risk'],
+    queryKey: caseKeys.list({ scope: 'k3-high-risk', risk_level: 'high', per_page: 6 }),
     queryFn: () =>
       apiFetch<{ data: SafetyCase[] }>(
         '/cases?risk_level=high&status=new,assessed,analyzed,in_progress,pending_verification&per_page=6',
@@ -26,7 +27,7 @@ export function K3HomePage() {
   })
 
   const dashboardQuery = useQuery({
-    queryKey: ['dashboard', 'k3-home'],
+    queryKey: dashboardKeys.summary(),
     queryFn: () => apiFetch<{ data: DashboardData }>('/dashboard'),
   })
 
