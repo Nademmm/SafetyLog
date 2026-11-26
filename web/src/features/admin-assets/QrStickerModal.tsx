@@ -2,6 +2,7 @@ import * as React from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Check, Copy, Printer, RefreshCw } from 'lucide-react'
 import { copyToClipboard } from '@/lib/clipboard'
+import { useLanguage } from '@/lib/i18n-helpers'
 import type { Machine } from '@/types/safetylog'
 
 interface QrStickerModalProps {
@@ -11,6 +12,7 @@ interface QrStickerModalProps {
 }
 
 export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModalProps) {
+  const { pick } = useLanguage()
   const [confirmRegen, setConfirmRegen] = React.useState(false)
   const [copiedQrUrl, setCopiedQrUrl] = React.useState(false)
 
@@ -53,7 +55,7 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
       >
         <div className="text-center space-y-1">
           <div className="text-[12px] font-mono font-semibold text-[var(--accent)] print:text-black">
-            SAFETYLOG · QR MESIN
+            {pick('SAFETYLOG · QR MESIN', 'SAFETYLOG · MACHINE QR')}
           </div>
           <h2 className="text-[20px] font-bold text-[var(--text)] print:text-black">
             {machine.code}
@@ -78,7 +80,10 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
 
         <div className="text-center space-y-2">
           <div className="text-[12px] text-[var(--faint)] print:text-black">
-            Pindai QR ini untuk lapor masalah mesin ≤ 60 detik
+            {pick(
+              'Pindai QR ini untuk lapor masalah mesin ≤ 60 detik',
+              'Scan this QR to report a machine issue in ≤ 60 seconds',
+            )}
           </div>
           <button
             type="button"
@@ -88,12 +93,12 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
             {copiedQrUrl ? (
               <>
                 <Check className="h-3.5 w-3.5 text-[var(--safety-safe-foreground)]" />
-                <span>URL QR Tersalin</span>
+                <span>{pick('URL QR Tersalin', 'QR URL Copied')}</span>
               </>
             ) : (
               <>
                 <Copy className="h-3.5 w-3.5 text-[var(--muted)]" />
-                <span>Salin URL QR</span>
+                <span>{pick('Salin URL QR', 'Copy QR URL')}</span>
               </>
             )}
           </button>
@@ -102,7 +107,10 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
         {confirmRegen && (
           <div className="print:hidden rounded-[6px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] p-3 space-y-2 text-[12px] text-[var(--safety-warning-foreground)]">
             <p>
-              Mengacak ulang token akan membuat stiker QR lama tidak bisa dipindai lagi. Lanjutkan?
+              {pick(
+                'Mengacak ulang token akan membuat stiker QR lama tidak bisa dipindai lagi. Lanjutkan?',
+                'Regenerating the token will invalidate old QR stickers. Continue?',
+              )}
             </p>
             <div className="flex gap-2">
               <button
@@ -113,14 +121,14 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
                 }}
                 className="h-9 flex-1 rounded-[6px] bg-[var(--safety-danger)] px-3 text-[12px] font-semibold text-white"
               >
-                Ya, Acak Ulang
+                {pick('Ya, Acak Ulang', 'Yes, Regenerate')}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmRegen(false)}
                 className="h-9 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[12px] text-[var(--text)]"
               >
-                Batal
+                {pick('Batal', 'Cancel')}
               </button>
             </div>
           </div>
@@ -131,10 +139,10 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
             type="button"
             onClick={() => setConfirmRegen(true)}
             className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[6px] border border-[var(--control)] px-3 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
-            title="Buat ulang token QR"
+            title={pick('Buat ulang token QR', 'Regenerate QR token')}
           >
             <RefreshCw className="h-4 w-4" />
-            <span>Acak Ulang</span>
+            <span>{pick('Acak Ulang', 'Regenerate')}</span>
           </button>
           <button
             type="button"
@@ -142,7 +150,7 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
             className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
           >
             <Printer className="h-4 w-4" />
-            <span>Cetak</span>
+            <span>{pick('Cetak', 'Print')}</span>
           </button>
           <button
             type="button"
@@ -152,7 +160,7 @@ export function QrStickerModal({ machine, onClose, onRegenerate }: QrStickerModa
             }}
             className="inline-flex h-11 items-center justify-center rounded-[6px] border border-[var(--control)] px-4 text-[14px] text-[var(--text)]"
           >
-            Tutup
+            {pick('Tutup', 'Close')}
           </button>
         </div>
       </div>

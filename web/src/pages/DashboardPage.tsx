@@ -5,6 +5,12 @@ import { Check, ChevronDown, ChevronRight, Filter, X } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth-helpers'
 import { formatDateTime } from '@/lib/format'
+import {
+  localizeContentText,
+  localizeMachineName,
+  localizeSiteName,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { dashboardKeys, siteKeys } from '@/data/query-keys'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
@@ -13,6 +19,7 @@ import type { AiDashboardSummary, AiEnvelope, DashboardData, SiteRef } from '@/t
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const { lang, pick } = useLanguage()
   const [siteId, setSiteId] = React.useState('')
   const [summarySiteId, setSummarySiteId] = React.useState<string | null>(null)
   const [filterOpen, setFilterOpen] = React.useState(false)
@@ -85,16 +92,22 @@ export function DashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Dashboard Keandalan &amp; K3
+            {pick('Dashboard Keandalan & K3', 'Reliability & EHS Dashboard')}
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Ringkasan kasus terbuka, tindakan terlambat, dan mesin dengan masalah berulang.
+            {pick(
+              'Ringkasan kasus terbuka, tindakan terlambat, dan mesin dengan masalah berulang.',
+              'Summary of open cases, overdue actions, and machines with recurring issues.',
+            )}
           </p>
         </div>
 
         {(sitesQuery.data?.data?.length ?? 0) > 1 && (() => {
           const sitesList = sitesQuery.data!.data
-          const activeSiteName = sitesList.find((s) => String(s.id) === siteId)?.name || 'Semua Site'
+          const matchedSite = sitesList.find((s) => String(s.id) === siteId)
+          const activeSiteName = matchedSite
+            ? localizeSiteName(lang, matchedSite.name, matchedSite.code)
+            : pick('Semua Site', 'All Sites')
           return (
             <div ref={filterPanelRef} className="relative shrink-0 self-start">
               <button
@@ -130,19 +143,19 @@ export function DashboardPage() {
 
                   <div
                     role="dialog"
-                    aria-label="Filter site dashboard"
+                    aria-label={pick('Filter site dashboard', 'Dashboard site filter')}
                     className="fixed inset-x-0 bottom-0 z-50 flex max-h-[75vh] flex-col rounded-t-[16px] border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-12px_32px_rgba(0,0,0,0.3)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[272px] sm:rounded-[8px] sm:border sm:p-2 sm:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
                   >
                     <div className="mb-3 space-y-2 sm:hidden">
                       <div className="mx-auto h-1 w-10 rounded-full bg-[var(--control)]" />
                       <div className="flex items-center justify-between">
                         <span className="text-[15px] font-semibold text-[var(--text)]">
-                          Filter Site
+                          {pick('Filter Site', 'Site Filter')}
                         </span>
                         <button
                           type="button"
                           onClick={() => setFilterOpen(false)}
-                          aria-label="Tutup filter"
+                          aria-label={pick('Tutup filter', 'Close filter')}
                           className="flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)]"
                         >
                           <X className="h-4 w-4" />
@@ -163,7 +176,7 @@ export function DashboardPage() {
                             : 'font-normal text-[var(--muted)] hover:bg-[var(--hover-row)] hover:text-[var(--text)]'
                         }`}
                       >
-                        <span>Semua Site</span>
+                        <span>{pick('Semua Site', 'All Sites')}</span>
                         {!siteId && <Check className="h-4 w-4 text-[var(--accent)] shrink-0 stroke-[2.2px]" />}
                       </button>
 
@@ -183,7 +196,7 @@ export function DashboardPage() {
                                 : 'font-normal text-[var(--muted)] hover:bg-[var(--hover-row)] hover:text-[var(--text)]'
                             }`}
                           >
-                            <span>{s.name}</span>
+                            <span>{localizeSiteName(lang, s.name, s.code)}</span>
                             {active && <Check className="h-4 w-4 text-[var(--accent)] shrink-0 stroke-[2.2px]" />}
                           </button>
                         )
@@ -199,7 +212,7 @@ export function DashboardPage() {
 
       {dashboardQuery.isError && (
         <QueryErrorBanner
-          message="Gagal memuat data dashboard pabrik."
+          message={pick('Gagal memuat data dashboard pabrik.', 'Failed to load plant dashboard data.')}
           onRetry={() => void dashboardQuery.refetch()}
         />
       )}
@@ -207,26 +220,29 @@ export function DashboardPage() {
       {/* Divided KPI Strip (crisp 1px hairlines across phone 2x2 & desktop 4-col) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Kasus terbuka</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">{pick('Kasus terbuka', 'Open cases')}</div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {summary ? summary.open_cases_count : '—'}
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Tindakan terlambat</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">{pick('Tindakan terlambat', 'Overdue actions')}</div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.overdue_actions_count : '—'}
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
-          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">Selesai bulan ini</div>
+          <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">{pick('Selesai bulan ini', 'Closed this month')}</div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
             {summary ? summary.closed_this_month_count : '—'}
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] text-[var(--faint)]">
-            Mesin berulang ({recurringRule.window_days}h)
+            {pick(
+              `Mesin berulang (${recurringRule.window_days}h)`,
+              `Recurring machines (${recurringRule.window_days}d)`,
+            )}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
@@ -238,9 +254,12 @@ export function DashboardPage() {
       <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Ringkasan AI</h2>
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">{pick('Ringkasan AI', 'AI Summary')}</h2>
             <p className="text-[12px] text-[var(--faint)]">
-              Narasi berdasarkan angka yang sudah dihitung SafetyLog, bukan sumber angka baru.
+              {pick(
+                'Narasi berdasarkan angka yang sudah dihitung SafetyLog, bukan sumber angka baru.',
+                'Narrative based on figures already computed by SafetyLog, not a new data source.',
+              )}
             </p>
           </div>
           <button
@@ -250,10 +269,10 @@ export function DashboardPage() {
             className="h-11 shrink-0 rounded-[6px] border border-[var(--accent)] bg-[var(--ground)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] disabled:opacity-50 cursor-pointer transition-colors"
           >
             {summaryMutation.isPending
-              ? 'Menyusun ringkasan...'
+              ? pick('Menyusun ringkasan...', 'Generating summary...')
               : summaryResponse
-                ? 'Perbarui Ringkasan'
-                : 'Buat Ringkasan AI'}
+                ? pick('Perbarui Ringkasan', 'Refresh Summary')
+                : pick('Buat Ringkasan AI', 'Generate AI Summary')}
           </button>
         </div>
 
@@ -264,7 +283,7 @@ export function DashboardPage() {
           >
             {summaryMutation.error instanceof ApiError
               ? summaryMutation.error.message
-              : 'Gagal menyusun ringkasan AI.'}
+              : pick('Gagal menyusun ringkasan AI.', 'Failed to generate AI summary.')}
           </div>
         )}
 
@@ -279,7 +298,7 @@ export function DashboardPage() {
 
             <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
               <div className="space-y-1.5">
-                <div className="text-[12px] font-semibold text-[var(--muted)]">Temuan utama</div>
+                <div className="text-[12px] font-semibold text-[var(--muted)]">{pick('Temuan utama', 'Key findings')}</div>
                 <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
                   {aiSummary.key_findings.map((item, idx) => (
                     <li key={`finding-${idx}`}>{item}</li>
@@ -288,12 +307,12 @@ export function DashboardPage() {
               </div>
               <div className="space-y-1.5">
                 <div className="text-[12px] font-semibold text-[var(--muted)]">
-                  Tindak lanjut yang disarankan
+                  {pick('Tindak lanjut yang disarankan', 'Suggested follow-ups')}
                 </div>
                 <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
                   {aiSummary.suggested_follow_ups.length === 0 ? (
                     <li className="list-none text-[var(--faint)]">
-                      Belum ada saran tindak lanjut.
+                      {pick('Belum ada saran tindak lanjut.', 'No follow-up suggestions yet.')}
                     </li>
                   ) : (
                     aiSummary.suggested_follow_ups.map((item, idx) => (
@@ -303,11 +322,11 @@ export function DashboardPage() {
                 </ul>
               </div>
               <div className="space-y-1.5">
-                <div className="text-[12px] font-semibold text-[var(--muted)]">Catatan tren</div>
+                <div className="text-[12px] font-semibold text-[var(--muted)]">{pick('Catatan tren', 'Trend observations')}</div>
                 <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
                   {aiSummary.trend_observations.length === 0 ? (
                     <li className="list-none text-[var(--faint)]">
-                      Data historis belum cukup.
+                      {pick('Data historis belum cukup.', 'Insufficient historical data.')}
                     </li>
                   ) : (
                     aiSummary.trend_observations.map((item, idx) => (
@@ -318,12 +337,12 @@ export function DashboardPage() {
               </div>
               <div className="space-y-1.5">
                 <div className="text-[12px] font-semibold text-[var(--muted)]">
-                  Keterbatasan data
+                  {pick('Keterbatasan data', 'Data limitations')}
                 </div>
                 <ul className="list-disc space-y-1 pl-5 text-[13px] text-[var(--text)]">
                   {aiSummary.data_limitations.length === 0 ? (
                     <li className="list-none text-[var(--faint)]">
-                      Tidak ada catatan keterbatasan.
+                      {pick('Tidak ada catatan keterbatasan.', 'No limitation notes.')}
                     </li>
                   ) : (
                     aiSummary.data_limitations.map((item, idx) => (
@@ -336,10 +355,19 @@ export function DashboardPage() {
 
             <div className="border-t border-[var(--rule)] pt-2.5 space-y-0.5 text-[12px] text-[var(--faint)]">
               <div>
-                {aiSummary.period?.label ?? 'Periode mengikuti data dashboard yang tersedia.'}
-                {' · '}Data hingga {formatDateTime(aiSummary.period?.as_of ?? aiSummary.generated_at)}.
+                {aiSummary.period?.label ??
+                  pick(
+                    'Periode mengikuti data dashboard yang tersedia.',
+                    'Period follows available dashboard data.',
+                  )}
+                {' · '}
+                {pick('Data hingga', 'Data as of')}{' '}
+                {formatDateTime(aiSummary.period?.as_of ?? aiSummary.generated_at)}.
               </div>
-              <div>Dibuat {formatDateTime(aiSummary.generated_at)} · Ringkasan perlu ditinjau.</div>
+              <div>
+                {pick('Dibuat', 'Generated')} {formatDateTime(aiSummary.generated_at)} ·{' '}
+                {pick('Ringkasan perlu ditinjau.', 'Summary requires review.')}
+              </div>
             </div>
           </div>
         )}
@@ -349,16 +377,19 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus per Mesin</h2>
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">{pick('Kasus per Mesin', 'Cases per Machine')}</h2>
             <span className="text-[12px] text-[var(--faint)]">
-              Ambang berulang: ≥ {recurringRule.threshold} / {recurringRule.window_days} hari
+              {pick(
+                `Ambang berulang: ≥ ${recurringRule.threshold} / ${recurringRule.window_days} hari`,
+                `Recurring threshold: ≥ ${recurringRule.threshold} / ${recurringRule.window_days} days`,
+              )}
             </span>
           </div>
 
           {dashboardQuery.isLoading ? (
-            <SectionLoading label="Memuat data mesin..." className="py-6" />
+            <SectionLoading label={pick('Memuat data mesin...', 'Loading machine data...')} className="py-6" />
           ) : machines.length === 0 ? (
-            <div className="text-[14px] text-[var(--faint)]">Belum ada data kasus per mesin.</div>
+            <div className="text-[14px] text-[var(--faint)]">{pick('Belum ada data kasus per mesin.', 'No case data per machine yet.')}</div>
           ) : (
             <div className="space-y-3.5">
               {machines.slice(0, 8).map((m) => {
@@ -375,9 +406,9 @@ export function DashboardPage() {
                           {m.machine_code}
                         </span>
                         <span className="truncate text-[var(--text)] group-hover:underline">
-                          {m.machine_name}
+                          {localizeMachineName(lang, m.machine_name, m.machine_code)}
                         </span>
-                        {m.is_recurring && <RecurringPill label={m.recurring_label || 'Berulang'} />}
+                        {m.is_recurring && <RecurringPill label={pick('Berulang', 'Recurring')} />}
                       </div>
                       <span className="font-mono text-[var(--text)] tabular-nums shrink-0">
                         {m.total_cases}
@@ -398,16 +429,16 @@ export function DashboardPage() {
 
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus per Kategori</h2>
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">{pick('Kasus per Kategori', 'Cases per Category')}</h2>
             <span className="text-[12px] text-[var(--faint)]">
               Total: {summary?.total_cases_count ?? '—'}
             </span>
           </div>
 
           {dashboardQuery.isLoading ? (
-            <SectionLoading label="Memuat kategori..." className="py-6" />
+            <SectionLoading label={pick('Memuat kategori...', 'Loading categories...')} className="py-6" />
           ) : categories.length === 0 ? (
-            <div className="text-[14px] text-[var(--faint)]">Belum ada data kategori.</div>
+            <div className="text-[14px] text-[var(--faint)]">{pick('Belum ada data kategori.', 'No category data yet.')}</div>
           ) : (
             <div className="space-y-3.5">
               {categories.map((cat, idx) => {
@@ -436,7 +467,7 @@ export function DashboardPage() {
           {(data?.cases_by_risk_level?.length ?? 0) > 0 && (
             <div className="border-t border-[var(--rule)] pt-4 space-y-2">
               <div className="text-[13px] font-medium text-[var(--muted)]">
-                Sebaran Level Risiko
+                {pick('Sebaran Level Risiko', 'Risk Level Distribution')}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {data!.cases_by_risk_level.map((r, idx) => (
@@ -461,7 +492,7 @@ export function DashboardPage() {
         <div className="flex items-center justify-between gap-3 border-b border-[var(--rule)] px-4 py-4 sm:px-5">
           <div className="flex items-center gap-2.5 min-w-0">
             <h2 className="text-[16px] font-semibold text-[var(--text)] truncate">
-              Daftar Tindakan Terlambat
+              {pick('Daftar Tindakan Terlambat', 'Overdue Actions List')}
             </h2>
             {(data?.overdue_actions?.length ?? 0) > 0 && (
               <span className="shrink-0 rounded-[4px] bg-[var(--safety-danger-bg)] border border-[var(--safety-danger-border)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
@@ -473,21 +504,21 @@ export function DashboardPage() {
             to="/cases"
             className="shrink-0 text-[13px] font-medium text-[var(--accent)] hover:underline"
           >
-            Semua kasus
+            {pick('Semua kasus', 'All cases')}
           </Link>
         </div>
 
         {(data?.overdue_actions?.length ?? 0) === 0 ? (
           <div className="p-5 text-[14px] text-[var(--faint)]">
-            Tidak ada tindakan yang melewati tenggat SLA.
+            {pick('Tidak ada tindakan yang melewati tenggat SLA.', 'No actions past SLA deadline.')}
           </div>
         ) : (
           <div>
             {/* Desktop Column Header (flat hairline rule, no tinted header band) */}
             <div className="hidden md:grid md:grid-cols-12 md:gap-4 border-b border-[var(--rule)] px-5 py-2.5 text-[12px] font-medium text-[var(--faint)]">
-              <div className="col-span-5">Tindakan &amp; Kasus</div>
+              <div className="col-span-5">{pick('Tindakan & Kasus', 'Action & Case')}</div>
               <div className="col-span-2">PIC</div>
-              <div className="col-span-3">Tenggat SLA</div>
+              <div className="col-span-3">{pick('Tenggat SLA', 'SLA Deadline')}</div>
               <div className="col-span-2 text-right">Status</div>
             </div>
 
@@ -512,12 +543,17 @@ export function DashboardPage() {
                         )}
                       </div>
                       <div className="shrink-0">
-                        <OverduePill label={`${oa.overdue_label} (${oa.days_overdue}h)`} />
+                        <OverduePill
+                          label={pick(
+                            `${oa.overdue_label} (${oa.days_overdue}h)`,
+                            `Overdue (${oa.days_overdue}d)`,
+                          )}
+                        />
                       </div>
                     </div>
 
                     <div className="text-[14px] font-medium leading-snug text-[var(--text)] line-clamp-2">
-                      {oa.title}
+                      {localizeContentText(lang, oa.title)}
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-0.5 text-[12px] text-[var(--muted)]">
@@ -525,7 +561,7 @@ export function DashboardPage() {
                         PIC: <strong className="font-medium text-[var(--text)]">{oa.pic?.name || '—'}</strong>
                       </span>
                       <span className="shrink-0 tabular-nums text-[var(--faint)]">
-                        Tenggat {formatDateTime(oa.due_at)}
+                        {pick('Tenggat', 'Due')} {formatDateTime(oa.due_at)}
                       </span>
                     </div>
                   </div>
@@ -557,7 +593,12 @@ export function DashboardPage() {
                     </div>
 
                     <div className="col-span-2 flex items-center justify-end gap-2">
-                      <OverduePill label={`${oa.overdue_label} (${oa.days_overdue}h)`} />
+                      <OverduePill
+                        label={pick(
+                          `${oa.overdue_label} (${oa.days_overdue}h)`,
+                          `Overdue (${oa.days_overdue}d)`,
+                        )}
+                      />
                       <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
                     </div>
                   </div>

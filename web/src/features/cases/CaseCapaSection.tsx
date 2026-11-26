@@ -3,6 +3,13 @@ import { useMutation } from '@tanstack/react-query'
 import { Calendar, CheckCircle2, Edit3, RotateCcw, User, X } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import {
+  localizeActionStatusLabel,
+  localizeActionTypeLabel,
+  localizeContentText,
+  localizeRoleLabel,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/domain/case-rules'
 import { AiAssistButton } from '@/components/safety/AiAssistButton'
 import { AuthorizedImage } from '@/components/safety/AuthorizedImage'
@@ -18,16 +25,28 @@ import type {
   SafetyCase,
 } from '@/types/safetylog'
 
-const AI_PRIORITY_LABELS: Record<'high' | 'medium' | 'low', string> = {
+const AI_PRIORITY_LABELS_ID: Record<'high' | 'medium' | 'low', string> = {
   high: 'Prioritas tinggi',
   medium: 'Prioritas sedang',
   low: 'Prioritas rendah',
 }
 
-const ACTION_TYPE_HINTS: Record<string, string> = {
+const AI_PRIORITY_LABELS_EN: Record<'high' | 'medium' | 'low', string> = {
+  high: 'High priority',
+  medium: 'Medium priority',
+  low: 'Low priority',
+}
+
+const ACTION_TYPE_HINTS_ID: Record<string, string> = {
   temporary: 'Penanganan cepat sementara',
   corrective: 'Perbaikan akar masalah',
   preventive: 'Cegah masalah berulang',
+}
+
+const ACTION_TYPE_HINTS_EN: Record<string, string> = {
+  temporary: 'Quick temporary containment',
+  corrective: 'Fix root cause',
+  preventive: 'Prevent recurrence',
 }
 
 interface AssignableUser {
@@ -56,6 +75,7 @@ export function CaseCapaSection({
   actionTypeOptions,
   onChanged,
 }: CaseCapaSectionProps) {
+  const { lang, pick } = useLanguage()
   const [actionType, setActionType] = React.useState<ActionType>('corrective')
   const [actionTitle, setActionTitle] = React.useState('')
   const [actionDescription, setActionDescription] = React.useState('')
@@ -103,7 +123,10 @@ export function CaseCapaSection({
       setAiActionsState({
         caseId: caseData.id,
         data: null,
-        error: error instanceof ApiError ? error.message : 'Gagal meminta saran tindakan AI.',
+        error:
+          error instanceof ApiError
+            ? error.message
+            : pick('Gagal meminta saran tindakan AI.', 'Failed to request AI action suggestions.'),
       })
     },
   })
@@ -141,7 +164,9 @@ export function CaseCapaSection({
     if (!editingAction) return
     setEditActionErr(null)
     if (!editActionTitle.trim() || !editActionPicId) {
-      setEditActionErr('Judul tindakan dan PIC wajib diisi.')
+      setEditActionErr(
+        pick('Judul tindakan dan PIC wajib diisi.', 'Action title and PIC are required.'),
+      )
       return
     }
     setEditActionBusy(true)
@@ -159,7 +184,11 @@ export function CaseCapaSection({
       setEditingAction(null)
       onChanged()
     } catch (err) {
-      setEditActionErr(err instanceof ApiError ? err.message : 'Gagal memperbarui tindakan.')
+      setEditActionErr(
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal memperbarui tindakan.', 'Failed to update action.'),
+      )
     } finally {
       setEditActionBusy(false)
     }
@@ -170,7 +199,9 @@ export function CaseCapaSection({
     if (!reopeningActionId) return
     setReopenActionErr(null)
     if (!reopenActionReason.trim()) {
-      setReopenActionErr('Alasan membuka ulang tindakan wajib diisi.')
+      setReopenActionErr(
+        pick('Alasan membuka ulang tindakan wajib diisi.', 'Reason for reopening action is required.'),
+      )
       return
     }
     setReopenActionBusy(true)
@@ -184,7 +215,9 @@ export function CaseCapaSection({
       onChanged()
     } catch (err) {
       setReopenActionErr(
-        err instanceof ApiError ? err.message : 'Gagal membuka ulang tindakan.',
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal membuka ulang tindakan.', 'Failed to reopen action.'),
       )
     } finally {
       setReopenActionBusy(false)
@@ -196,7 +229,9 @@ export function CaseCapaSection({
     setActionErr(null)
     setActionSuccess(null)
     if (!actionTitle.trim() || !actionPicId) {
-      setActionErr('Judul tindakan dan PIC wajib diisi.')
+      setActionErr(
+        pick('Judul tindakan dan PIC wajib diisi.', 'Action title and PIC are required.'),
+      )
       return
     }
     const addedTitle = actionTitle.trim()
@@ -217,10 +252,19 @@ export function CaseCapaSection({
       setActionTitle('')
       setActionDescription('')
       setActionDueAt('')
-      setActionSuccess(`Tindakan "${addedTitle}" berhasil ditambahkan untuk ${assignedPicName}.`)
+      setActionSuccess(
+        pick(
+          `Tindakan "${addedTitle}" berhasil ditambahkan untuk ${assignedPicName}.`,
+          `Action "${addedTitle}" successfully added for ${assignedPicName}.`,
+        ),
+      )
       onChanged()
     } catch (err) {
-      setActionErr(err instanceof ApiError ? err.message : 'Gagal menambah tindakan.')
+      setActionErr(
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal menambah tindakan.', 'Failed to add action.'),
+      )
     } finally {
       setActionBusy(false)
     }
@@ -231,17 +275,17 @@ export function CaseCapaSection({
       <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <h2 className="text-[16px] font-semibold text-[var(--text)] min-w-0">
-            Tindakan Korektif &amp; Preventif (CAPA)
+            {pick('Tindakan Korektif & Preventif (CAPA)', 'Corrective & Preventive Actions (CAPA)')}
           </h2>
           <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--ground)] px-3 py-1 font-mono text-[12.5px] font-semibold text-[var(--text)] tabular-nums">
-            {caseData.actions?.length ?? 0} tindakan
+            {caseData.actions?.length ?? 0} {pick('tindakan', 'actions')}
           </span>
         </div>
 
         {(caseData.actions?.length ?? 0) === 0 ? (
           <div className="rounded-[6px] border border-dashed border-[var(--control)] p-4 text-[13px] text-[var(--faint)]">
-            Belum ada tindakan CAPA.{' '}
-            {caseData.status === 'new' ? 'Lakukan triase terlebih dahulu.' : ''}
+            {pick('Belum ada tindakan CAPA.', 'No CAPA actions yet.')}{' '}
+            {caseData.status === 'new' ? pick('Lakukan triase terlebih dahulu.', 'Perform triage first.') : ''}
           </div>
         ) : (
           <div className="space-y-3">
@@ -271,7 +315,7 @@ export function CaseCapaSection({
                             : 'border-[var(--control)] bg-[var(--surface)] text-[var(--text)]'
                       }`}
                     >
-                      {act.action_type_label}
+                      {localizeActionTypeLabel(lang, act.action_type_label, act.action_type)}
                     </span>
 
                     <div className="flex items-center gap-1.5">
@@ -283,18 +327,18 @@ export function CaseCapaSection({
                             : 'border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] text-[var(--safety-warning-foreground)]'
                         }`}
                       >
-                        {act.status_label}
+                        {localizeActionStatusLabel(lang, act.status_label, act.status)}
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)]">
-                      {act.title}
+                      {localizeContentText(lang, act.title)}
                     </h3>
                     {act.description && (
                       <p className="text-[13px] leading-relaxed text-[var(--muted)]">
-                        {act.description}
+                        {localizeContentText(lang, act.description)}
                       </p>
                     )}
                   </div>
@@ -312,7 +356,7 @@ export function CaseCapaSection({
                     <span className="inline-flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--faint)]" aria-hidden="true" />
                       <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
-                        Tenggat: {formatDateTime(act.due_at)}
+                        {pick('Tenggat', 'Due')}: {formatDateTime(act.due_at)}
                       </span>
                     </span>
                   </div>
@@ -320,10 +364,10 @@ export function CaseCapaSection({
                   {act.completion_note && (
                     <div className="rounded-[6px] border border-[var(--safety-safe-border)] bg-[var(--surface)] px-3 py-2.5 space-y-0.5">
                       <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--safety-safe-foreground)]">
-                        Hasil Penyelesaian
+                        {pick('Hasil Penyelesaian', 'Completion Result')}
                       </div>
                       <p className="text-[13px] leading-relaxed text-[var(--text)]">
-                        {act.completion_note}
+                        {localizeContentText(lang, act.completion_note)}
                       </p>
                     </div>
                   )}
@@ -364,7 +408,7 @@ export function CaseCapaSection({
                           className="inline-flex h-11 items-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer transition-colors"
                         >
                           <RotateCcw className="h-3.5 w-3.5 text-[var(--muted)]" />
-                          Buka Ulang
+                          {pick('Buka Ulang', 'Reopen')}
                         </button>
                       )}
                       {act.can_complete && (
@@ -373,7 +417,7 @@ export function CaseCapaSection({
                           onClick={() => setCompletingAction(act)}
                           className="h-11 flex-1 sm:flex-none rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer transition-colors"
                         >
-                          Selesaikan Tindakan
+                          {pick('Selesaikan Tindakan', 'Complete Action')}
                         </button>
                       )}
                     </div>
@@ -385,7 +429,10 @@ export function CaseCapaSection({
                       className="mt-2 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] p-3 space-y-2"
                     >
                       <div className="text-[12px] font-medium text-[var(--text)]">
-                        Buka ulang tindakan ini agar PIC memperbaiki hasil
+                        {pick(
+                          'Buka ulang tindakan ini agar PIC memperbaiki hasil',
+                          'Reopen this action so the PIC can revise the result',
+                        )}
                       </div>
                       {reopenActionErr && (
                         <div className="text-[12px] text-[var(--safety-danger-foreground)]">
@@ -397,7 +444,7 @@ export function CaseCapaSection({
                           type="text"
                           value={reopenActionReason}
                           onChange={(e) => setReopenActionReason(e.target.value)}
-                          placeholder="Alasan membuka ulang tindakan..."
+                          placeholder={pick('Alasan membuka ulang tindakan...', 'Reason for reopening action...')}
                           required
                           className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)]"
                         />
@@ -407,14 +454,14 @@ export function CaseCapaSection({
                             disabled={reopenActionBusy}
                             className="h-11 rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] disabled:opacity-50 cursor-pointer"
                           >
-                            Konfirmasi
+                            {pick('Konfirmasi', 'Confirm')}
                           </button>
                           <button
                             type="button"
                             onClick={() => setReopeningActionId(null)}
                             className="h-11 rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] text-[var(--muted)] cursor-pointer"
                           >
-                            Batal
+                            {pick('Batal', 'Cancel')}
                           </button>
                         </div>
                       </div>
@@ -430,9 +477,11 @@ export function CaseCapaSection({
       {canManageActions && (
         <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] pb-3">
-            <h2 className="text-[16px] font-semibold text-[var(--text)]">Tambah Tindakan Baru</h2>
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">
+              {pick('Tambah Tindakan Baru', 'Add New Action')}
+            </h2>
             <span className="text-[12px] text-[var(--faint)]">
-              Pilih jenis, PIC pelaksana, dan tenggat
+              {pick('Pilih jenis, PIC pelaksana, dan tenggat', 'Select type, executor PIC, and due date')}
             </span>
           </div>
           <form onSubmit={handleAddAction} className="space-y-3.5">
@@ -453,7 +502,7 @@ export function CaseCapaSection({
                 <button
                   type="button"
                   onClick={() => setActionSuccess(null)}
-                  aria-label="Tutup notifikasi"
+                  aria-label={pick('Tutup notifikasi', 'Close notification')}
                   className="shrink-0 rounded-[4px] p-0.5 opacity-75 hover:opacity-100 cursor-pointer"
                 >
                   <X className="h-4 w-4" />
@@ -465,17 +514,20 @@ export function CaseCapaSection({
               <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-[13px] font-semibold text-[var(--text)]">
-                    Draf tindakan dari AI
+                    {pick('Draf tindakan dari AI', 'AI action drafts')}
                   </div>
                   <div className="text-[12px] text-[var(--faint)]">
-                    Pilih draf lalu sesuaikan judul dan instruksi sebelum disimpan.
+                    {pick(
+                      'Pilih draf lalu sesuaikan judul dan instruksi sebelum disimpan.',
+                      'Select a draft then adjust title and instructions before saving.',
+                    )}
                   </div>
                 </div>
                 <AiAssistButton
                   onClick={() => actionSuggestions.mutate()}
                   loading={actionSuggestions.isPending}
-                  label="Sarankan Tindakan"
-                  loadingLabel="Meminta saran..."
+                  label={pick('Sarankan Tindakan', 'Suggest Actions')}
+                  loadingLabel={pick('Meminta saran...', 'Requesting...')}
                 />
               </div>
 
@@ -497,10 +549,10 @@ export function CaseCapaSection({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-[4px] bg-[var(--raised)] px-2 py-0.5 text-[11px] font-medium text-[var(--text)]">
-                        {suggestion.action_type_label}
+                        {localizeActionTypeLabel(lang, suggestion.action_type_label, suggestion.action_type)}
                       </span>
                       <span className="text-[11px] text-[var(--faint)]">
-                        {AI_PRIORITY_LABELS[suggestion.priority]}
+                        {(lang === 'en' ? AI_PRIORITY_LABELS_EN : AI_PRIORITY_LABELS_ID)[suggestion.priority]}
                       </span>
                     </div>
                     <button
@@ -508,26 +560,26 @@ export function CaseCapaSection({
                       onClick={() => applyAiAction(suggestion)}
                       className="h-11 rounded-[6px] border border-[var(--accent)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--raised)] cursor-pointer transition-colors"
                     >
-                      Gunakan draf
+                      {pick('Gunakan draf', 'Use draft')}
                     </button>
                   </div>
                   <div className="text-[13px] font-semibold text-[var(--text)]">
-                    {suggestion.title}
+                    {localizeContentText(lang, suggestion.title)}
                   </div>
-                  <div className="text-[12px] text-[var(--muted)]">{suggestion.description}</div>
+                  <div className="text-[12px] text-[var(--muted)]">{localizeContentText(lang, suggestion.description)}</div>
                   <div className="text-[12px] text-[var(--faint)]">
-                    Alasan: {suggestion.rationale}
+                    {pick('Alasan', 'Rationale')}: {localizeContentText(lang, suggestion.rationale)}
                   </div>
                   {suggestion.suggested_pic_role && (
                     <div className="text-[11px] text-[var(--faint)]">
-                      Peran PIC yang disarankan: {suggestion.suggested_pic_role}
+                      {pick('Peran PIC yang disarankan', 'Suggested PIC role')}: {localizeRoleLabel(lang, suggestion.suggested_pic_role, suggestion.suggested_pic_role)}
                     </div>
                   )}
                 </div>
               ))}
               {aiActions?.limitations.length ? (
                 <div className="text-[11px] text-[var(--faint)]">
-                  Keterbatasan: {aiActions.limitations.join(' · ')}
+                  {pick('Keterbatasan', 'Limitations')}: {aiActions.limitations.map((lim) => localizeContentText(lang, lim)).join(' · ')}
                 </div>
               ) : null}
             </div>
@@ -535,34 +587,37 @@ export function CaseCapaSection({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-[var(--text)]">
-                  Jenis Tindakan <span className="text-[var(--safety-danger)]">*</span>
+                  {pick('Jenis Tindakan', 'Action Type')} <span className="text-[var(--safety-danger)]">*</span>
                 </label>
                 <Select
                   value={actionType}
                   onChange={(e) => setActionType(e.target.value as ActionType)}
                 >
-                  {actionTypeOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                      {ACTION_TYPE_HINTS[opt.value] ? ` — ${ACTION_TYPE_HINTS[opt.value]}` : ''}
-                    </option>
-                  ))}
+                  {actionTypeOptions.map((opt) => {
+                    const hints = lang === 'en' ? ACTION_TYPE_HINTS_EN : ACTION_TYPE_HINTS_ID
+                    return (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                        {hints[opt.value] ? ` — ${hints[opt.value]}` : ''}
+                      </option>
+                    )
+                  })}
                 </Select>
               </div>
 
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-[var(--text)]">
-                  PIC Pelaksana <span className="text-[var(--safety-danger)]">*</span>
+                  {pick('PIC Pelaksana', 'Executor PIC')} <span className="text-[var(--safety-danger)]">*</span>
                 </label>
                 <Select
                   value={actionPicId}
                   onChange={(e) => setActionPicIdOverride(e.target.value)}
                   required
                 >
-                  <option value="">Pilih PIC pelaksana...</option>
+                  <option value="">{pick('Pilih PIC pelaksana...', 'Select executor PIC...')}</option>
                   {actionPicCandidates.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.name} · {u.role_label}
+                      {u.name} · {localizeRoleLabel(lang, u.role_label, u.role)}
                     </option>
                   ))}
                 </Select>
@@ -570,7 +625,7 @@ export function CaseCapaSection({
 
               <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
                 <label className="block text-[13px] font-semibold text-[var(--text)]">
-                  Tenggat Waktu <span className="font-normal text-[var(--faint)]">(Opsional)</span>
+                  {pick('Tenggat Waktu', 'Due Date')} <span className="font-normal text-[var(--faint)]">({pick('Opsional', 'Optional')})</span>
                 </label>
                 <div className="relative">
                   <Calendar
@@ -579,7 +634,7 @@ export function CaseCapaSection({
                   />
                   {!actionDueAt && !actionDueFocused && (
                     <span className="pointer-events-none absolute left-9 right-8 top-1/2 -translate-y-1/2 truncate text-[14px] text-[var(--faint)]">
-                      Pilih tanggal &amp; jam...
+                      {pick('Pilih tanggal & jam...', 'Select date & time...')}
                     </span>
                   )}
                   <input
@@ -588,7 +643,7 @@ export function CaseCapaSection({
                     onChange={(e) => setActionDueAt(e.target.value)}
                     onFocus={() => setActionDueFocused(true)}
                     onBlur={() => setActionDueFocused(false)}
-                    aria-label="Tenggat waktu opsional"
+                    aria-label={pick('Tenggat waktu opsional', 'Optional due date')}
                     className={`h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[14px] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15 cursor-pointer ${
                       !actionDueAt && !actionDueFocused ? 'text-transparent' : 'text-[var(--text)]'
                     }`}
@@ -599,13 +654,16 @@ export function CaseCapaSection({
 
             <div className="space-y-1.5">
               <label className="block text-[13px] font-semibold text-[var(--text)]">
-                Judul Tindakan <span className="text-[var(--safety-danger)]">*</span>
+                {pick('Judul Tindakan', 'Action Title')} <span className="text-[var(--safety-danger)]">*</span>
               </label>
               <input
                 type="text"
                 value={actionTitle}
                 onChange={(e) => setActionTitle(e.target.value)}
-                placeholder="Contoh: Pasang pelindung belt & periksa sensor..."
+                placeholder={pick(
+                  'Contoh: Pasang pelindung belt & periksa sensor...',
+                  'Example: Install belt guard & inspect sensor...',
+                )}
                 required
                 className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
               />
@@ -613,15 +671,18 @@ export function CaseCapaSection({
 
             <div className="space-y-1.5">
               <label className="block text-[13px] font-semibold text-[var(--text)]">
-                Instruksi Detail{' '}
-                <span className="font-normal text-[var(--faint)]">(Opsional)</span>
+                {pick('Instruksi Detail', 'Detailed Instructions')}{' '}
+                <span className="font-normal text-[var(--faint)]">({pick('Opsional', 'Optional')})</span>
               </label>
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <input
                   type="text"
                   value={actionDescription}
                   onChange={(e) => setActionDescription(e.target.value)}
-                  placeholder="Catatan langkah kerja atau alat yang dibutuhkan..."
+                  placeholder={pick(
+                    'Catatan langkah kerja atau alat yang dibutuhkan...',
+                    'Notes on work steps or required tools...',
+                  )}
                   className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
                 <button
@@ -629,7 +690,7 @@ export function CaseCapaSection({
                   disabled={actionBusy}
                   className="h-11 w-full sm:w-auto shrink-0 rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                 >
-                  {actionBusy ? 'Menambah...' : 'Tambah Tindakan'}
+                  {actionBusy ? pick('Menambah...', 'Adding...') : pick('Tambah Tindakan', 'Add Action')}
                 </button>
               </div>
             </div>
@@ -640,7 +701,7 @@ export function CaseCapaSection({
       <ModalDialog
         open={Boolean(editingAction)}
         onClose={() => setEditingAction(null)}
-        title="Edit Tindakan CAPA"
+        title={pick('Edit Tindakan CAPA', 'Edit CAPA Action')}
         closeDisabled={editActionBusy}
       >
         <form onSubmit={handleSaveEditAction} className="space-y-4">
@@ -653,7 +714,7 @@ export function CaseCapaSection({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-[13px] font-semibold text-[var(--text)]">
-                Jenis Tindakan
+                {pick('Jenis Tindakan', 'Action Type')}
               </label>
               <Select
                 value={editActionType}
@@ -668,17 +729,17 @@ export function CaseCapaSection({
             </div>
             <div className="space-y-1.5">
               <label className="block text-[13px] font-semibold text-[var(--text)]">
-                PIC Tindakan
+                {pick('PIC Tindakan', 'Action PIC')}
               </label>
               <Select
                 value={editActionPicId}
                 onChange={(e) => setEditActionPicId(e.target.value)}
                 required
               >
-                <option value="">Pilih PIC...</option>
+                <option value="">{pick('Pilih PIC...', 'Select PIC...')}</option>
                 {editActionPicCandidates.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} · {u.role_label}
+                    {u.name} · {localizeRoleLabel(lang, u.role_label, u.role)}
                   </option>
                 ))}
               </Select>
@@ -687,7 +748,7 @@ export function CaseCapaSection({
 
           <div className="space-y-1.5">
             <label className="block text-[13px] font-semibold text-[var(--text)]">
-              Judul Tindakan
+              {pick('Judul Tindakan', 'Action Title')}
             </label>
             <input
               type="text"
@@ -700,7 +761,7 @@ export function CaseCapaSection({
 
           <div className="space-y-1.5">
             <label className="block text-[13px] font-semibold text-[var(--text)]">
-              Instruksi / Deskripsi
+              {pick('Instruksi / Deskripsi', 'Instructions / Description')}
             </label>
             <textarea
               rows={2}
@@ -712,7 +773,7 @@ export function CaseCapaSection({
 
           <div className="space-y-1.5">
             <label className="block text-[13px] font-semibold text-[var(--text)]">
-              Tenggat Waktu
+              {pick('Tenggat Waktu', 'Due Date')}
             </label>
             <input
               type="datetime-local"
@@ -728,14 +789,14 @@ export function CaseCapaSection({
               onClick={() => setEditingAction(null)}
               className="h-11 flex-1 rounded-[6px] border border-[var(--control)] text-[14px] text-[var(--text)]"
             >
-              Batal
+              {pick('Batal', 'Cancel')}
             </button>
             <button
               type="submit"
               disabled={editActionBusy}
               className="h-11 flex-1 rounded-[6px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] disabled:opacity-50"
             >
-              {editActionBusy ? 'Menyimpan...' : 'Simpan Perubahan'}
+              {editActionBusy ? pick('Menyimpan...', 'Saving...') : pick('Simpan Perubahan', 'Save Changes')}
             </button>
           </div>
         </form>

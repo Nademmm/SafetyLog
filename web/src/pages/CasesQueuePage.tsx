@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronDown, Filter, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { localizeCaseTypeName, localizeMachineName, useLanguage } from '@/lib/i18n-helpers'
 import { useReferenceData } from '@/lib/reference'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
 import { PaginationBar } from '@/components/safety/PaginationBar'
@@ -11,6 +12,24 @@ import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { Select } from '@/components/ui/FormField'
 import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { Machine, PaginationMeta, SafetyCase } from '@/types/safetylog'
+
+const STATUS_LABELS_EN: Record<string, string> = {
+  '': 'All',
+  new: 'New',
+  assessed: 'Assessed',
+  analyzed: 'Analyzed',
+  in_progress: 'In Progress',
+  pending_verification: 'Pending Verification',
+  closed: 'Closed',
+  rejected: 'Rejected',
+  duplicate: 'Duplicate',
+}
+
+const RISK_LABELS_EN: Record<string, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+}
 
 const FALLBACK_STATUS_TABS = [
   { value: '', label: 'Semua' },
@@ -25,6 +44,7 @@ const FALLBACK_STATUS_TABS = [
 ]
 
 export function CasesQueuePage() {
+  const { lang, pick } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlQ = searchParams.get('q') || ''
   const status = searchParams.get('status') || ''
@@ -105,9 +125,16 @@ export function CasesQueuePage() {
 
   const statusTabs = React.useMemo(() => {
     const dynamic = refQuery.data?.case_statuses
-    if (!dynamic || dynamic.length === 0) return FALLBACK_STATUS_TABS
-    return [{ value: '', label: 'Semua' }, ...dynamic]
-  }, [refQuery.data?.case_statuses])
+    const base =
+      !dynamic || dynamic.length === 0
+        ? FALLBACK_STATUS_TABS
+        : [{ value: '', label: 'Semua' }, ...dynamic]
+    if (lang !== 'en') return base
+    return base.map((item) => ({
+      ...item,
+      label: STATUS_LABELS_EN[item.value] ?? item.label,
+    }))
+  }, [refQuery.data?.case_statuses, lang])
 
   const queryString = React.useMemo(() => {
     const p = new URLSearchParams()
@@ -135,9 +162,10 @@ export function CasesQueuePage() {
   const categories = refQuery.data?.categories ?? []
 
   const activeStatusLabel =
-    statusTabs.find((t) => t.value === status)?.label || 'Semua'
+    statusTabs.find((t) => t.value === status)?.label || pick('Semua', 'All')
+  const rawRiskLabel = riskLevels.find((r) => r.value === riskLevel)?.label || riskLevel
   const activeRiskLabel =
-    riskLevels.find((r) => r.value === riskLevel)?.label || riskLevel
+    lang === 'en' ? (RISK_LABELS_EN[riskLevel] ?? rawRiskLabel) : rawRiskLabel
   const activeMachine = machines.find((m) => String(m.id) === machineId)
   const activeCategory = categories.find((cat) => String(cat.id) === categoryId)
 
@@ -145,10 +173,10 @@ export function CasesQueuePage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-          Antrean &amp; Pencarian Kasus
+          {pick('Antrean & Pencarian Kasus', 'Case Queue & Search')}
         </h1>
         <div className="text-[13px] text-[var(--faint)] tabular-nums">
-          {casesQuery.data?.meta?.total ?? cases.length} kasus ditemukan
+          {casesQuery.data?.meta?.total ?? cases.length} {pick('kasus ditemukan', 'cases found')}
         </div>
       </div>
 
@@ -159,7 +187,10 @@ export function CasesQueuePage() {
             type="search"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
-            placeholder="Cari nomor kasus, mesin, deskripsi..."
+            placeholder={pick(
+              'Cari nomor kasus, mesin, deskripsi...',
+              'Search case number, machine, description...',
+            )}
             className="h-11 min-w-0 flex-1 rounded-[8px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
           />
 
@@ -204,7 +235,7 @@ export function CasesQueuePage() {
               {/* Unified Filter Bottom Sheet (Mobile) / Popover Panel (Desktop) */}
               <div
                 role="dialog"
-                aria-label="Filter kasus"
+                aria-label={pick('Filter kasus', 'Case filters')}
                 className="fixed inset-x-0 bottom-0 z-50 flex max-h-[84vh] flex-col rounded-t-[16px] border-t border-[var(--border)] bg-[var(--surface)] shadow-[0_-12px_32px_rgba(0,0,0,0.3)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[400px] sm:max-h-[75vh] sm:rounded-[8px] sm:border sm:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
               >
                 {/* Header */}
@@ -213,18 +244,18 @@ export function CasesQueuePage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[15px] font-semibold text-[var(--text)]">
-                        Filter Kasus
+                        {pick('Filter Kasus', 'Case Filters')}
                       </span>
                       {activeFilterCount > 0 && (
                         <span className="rounded-[4px] bg-[var(--accent-soft)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--accent)] tabular-nums">
-                          {activeFilterCount} aktif
+                          {activeFilterCount} {pick('aktif', 'active')}
                         </span>
                       )}
                     </div>
                     <button
                       type="button"
                       onClick={() => setFilterOpen(false)}
-                      aria-label="Tutup filter"
+                      aria-label={pick('Tutup filter', 'Close filters')}
                       className="flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)] cursor-pointer"
                     >
                       <X className="h-4 w-4" />
@@ -237,7 +268,7 @@ export function CasesQueuePage() {
                   {/* 1. Status Kasus */}
                   <div className="space-y-2">
                     <span className="block text-[13px] font-semibold text-[var(--text)]">
-                      Status Kasus
+                      {pick('Status Kasus', 'Case Status')}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {statusTabs.map((tab) => {
@@ -264,7 +295,7 @@ export function CasesQueuePage() {
                   {/* 2. Level Risiko */}
                   <div className="space-y-2">
                     <span className="block text-[13px] font-semibold text-[var(--text)]">
-                      Level Risiko
+                      {pick('Level Risiko', 'Risk Level')}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       <button
@@ -277,7 +308,7 @@ export function CasesQueuePage() {
                         }`}
                       >
                         {!riskLevel && <Check className="h-3.5 w-3.5 text-[var(--accent)] stroke-[2.5px]" />}
-                        <span>Semua Risiko</span>
+                        <span>{pick('Semua Risiko', 'All Risks')}</span>
                       </button>
                       {riskLevels.map((r) => {
                         const active = riskLevel === r.value
@@ -293,7 +324,7 @@ export function CasesQueuePage() {
                             }`}
                           >
                             {active && <Check className="h-3.5 w-3.5 text-[var(--accent)] stroke-[2.5px]" />}
-                            <span>{r.label}</span>
+                            <span>{lang === 'en' ? (RISK_LABELS_EN[r.value] ?? r.label) : r.label}</span>
                           </button>
                         )
                       })}
@@ -304,14 +335,14 @@ export function CasesQueuePage() {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Mesin
+                        {pick('Mesin', 'Machine')}
                       </label>
                       <Select
                         value={machineId}
                         onChange={(e) => updateParams({ machine_id: e.target.value || null }, true)}
-                        aria-label="Filter mesin"
+                        aria-label={pick('Filter mesin', 'Filter machine')}
                       >
-                        <option value="">Semua Mesin</option>
+                        <option value="">{pick('Semua Mesin', 'All Machines')}</option>
                         {machines.map((m) => (
                           <option key={m.id} value={m.id}>
                             {m.code} — {m.name}
@@ -322,14 +353,14 @@ export function CasesQueuePage() {
 
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Kategori
+                        {pick('Kategori', 'Category')}
                       </label>
                       <Select
                         value={categoryId}
                         onChange={(e) => updateParams({ category_id: e.target.value || null }, true)}
-                        aria-label="Filter kategori"
+                        aria-label={pick('Filter kategori', 'Filter category')}
                       >
-                        <option value="">Semua Kategori</option>
+                        <option value="">{pick('Semua Kategori', 'All Categories')}</option>
                         {categories.map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.name}
@@ -343,25 +374,25 @@ export function CasesQueuePage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Dari Tanggal
+                        {pick('Dari Tanggal', 'From Date')}
                       </label>
                       <input
                         type="date"
                         value={dateFrom}
                         onChange={(e) => updateParams({ date_from: e.target.value || null }, true)}
-                        aria-label="Tanggal mulai"
+                        aria-label={pick('Tanggal mulai', 'Start date')}
                         className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-2.5 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Sampai Tanggal
+                        {pick('Sampai Tanggal', 'To Date')}
                       </label>
                       <input
                         type="date"
                         value={dateTo}
                         onChange={(e) => updateParams({ date_to: e.target.value || null }, true)}
-                        aria-label="Tanggal akhir"
+                        aria-label={pick('Tanggal akhir', 'End date')}
                         className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-2.5 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
@@ -386,7 +417,7 @@ export function CasesQueuePage() {
                     onClick={() => setFilterOpen(false)}
                     className="h-11 flex-[1.5] rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
                   >
-                    Terapkan ({casesQuery.data?.meta?.total ?? cases.length})
+                    {pick('Terapkan', 'Apply')} ({casesQuery.data?.meta?.total ?? cases.length})
                   </button>
                 </div>
               </div>
@@ -413,7 +444,7 @@ export function CasesQueuePage() {
                 onClick={() => updateParams({ risk_level: null }, true)}
                 className="inline-flex h-7 items-center gap-1 rounded-[5px] border border-[var(--control)] bg-[var(--surface)] px-2.5 font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
               >
-                <span>Risiko: {activeRiskLabel}</span>
+                <span>{pick('Risiko', 'Risk')}: {activeRiskLabel}</span>
                 <X className="h-3 w-3 text-[var(--muted)]" />
               </button>
             )}
@@ -423,7 +454,7 @@ export function CasesQueuePage() {
                 onClick={() => updateParams({ machine_id: null }, true)}
                 className="inline-flex h-7 items-center gap-1 rounded-[5px] border border-[var(--control)] bg-[var(--surface)] px-2.5 font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
               >
-                <span>Mesin: {activeMachine.code}</span>
+                <span>{pick('Mesin', 'Machine')}: {activeMachine.code}</span>
                 <X className="h-3 w-3 text-[var(--muted)]" />
               </button>
             )}
@@ -433,7 +464,7 @@ export function CasesQueuePage() {
                 onClick={() => updateParams({ category_id: null }, true)}
                 className="inline-flex h-7 items-center gap-1 rounded-[5px] border border-[var(--control)] bg-[var(--surface)] px-2.5 font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
               >
-                <span>Kategori: {activeCategory.name}</span>
+                <span>{pick('Kategori', 'Category')}: {activeCategory.name}</span>
                 <X className="h-3 w-3 text-[var(--muted)]" />
               </button>
             )}
@@ -444,7 +475,7 @@ export function CasesQueuePage() {
                 className="inline-flex h-7 items-center gap-1 rounded-[5px] border border-[var(--control)] bg-[var(--surface)] px-2.5 font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
               >
                 <span>
-                  Tanggal: {dateFrom || '...'} – {dateTo || '...'}
+                  {pick('Tanggal', 'Date')}: {dateFrom || '...'} – {dateTo || '...'}
                 </span>
                 <X className="h-3 w-3 text-[var(--muted)]" />
               </button>
@@ -457,7 +488,7 @@ export function CasesQueuePage() {
               }}
               className="inline-flex h-7 items-center px-2 text-[12px] font-medium text-[var(--accent)] hover:underline cursor-pointer"
             >
-              Reset semua
+              {pick('Reset semua', 'Reset all')}
             </button>
           </div>
         )}
@@ -465,7 +496,7 @@ export function CasesQueuePage() {
 
       {casesQuery.isError && (
         <QueryErrorBanner
-          message="Gagal memuat daftar kasus."
+          message={pick('Gagal memuat daftar kasus.', 'Failed to load case list.')}
           onRetry={() => void casesQuery.refetch()}
         />
       )}
@@ -473,10 +504,13 @@ export function CasesQueuePage() {
       {/* Cases List */}
       <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
         {casesQuery.isLoading ? (
-          <SectionLoading label="Memuat daftar kasus..." />
+          <SectionLoading label={pick('Memuat daftar kasus...', 'Loading case list...')} />
         ) : cases.length === 0 ? (
           <div className="p-6 text-[14px] text-[var(--faint)]">
-            Tidak ada kasus yang cocok dengan filter saat ini.
+            {pick(
+              'Tidak ada kasus yang cocok dengan filter saat ini.',
+              'No cases match the current filters.',
+            )}
           </div>
         ) : (
           cases.map((c) => (
@@ -487,13 +521,17 @@ export function CasesQueuePage() {
             >
               <div className="min-w-0 space-y-1">
                 <div className="text-[15px] font-medium text-[var(--text)] truncate">
-                  {c.machine ? `${c.machine.code} — ${c.machine.name}` : 'Mesin'}
+                  {c.machine ? `${c.machine.code} — ${localizeMachineName(lang, c.machine.name, c.machine.code)}` : pick('Mesin', 'Machine')}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--muted)]">
-                  <span>{c.case_type?.name || 'Laporan'}</span>
+                  <span>
+                    {c.case_type?.name
+                      ? localizeCaseTypeName(lang, c.case_type.name, c.case_type.code)
+                      : pick('Laporan', 'Report')}
+                  </span>
                   {c.is_machine_stopped && (
                     <span className="rounded-[4px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--safety-danger-foreground)]">
-                      Mesin berhenti
+                      {pick('Mesin berhenti', 'Machine stopped')}
                     </span>
                   )}
                   <span className="text-[var(--faint)] tabular-nums md:hidden">

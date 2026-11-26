@@ -4,31 +4,29 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Check, ChevronDown, ChevronRight, Clock, Filter, User, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { localizeCaseStatusLabel, localizeContentText, useLanguage } from '@/lib/i18n-helpers'
 import { PaginationBar } from '@/components/safety/PaginationBar'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { CaseStatusHistory, PaginationMeta } from '@/types/safetylog'
 
 const ACTION_OPTIONS = [
-  { value: '', label: 'Semua Aksi' },
-  { value: 'case_reported', label: 'Kasus Dilaporkan' },
-  { value: 'case_triaged', label: 'Triase Risiko' },
-  { value: 'case_rejected', label: 'Kasus Ditolak' },
-  { value: 'case_marked_duplicate', label: 'Kasus Duplikat' },
-  { value: 'root_cause_analyzed', label: 'Analisis 5 Why & 6M' },
-  { value: 'action_created', label: 'Tindakan Dibuat' },
-  { value: 'action_completed', label: 'Tindakan Selesai' },
-  { value: 'all_actions_completed', label: 'Semua Tindakan Selesai' },
-  { value: 'verification_approved', label: 'Verifikasi Disetujui' },
-  { value: 'verification_rejected', label: 'Verifikasi Ditolak' },
-  { value: 'case_reopened', label: 'Kasus Dibuka Ulang' },
+  { value: '', labelId: 'Semua Aksi', labelEn: 'All Actions' },
+  { value: 'case_reported', labelId: 'Kasus Dilaporkan', labelEn: 'Case Reported' },
+  { value: 'case_triaged', labelId: 'Triase Risiko', labelEn: 'Risk Triage' },
+  { value: 'case_rejected', labelId: 'Kasus Ditolak', labelEn: 'Case Rejected' },
+  { value: 'case_marked_duplicate', labelId: 'Kasus Duplikat', labelEn: 'Duplicate Case' },
+  { value: 'root_cause_analyzed', labelId: 'Analisis 5 Why & 6M', labelEn: '5 Why & 6M Analysis' },
+  { value: 'action_created', labelId: 'Tindakan Dibuat', labelEn: 'Action Created' },
+  { value: 'action_completed', labelId: 'Tindakan Selesai', labelEn: 'Action Completed' },
+  { value: 'all_actions_completed', labelId: 'Semua Tindakan Selesai', labelEn: 'All Actions Completed' },
+  { value: 'verification_approved', labelId: 'Verifikasi Disetujui', labelEn: 'Verification Approved' },
+  { value: 'verification_rejected', labelId: 'Verifikasi Ditolak', labelEn: 'Verification Rejected' },
+  { value: 'case_reopened', labelId: 'Kasus Dibuka Ulang', labelEn: 'Case Reopened' },
 ]
 
-const ACTION_LABELS: Record<string, string> = Object.fromEntries(
-  ACTION_OPTIONS.filter((opt) => opt.value).map((opt) => [opt.value, opt.label]),
-)
-
 export function AuditLogsPage() {
+  const { lang, pick } = useLanguage()
   const [actionName, setActionName] = React.useState('')
   const [dateFrom, setDateFrom] = React.useState('')
   const [dateTo, setDateTo] = React.useState('')
@@ -54,8 +52,19 @@ export function AuditLogsPage() {
     }
   }, [filterOpen])
 
+  const actionLabelMap = React.useMemo(
+    () =>
+      Object.fromEntries(
+        ACTION_OPTIONS.filter((opt) => opt.value).map((opt) => [
+          opt.value,
+          lang === 'en' ? opt.labelEn : opt.labelId,
+        ]),
+      ) as Record<string, string>,
+    [lang],
+  )
+
   const activeFilterCount = (actionName ? 1 : 0) + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0)
-  const activeActionLabel = ACTION_OPTIONS.find((opt) => opt.value === actionName)?.label || actionName
+  const activeActionLabel = actionLabelMap[actionName] || actionName
 
   const logsQuery = useQuery({
     queryKey: ['audit-logs', actionName, dateFrom, dateTo, page],
@@ -77,11 +86,13 @@ export function AuditLogsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Riwayat Perubahan (Audit Log)
+            {pick('Riwayat Perubahan (Audit Log)', 'Change History (Audit Log)')}
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Catatan append-only seluruh perubahan status kasus dalam organisasi. Tidak dapat diubah
-            atau dihapus.
+            {pick(
+              'Catatan append-only seluruh perubahan status kasus dalam organisasi. Tidak dapat diubah atau dihapus.',
+              'Append-only record of all case status changes in the organization. Cannot be edited or deleted.',
+            )}
           </p>
         </div>
 
@@ -126,7 +137,7 @@ export function AuditLogsPage() {
 
               <div
                 role="dialog"
-                aria-label="Filter audit log"
+                aria-label={pick('Filter audit log', 'Audit log filters')}
                 className="fixed inset-x-0 bottom-0 z-50 flex max-h-[82vh] flex-col rounded-t-[16px] border-t border-[var(--border)] bg-[var(--surface)] shadow-[0_-12px_32px_rgba(0,0,0,0.3)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[360px] sm:max-h-[75vh] sm:rounded-[8px] sm:border sm:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
               >
                 <div className="shrink-0 border-b border-[var(--rule)] px-4 pt-3 pb-3">
@@ -134,18 +145,18 @@ export function AuditLogsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[15px] font-semibold text-[var(--text)]">
-                        Filter Audit Log
+                        {pick('Filter Audit Log', 'Audit Log Filters')}
                       </span>
                       {activeFilterCount > 0 && (
                         <span className="rounded-[4px] bg-[var(--accent-soft)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--accent)] tabular-nums">
-                          {activeFilterCount} aktif
+                          {activeFilterCount} {pick('aktif', 'active')}
                         </span>
                       )}
                     </div>
                     <button
                       type="button"
                       onClick={() => setFilterOpen(false)}
-                      aria-label="Tutup filter"
+                      aria-label={pick('Tutup filter', 'Close filters')}
                       className="flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)] cursor-pointer"
                     >
                       <X className="h-4 w-4" />
@@ -156,7 +167,7 @@ export function AuditLogsPage() {
                 <div className="flex-1 overflow-y-auto p-4 space-y-5">
                   <div className="space-y-2">
                     <span className="block text-[13px] font-semibold text-[var(--text)]">
-                      Jenis Aksi
+                      {pick('Jenis Aksi', 'Action Type')}
                     </span>
                     <div className="space-y-1">
                       {ACTION_OPTIONS.map((opt) => {
@@ -175,7 +186,7 @@ export function AuditLogsPage() {
                                 : 'font-normal text-[var(--muted)] hover:bg-[var(--hover-row)] hover:text-[var(--text)]'
                             }`}
                           >
-                            <span>{opt.label}</span>
+                            <span>{pick(opt.labelId, opt.labelEn)}</span>
                             {active && <Check className="h-4 w-4 text-[var(--accent)] shrink-0 stroke-[2.2px]" />}
                           </button>
                         )
@@ -186,7 +197,7 @@ export function AuditLogsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Dari Tanggal
+                        {pick('Dari Tanggal', 'From Date')}
                       </label>
                       <input
                         type="date"
@@ -195,13 +206,13 @@ export function AuditLogsPage() {
                           setDateFrom(e.target.value)
                           setPage(1)
                         }}
-                        aria-label="Tanggal mulai"
+                        aria-label={pick('Tanggal mulai', 'Start date')}
                         className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-2.5 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Sampai Tanggal
+                        {pick('Sampai Tanggal', 'To Date')}
                       </label>
                       <input
                         type="date"
@@ -210,7 +221,7 @@ export function AuditLogsPage() {
                           setDateTo(e.target.value)
                           setPage(1)
                         }}
-                        aria-label="Tanggal akhir"
+                        aria-label={pick('Tanggal akhir', 'End date')}
                         className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-2.5 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                       />
                     </div>
@@ -236,7 +247,7 @@ export function AuditLogsPage() {
                     onClick={() => setFilterOpen(false)}
                     className="h-11 flex-[1.5] rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
                   >
-                    Terapkan ({logsQuery.data?.meta?.total ?? logs.length})
+                    {pick('Terapkan', 'Apply')} ({logsQuery.data?.meta?.total ?? logs.length})
                   </button>
                 </div>
               </div>
@@ -257,7 +268,7 @@ export function AuditLogsPage() {
               }}
               className="inline-flex h-7 items-center gap-1 rounded-[5px] border border-[var(--accent)] bg-[var(--raised)] px-2.5 font-medium text-[var(--text)] hover:opacity-80 cursor-pointer"
             >
-              <span>Aksi: {activeActionLabel}</span>
+              <span>{pick('Aksi', 'Action')}: {activeActionLabel}</span>
               <X className="h-3 w-3 text-[var(--muted)]" />
             </button>
           )}
@@ -272,7 +283,7 @@ export function AuditLogsPage() {
               className="inline-flex h-7 items-center gap-1 rounded-[5px] border border-[var(--control)] bg-[var(--surface)] px-2.5 font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
             >
               <span>
-                Tanggal: {dateFrom || '...'} – {dateTo || '...'}
+                {pick('Tanggal', 'Date')}: {dateFrom || '...'} – {dateTo || '...'}
               </span>
               <X className="h-3 w-3 text-[var(--muted)]" />
             </button>
@@ -287,25 +298,25 @@ export function AuditLogsPage() {
             }}
             className="inline-flex h-7 items-center px-2 text-[12px] font-medium text-[var(--accent)] hover:underline cursor-pointer"
           >
-            Reset semua
+            {pick('Reset semua', 'Reset all')}
           </button>
         </div>
       )}
 
       {logsQuery.isError && (
         <QueryErrorBanner
-          message="Gagal memuat catatan audit log."
+          message={pick('Gagal memuat catatan audit log.', 'Failed to load audit log records.')}
           onRetry={() => void logsQuery.refetch()}
         />
       )}
 
       {logsQuery.isLoading ? (
         <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)]">
-          <SectionLoading label="Memuat audit log..." />
+          <SectionLoading label={pick('Memuat audit log...', 'Loading audit log...')} />
         </div>
       ) : logs.length === 0 ? (
         <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-6 text-[14px] text-[var(--faint)]">
-          Belum ada catatan audit log yang sesuai filter.
+          {pick('Belum ada catatan audit log yang sesuai filter.', 'No audit log records match the filter.')}
         </div>
       ) : (
         <>
@@ -319,7 +330,7 @@ export function AuditLogsPage() {
                 {/* Header: Action Badge & Timestamp */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="inline-flex items-center rounded-[5px] border border-[var(--control)] bg-[var(--raised)] px-2.5 py-1 text-[12px] font-medium text-[var(--text)]">
-                    {ACTION_LABELS[log.action_name] ?? log.action_name}
+                    {actionLabelMap[log.action_name] ?? log.action_name}
                   </span>
                   <span className="inline-flex items-center gap-1 font-mono text-[12px] text-[var(--faint)] tabular-nums">
                     <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -332,7 +343,7 @@ export function AuditLogsPage() {
                   {log.from_status_label ? (
                     <>
                       <span className="rounded-[5px] bg-[var(--ground)] px-2.5 py-1 text-[13px] font-medium text-[var(--muted)] border border-[var(--rule)]">
-                        {log.from_status_label}
+                        {localizeCaseStatusLabel(lang, log.from_status_label, log.from_status)}
                       </span>
                       <ArrowRight
                         className="h-4 w-4 shrink-0 text-[var(--faint)]"
@@ -341,14 +352,14 @@ export function AuditLogsPage() {
                     </>
                   ) : null}
                   <span className="rounded-[5px] bg-[var(--accent-soft)] px-2.5 py-1 text-[13px] font-semibold text-[var(--accent)]">
-                    {log.to_status_label}
+                    {localizeCaseStatusLabel(lang, log.to_status_label, log.to_status)}
                   </span>
                 </div>
 
                 {/* Reason / Notes Preview */}
                 {log.reason && (
                   <p className="rounded-[6px] border border-[var(--rule)] bg-[var(--ground)] px-3 py-2.5 text-[13.5px] leading-relaxed text-[var(--muted)]">
-                    {log.reason}
+                    {localizeContentText(lang, log.reason)}
                   </p>
                 )}
 
@@ -357,7 +368,7 @@ export function AuditLogsPage() {
                   <div className="flex items-center gap-1.5 min-w-0 text-[13px] text-[var(--muted)]">
                     <User className="h-4 w-4 shrink-0 text-[var(--faint)]" aria-hidden="true" />
                     <span className="truncate font-medium text-[var(--text)]">
-                      {log.changed_by?.name || 'Sistem'}
+                      {log.changed_by?.name || pick('Sistem', 'System')}
                     </span>
                   </div>
 
@@ -380,11 +391,11 @@ export function AuditLogsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[var(--rule)] text-[12px] font-normal text-[var(--faint)]">
-                  <th className="px-5 py-3">Waktu</th>
-                  <th className="px-5 py-3">Kasus</th>
-                  <th className="px-5 py-3">Perubahan Status</th>
-                  <th className="px-5 py-3">Oleh</th>
-                  <th className="px-5 py-3">Alasan / Catatan</th>
+                  <th className="px-5 py-3">{pick('Waktu', 'Time')}</th>
+                  <th className="px-5 py-3">{pick('Kasus', 'Case')}</th>
+                  <th className="px-5 py-3">{pick('Perubahan Status', 'Status Change')}</th>
+                  <th className="px-5 py-3">{pick('Oleh', 'By')}</th>
+                  <th className="px-5 py-3">{pick('Alasan / Catatan', 'Reason / Notes')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--rule)] text-[13px]">
@@ -406,14 +417,16 @@ export function AuditLogsPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-[var(--text)] whitespace-nowrap">
-                      {log.from_status_label ? `${log.from_status_label} → ` : ''}
-                      {log.to_status_label}
+                      {log.from_status_label
+                        ? `${localizeCaseStatusLabel(lang, log.from_status_label, log.from_status)} → `
+                        : ''}
+                      {localizeCaseStatusLabel(lang, log.to_status_label, log.to_status)}
                     </td>
                     <td className="px-5 py-3.5 text-[var(--muted)] whitespace-nowrap">
-                      {log.changed_by?.name || 'Sistem'}
+                      {log.changed_by?.name || pick('Sistem', 'System')}
                     </td>
                     <td className="px-5 py-3.5 text-[var(--muted)] max-w-md">
-                      {log.reason || '—'}
+                      {log.reason ? localizeContentText(lang, log.reason) : '—'}
                     </td>
                   </tr>
                 ))}

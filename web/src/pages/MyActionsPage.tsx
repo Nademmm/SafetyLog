@@ -4,6 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Check, ChevronDown, Filter, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import {
+  localizeActionStatusLabel,
+  localizeActionTypeLabel,
+  localizeContentText,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { OverduePill } from '@/components/safety/StatusPill'
 import { CompleteActionModal } from '@/components/safety/CompleteActionModal'
 import { PaginationBar } from '@/components/safety/PaginationBar'
@@ -11,13 +17,14 @@ import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { CaseAction, PaginationMeta } from '@/types/safetylog'
 
-const STATUS_FILTERS: Array<{ value: 'open' | 'completed' | 'all'; label: string }> = [
-  { value: 'open', label: 'Terbuka' },
-  { value: 'completed', label: 'Selesai' },
-  { value: 'all', label: 'Semua' },
+const STATUS_FILTERS: Array<{ value: 'open' | 'completed' | 'all'; labelId: string; labelEn: string }> = [
+  { value: 'open', labelId: 'Terbuka', labelEn: 'Open' },
+  { value: 'completed', labelId: 'Selesai', labelEn: 'Completed' },
+  { value: 'all', labelId: 'Semua', labelEn: 'All' },
 ]
 
 export function MyActionsPage() {
+  const { lang, pick } = useLanguage()
   const [statusFilter, setStatusFilter] = React.useState<'open' | 'completed' | 'all'>('open')
   const [page, setPage] = React.useState(1)
   const [filterOpen, setFilterOpen] = React.useState(false)
@@ -41,8 +48,10 @@ export function MyActionsPage() {
     }
   }, [filterOpen])
 
-  const activeFilterLabel =
-    STATUS_FILTERS.find((t) => t.value === statusFilter)?.label || 'Terbuka'
+  const activeFilterObj = STATUS_FILTERS.find((t) => t.value === statusFilter)
+  const activeFilterLabel = activeFilterObj
+    ? pick(activeFilterObj.labelId, activeFilterObj.labelEn)
+    : pick('Terbuka', 'Open')
 
   const actionsQuery = useQuery({
     queryKey: ['my-actions', statusFilter, page],
@@ -63,11 +72,13 @@ export function MyActionsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Tindakan Saya
+            {pick('Tindakan Saya', 'My Actions')}
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Daftar tindakan CAPA yang ditugaskan kepada Anda. Isi catatan hasil beserta analisis 5
-            Why &amp; 6M saat menyelesaikan tindakan.
+            {pick(
+              'Daftar tindakan CAPA yang ditugaskan kepada Anda. Isi catatan hasil beserta analisis 5 Why & 6M saat menyelesaikan tindakan.',
+              'List of CAPA actions assigned to you. Fill in completion notes and 5 Why & 6M root cause analysis when completing.',
+            )}
           </p>
         </div>
 
@@ -117,12 +128,12 @@ export function MyActionsPage() {
                   <div className="mx-auto h-1 w-10 rounded-full bg-[var(--control)]" />
                   <div className="flex items-center justify-between">
                     <span className="text-[15px] font-semibold text-[var(--text)]">
-                      Filter Tindakan
+                      {pick('Filter Tindakan', 'Filter Actions')}
                     </span>
                     <button
                       type="button"
                       onClick={() => setFilterOpen(false)}
-                      aria-label="Tutup filter"
+                      aria-label={pick('Tutup filter', 'Close filter')}
                       className="flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)]"
                     >
                       <X className="h-4 w-4" />
@@ -148,7 +159,7 @@ export function MyActionsPage() {
                             : 'font-normal text-[var(--muted)] hover:bg-[var(--hover-row)] hover:text-[var(--text)]'
                         }`}
                       >
-                        <span>{tab.label}</span>
+                        <span>{pick(tab.labelId, tab.labelEn)}</span>
                         {active && <Check className="h-4 w-4 text-[var(--accent)] shrink-0 stroke-[2.2px]" />}
                       </button>
                     )
@@ -162,17 +173,17 @@ export function MyActionsPage() {
 
       {actionsQuery.isError && (
         <QueryErrorBanner
-          message="Gagal memuat daftar tindakan Anda."
+          message={pick('Gagal memuat daftar tindakan Anda.', 'Failed to load your actions.')}
           onRetry={() => void actionsQuery.refetch()}
         />
       )}
 
       <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
         {actionsQuery.isLoading ? (
-          <SectionLoading label="Memuat daftar tindakan..." className="py-10" />
+          <SectionLoading label={pick('Memuat daftar tindakan...', 'Loading actions...')} className="py-10" />
         ) : actions.length === 0 ? (
           <div className="p-6 text-[14px] text-[var(--faint)]">
-            Tidak ada tindakan pada filter ini.
+            {pick('Tidak ada tindakan pada filter ini.', 'No actions match this filter.')}
           </div>
         ) : (
           actions.map((a) => {
@@ -201,7 +212,7 @@ export function MyActionsPage() {
                             : 'text-[var(--muted)]'
                         }`}
                       >
-                        {a.action_type_label}
+                        {localizeActionTypeLabel(lang, a.action_type_label, a.action_type)}
                       </span>
                       {a.safety_case && (
                         <>
@@ -226,7 +237,7 @@ export function MyActionsPage() {
                               : 'text-[var(--muted)]'
                           }`}
                         >
-                          {a.status_label}
+                          {localizeActionStatusLabel(lang, a.status_label, a.status)}
                         </span>
                       )}
                     </div>
@@ -234,13 +245,13 @@ export function MyActionsPage() {
 
                   {/* Line 2: Action Title */}
                   <div className="text-[15px] font-semibold text-[var(--text)] leading-snug">
-                    {a.title}
+                    {localizeContentText(lang, a.title)}
                   </div>
 
                   {/* Line 3: Description (clean, no heavy box) */}
                   {a.description && (
                     <p className="text-[13px] leading-snug text-[var(--muted)] line-clamp-2">
-                      {a.description}
+                      {localizeContentText(lang, a.description)}
                     </p>
                   )}
 
@@ -255,7 +266,7 @@ export function MyActionsPage() {
                     >
                       {isOverdue && <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
                       <span>
-                        {isOverdue ? 'Lewat tenggat: ' : 'Tenggat: '}
+                        {isOverdue ? pick('Lewat tenggat: ', 'Overdue: ') : pick('Tenggat: ', 'Due: ')}
                         {formatDateTime(a.due_at)}
                       </span>
                     </span>
@@ -270,7 +281,7 @@ export function MyActionsPage() {
                               : 'text-[var(--muted)]'
                           }`}
                         >
-                          · {a.status_label}
+                          · {localizeActionStatusLabel(lang, a.status_label, a.status)}
                         </span>
                       )}
                     </div>
@@ -284,7 +295,7 @@ export function MyActionsPage() {
                       onClick={() => setActiveAction(a)}
                       className="h-11 flex-1 sm:flex-none rounded-[6px] bg-[var(--primary)] px-4 text-[13.5px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer transition-colors"
                     >
-                      Selesaikan
+                      {pick('Selesaikan', 'Complete')}
                     </button>
                   )}
                   {a.safety_case && (
@@ -292,7 +303,7 @@ export function MyActionsPage() {
                       to={`/cases/${a.safety_case.id}`}
                       className="inline-flex h-11 flex-1 sm:flex-none items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)] transition-colors"
                     >
-                      Buka Kasus
+                      {pick('Buka Kasus', 'Open Case')}
                     </Link>
                   )}
                 </div>

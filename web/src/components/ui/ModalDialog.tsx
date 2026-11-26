@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { cn } from '@/lib/utils'
 
 interface ModalDialogProps {
@@ -28,6 +29,7 @@ export function ModalDialog({
   headerExtra,
   closeDisabled = false,
 }: ModalDialogProps) {
+  const { pick } = useLanguage()
   React.useEffect(() => {
     if (!open) return
     const prevOverflow = document.body.style.overflow
@@ -78,7 +80,7 @@ export function ModalDialog({
               type="button"
               onClick={onClose}
               disabled={closeDisabled}
-              aria-label="Tutup dialog"
+              aria-label={pick('Tutup dialog', 'Close dialog')}
               className="inline-flex h-11 w-11 items-center justify-center rounded-[8px] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--ink)] transition-colors disabled:opacity-40"
             >
               <X className="h-4 w-4" />

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import jsQR from 'jsqr'
 import { AlertCircle, Camera, RefreshCw, SwitchCamera, Upload } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { WaveformLoader } from '@/components/ui/waveform-loader'
 import qrSuccessSoundUrl from '../../../require/mixkit-confirmation-tone-2867.wav'
 
@@ -32,7 +33,14 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const el = new Image()
     el.onload = () => resolve(el)
-    el.onerror = () => reject(new Error('Gagal memuat gambar.'))
+    el.onerror = () =>
+      reject(
+        new Error(
+          document.documentElement.lang === 'en'
+            ? 'Failed to load image.'
+            : 'Gagal memuat gambar.',
+        ),
+      )
     el.src = src
   })
 }
@@ -83,6 +91,7 @@ export function QrScannerStage({
   isResolving = false,
   errorMessage = null,
 }: QrScannerStageProps) {
+  const { pick } = useLanguage()
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null)
   const streamRef = React.useRef<MediaStream | null>(null)
@@ -130,7 +139,10 @@ export function QrScannerStage({
         if (!cancelled) {
           setCameraState('error')
           setCameraError(
-            'Browser tidak mengizinkan siaran kamera langsung di koneksi ini. Unggah foto QR atau pilih mesin manual di bawah.',
+            pick(
+              'Browser tidak mengizinkan siaran kamera langsung di koneksi ini. Unggah foto QR atau pilih mesin manual di bawah.',
+              'Browser does not allow live camera stream on this connection. Upload a QR photo or select machine manually below.',
+            ),
           )
         }
         return
@@ -200,7 +212,10 @@ export function QrScannerStage({
         if (!cancelled) {
           setCameraState('error')
           setCameraError(
-            'Izin kamera ditolak atau kamera sedang digunakan aplikasi lain. Izinkan kamera atau unggah gambar QR di bawah.',
+            pick(
+              'Izin kamera ditolak atau kamera sedang digunakan aplikasi lain. Izinkan kamera atau unggah gambar QR di bawah.',
+              'Camera permission denied or camera is in use by another app. Allow camera access or upload a QR image below.',
+            ),
           )
         }
       }
@@ -212,7 +227,7 @@ export function QrScannerStage({
       cancelled = true
       stopCamera()
     }
-  }, [facingMode, restartKey, errorMessage, onDetected, playSuccessSound, stopCamera])
+  }, [facingMode, restartKey, errorMessage, onDetected, playSuccessSound, stopCamera, pick])
 
   const handleImageQr = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null)
@@ -225,13 +240,18 @@ export function QrScannerStage({
       const rawValue = await decodeQrFromImageFile(file)
       if (!rawValue) {
         setUploadError(
-          'Kode QR belum terbaca pada foto tersebut. Pastikan stiker QR terlihat jelas dan tidak buram.',
+          pick(
+            'Kode QR belum terbaca pada foto tersebut. Pastikan stiker QR terlihat jelas dan tidak buram.',
+            'QR code could not be read from that photo. Ensure the QR sticker is clear and not blurry.',
+          ),
         )
         return
       }
       const token = extractQrToken(rawValue)
       if (!token) {
-        setUploadError('Kode QR tidak berisi token mesin yang valid.')
+        setUploadError(
+          pick('Kode QR tidak berisi token mesin yang valid.', 'QR code does not contain a valid machine token.'),
+        )
         return
       }
       stopCamera()
@@ -239,7 +259,7 @@ export function QrScannerStage({
       onDetected(token)
     } catch (err) {
       setUploadError(
-        err instanceof Error ? err.message : 'Gagal membaca file gambar QR.',
+        err instanceof Error ? err.message : pick('Gagal membaca file gambar QR.', 'Failed to read QR image file.'),
       )
     } finally {
       setDecodingPhoto(false)
@@ -250,10 +270,13 @@ export function QrScannerStage({
     <div className="mx-auto max-w-[540px] space-y-4">
       <div>
         <h1 className="text-[22px] sm:text-[24px] font-semibold tracking-tight text-[var(--text)]">
-          Pindai QR Mesin
+          {pick('Pindai QR Mesin', 'Scan Machine QR')}
         </h1>
         <p className="mt-1 text-[14px] text-[var(--muted)]">
-          Arahkan kamera ke stiker QR mesin — pemindaian berjalan otomatis.
+          {pick(
+            'Arahkan kamera ke stiker QR mesin — pemindaian berjalan otomatis.',
+            'Point the camera at the machine QR sticker — scanning runs automatically.',
+          )}
         </p>
       </div>
 
@@ -296,17 +319,17 @@ export function QrScannerStage({
               <button
                 type="button"
                 onClick={() => setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))}
-                aria-label="Balik kamera depan atau belakang"
+                aria-label={pick('Balik kamera depan atau belakang', 'Switch front or back camera')}
                 className="absolute right-3 top-3 inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-white/20 bg-black/65 px-3 text-[12px] font-medium text-white hover:bg-black/80 cursor-pointer"
               >
                 <SwitchCamera className="h-4 w-4 shrink-0" />
-                <span>Balik Kamera</span>
+                <span>{pick('Balik Kamera', 'Flip Camera')}</span>
               </button>
 
               {/* Subtle Auto-Scan Status Pill (Bottom-Center) */}
               <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-1 text-[12px] font-medium text-white">
                 <span className="h-2 w-2 rounded-full bg-[#22C55E] animate-pulse" />
-                <span>Auto-Scan Aktif</span>
+                <span>{pick('Auto-Scan Aktif', 'Auto-Scan Active')}</span>
               </div>
             </>
           )}
@@ -315,7 +338,9 @@ export function QrScannerStage({
           {cameraState === 'starting' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-6 text-center text-white">
               <WaveformLoader size="sm" />
-              <span className="text-[13px] font-medium text-white/80">Membuka kamera...</span>
+              <span className="text-[13px] font-medium text-white/80">
+                {pick('Membuka kamera...', 'Opening camera...')}
+              </span>
             </div>
           )}
 
@@ -330,7 +355,7 @@ export function QrScannerStage({
                 className="inline-flex h-10 items-center gap-2 rounded-[6px] border border-white/25 bg-white/10 px-3.5 text-[13px] font-medium text-white hover:bg-white/20 cursor-pointer"
               >
                 <RefreshCw className="h-4 w-4" />
-                <span>Coba Kamera Lagi</span>
+                <span>{pick('Coba Kamera Lagi', 'Retry Camera')}</span>
               </button>
             </div>
           )}
@@ -339,11 +364,11 @@ export function QrScannerStage({
         {/* Clean Single-Action Upload Bar */}
         <div className="flex items-center justify-between gap-3 border-t border-[var(--rule)] px-4 py-3">
           <span className="text-[13px] text-[var(--muted)]">
-            Punya foto stiker QR?
+            {pick('Punya foto stiker QR?', 'Have a QR sticker photo?')}
           </span>
           <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)] transition-colors">
             <Upload className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-            <span>Unggah QR</span>
+            <span>{pick('Unggah QR', 'Upload QR')}</span>
             <input
               type="file"
               accept="image/*"
@@ -357,7 +382,9 @@ export function QrScannerStage({
           <div className="flex items-center justify-center gap-3 border-t border-[var(--rule)] bg-[var(--raised)] px-4 py-3">
             <WaveformLoader size="sm" />
             <span className="text-[13px] font-medium text-[var(--text)]">
-              {decodingPhoto ? 'Membaca kode QR dari gambar...' : 'Mengenali mesin dari QR...'}
+              {decodingPhoto
+                ? pick('Membaca kode QR dari gambar...', 'Reading QR code from image...')
+                : pick('Mengenali mesin dari QR...', 'Identifying machine from QR...')}
             </span>
           </div>
         )}

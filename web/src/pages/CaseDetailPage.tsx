@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '@/lib/api'
 import { roleHomePath, useAuth } from '@/lib/auth-helpers'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { useReferenceData } from '@/lib/reference'
 import { caseKeys, userKeys } from '@/data/query-keys'
 import { invalidateCaseMutation } from '@/data/invalidation'
@@ -19,6 +20,12 @@ import { CaseReopenPanel, CaseVerificationPanel } from '@/features/cases/CaseVer
 import { CaseSimilarSidebar } from '@/features/cases/CaseSimilarSidebar'
 import type { SafetyCase } from '@/types/safetylog'
 
+const ACTION_TYPES_EN: Record<string, string> = {
+  temporary: 'Temporary',
+  corrective: 'Corrective',
+  preventive: 'Preventive',
+}
+
 const FALLBACK_ACTION_TYPES = [
   { value: 'temporary', label: 'Sementara' },
   { value: 'corrective', label: 'Korektif' },
@@ -29,6 +36,7 @@ export function CaseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { lang, pick } = useLanguage()
   const queryClient = useQueryClient()
   const refQuery = useReferenceData()
 
@@ -66,14 +74,14 @@ export function CaseDetailPage() {
   }
 
   if (caseQuery.isLoading) {
-    return <SectionLoading label="Memuat detail kasus..." className="py-16" />
+    return <SectionLoading label={pick('Memuat detail kasus...', 'Loading case details...')} className="py-16" />
   }
 
   if (caseQuery.isError || !caseData) {
     const errText =
       caseQuery.error instanceof ApiError
         ? caseQuery.error.message
-        : 'Kasus tidak ditemukan atau Anda tidak memiliki akses.'
+        : pick('Kasus tidak ditemukan atau Anda tidak memiliki akses.', 'Case not found or you do not have access.')
     return (
       <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-6 space-y-3">
         <div className="text-[16px] font-semibold text-[var(--safety-danger-foreground)]">
@@ -84,7 +92,7 @@ export function CaseDetailPage() {
           onClick={handleBack}
           className="inline-flex h-11 items-center rounded-[6px] border border-[var(--control)] px-4 text-[14px] text-[var(--text)] hover:bg-[var(--raised)]"
         >
-          Kembali
+          {pick('Kembali', 'Back')}
         </button>
       </div>
     )
@@ -103,7 +111,14 @@ export function CaseDetailPage() {
 
   const canManageActions = Boolean(available?.can_manage_actions) && user?.role === 'supervisor'
   const assignableUsers = assignableQuery.data?.data ?? []
-  const actionTypeOptions = refQuery.data?.action_types ?? FALLBACK_ACTION_TYPES
+  const rawActionTypeOptions = refQuery.data?.action_types ?? FALLBACK_ACTION_TYPES
+  const actionTypeOptions =
+    lang === 'en'
+      ? rawActionTypeOptions.map((opt) => ({
+          ...opt,
+          label: ACTION_TYPES_EN[opt.value] ?? opt.label,
+        }))
+      : rawActionTypeOptions
   const requiresPreventive = Boolean(currentRiskConfig?.requires_preventive_action)
 
   return (

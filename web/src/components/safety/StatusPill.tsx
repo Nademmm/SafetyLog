@@ -1,3 +1,4 @@
+import { localizeOverdueLabel, localizeRecurringLabel, useLanguage } from '@/lib/i18n-helpers'
 import { cn } from '@/lib/utils'
 import type { CaseStatus, RiskLevel } from '@/types/safetylog'
 
@@ -7,10 +8,9 @@ const RISK_STYLES: Record<RiskLevel, string> = {
   low: 'bg-[var(--safety-caution-bg)] text-[var(--safety-caution-foreground)] border-[var(--safety-caution-border)]',
 }
 
-const RISK_LABELS: Record<RiskLevel, string> = {
-  high: 'Tinggi',
-  medium: 'Sedang',
-  low: 'Rendah',
+const RISK_LABELS: Record<'id' | 'en', Record<RiskLevel, string>> = {
+  id: { high: 'Tinggi', medium: 'Sedang', low: 'Rendah' },
+  en: { high: 'High', medium: 'Medium', low: 'Low' },
 }
 
 export function RiskPill({
@@ -24,9 +24,11 @@ export function RiskPill({
   label?: string | null
   className?: string
 }) {
+  const { lang, pick } = useLanguage()
   if (!level) {
-    return <span className="text-xs text-[var(--faint)]">Belum dinilai</span>
+    return <span className="text-xs text-[var(--faint)]">{pick('Belum dinilai', 'Unassessed')}</span>
   }
+  const text = lang === 'en' ? RISK_LABELS.en[level] : label || RISK_LABELS.id[level]
   return (
     <span
       className={cn(
@@ -35,7 +37,7 @@ export function RiskPill({
         className,
       )}
     >
-      <span>{label || RISK_LABELS[level]}</span>
+      <span>{text}</span>
       {typeof score === 'number' && (
         <span className="font-mono tabular-nums opacity-90">({score})</span>
       )}
@@ -54,6 +56,17 @@ const STATUS_STYLES: Record<CaseStatus, string> = {
   duplicate: 'bg-[var(--raised)] text-[var(--muted)] border-[var(--control)]',
 }
 
+const STATUS_LABELS_EN: Record<CaseStatus, string> = {
+  new: 'New',
+  assessed: 'Assessed',
+  analyzed: 'Analyzed',
+  in_progress: 'In Progress',
+  pending_verification: 'Pending Verification',
+  closed: 'Closed',
+  rejected: 'Rejected',
+  duplicate: 'Duplicate',
+}
+
 export function CaseStatusPill({
   status,
   label,
@@ -63,6 +76,8 @@ export function CaseStatusPill({
   label?: string
   className?: string
 }) {
+  const { lang } = useLanguage()
+  const text = lang === 'en' ? STATUS_LABELS_EN[status] || label || status : label || status
   return (
     <span
       className={cn(
@@ -71,23 +86,25 @@ export function CaseStatusPill({
         className,
       )}
     >
-      {label || status}
+      {text}
     </span>
   )
 }
 
-export function OverduePill({ label = 'Terlambat' }: { label?: string | null }) {
+export function OverduePill({ label }: { label?: string | null }) {
+  const { lang } = useLanguage()
   return (
     <span className="inline-flex items-center rounded-[4px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] px-2 py-0.5 text-[12px] font-medium leading-4 text-[var(--safety-danger-foreground)] whitespace-nowrap">
-      {label || 'Terlambat'}
+      {localizeOverdueLabel(lang, label)}
     </span>
   )
 }
 
-export function RecurringPill({ label = 'Berulang' }: { label?: string | null }) {
+export function RecurringPill({ label }: { label?: string | null }) {
+  const { lang } = useLanguage()
   return (
     <span className="inline-flex items-center rounded-[4px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] px-2 py-0.5 text-[12px] font-medium leading-4 text-[var(--safety-warning-foreground)] whitespace-nowrap">
-      {label || 'Berulang'}
+      {localizeRecurringLabel(lang, label)}
     </span>
   )
 }
@@ -105,6 +122,14 @@ const CASE_TYPE_STYLES: Record<string, string> = {
     'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30',
 }
 
+const CASE_TYPE_LABELS_EN: Record<string, string> = {
+  incident: 'Incident',
+  breakdown: 'Breakdown',
+  unsafe_condition: 'Unsafe Condition',
+  machine_abnormality: 'Machine Abnormality',
+  near_miss: 'Near Miss',
+}
+
 export function CaseTypePill({
   caseType,
   className,
@@ -112,11 +137,16 @@ export function CaseTypePill({
   caseType: { code?: string | null; name: string; is_incident?: boolean } | null | undefined
   className?: string
 }) {
+  const { lang } = useLanguage()
   if (!caseType?.name) return null
   const styleKey = caseType.is_incident ? 'incident' : (caseType.code || '')
   const styleClass =
     CASE_TYPE_STYLES[styleKey] ||
     'bg-[var(--raised)] text-[var(--text)] border-[var(--control)]'
+  const text =
+    lang === 'en' && caseType.code && CASE_TYPE_LABELS_EN[caseType.code]
+      ? CASE_TYPE_LABELS_EN[caseType.code]
+      : caseType.name
 
   return (
     <span
@@ -126,7 +156,7 @@ export function CaseTypePill({
         className,
       )}
     >
-      {caseType.name}
+      {text}
     </span>
   )
 }

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { cn } from '@/lib/utils'
 
 export interface WaveformLoaderProps {
@@ -12,13 +13,14 @@ export function WaveformLoader({
   size = 'md',
   className,
 }: WaveformLoaderProps) {
+  const { pick } = useLanguage()
   const heights = size === 'sm' ? [4, 16, 4] : [6, 24, 6]
 
   return (
     <div
       role="status"
       aria-live="polite"
-      aria-label={label || 'Memuat data'}
+      aria-label={label || pick('Memuat data', 'Loading data')}
       className={cn('inline-flex flex-col items-center justify-center gap-2.5', className)}
     >
       <div className={cn('flex items-center space-x-1', size === 'sm' ? 'h-5' : 'h-8')}>
@@ -47,15 +49,16 @@ export function WaveformLoader({
 }
 
 export function SectionLoading({
-  label = 'Memuat data...',
+  label,
   className,
 }: {
   label?: string
   className?: string
 }) {
+  const { pick } = useLanguage()
   return (
     <div className={cn('flex items-center justify-center py-10 px-5', className)}>
-      <WaveformLoader label={label} />
+      <WaveformLoader label={label ?? pick('Memuat data...', 'Loading data...')} />
     </div>
   )
 }

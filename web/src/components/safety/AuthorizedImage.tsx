@@ -2,6 +2,7 @@ import * as React from 'react'
 import { createPortal } from 'react-dom'
 import { Download, ExternalLink, Maximize2, X } from 'lucide-react'
 import { apiFetchBlob } from '@/lib/api'
+import { useLanguage } from '@/lib/i18n-helpers'
 
 export function AuthorizedImage({
   attachmentId,
@@ -14,6 +15,7 @@ export function AuthorizedImage({
   className?: string
   previewable?: boolean
 }) {
+  const { pick } = useLanguage()
   const [src, setSrc] = React.useState<string | null>(null)
   const [failed, setFailed] = React.useState(false)
   const [lightboxOpen, setLightboxOpen] = React.useState(false)
@@ -55,7 +57,7 @@ export function AuthorizedImage({
   if (failed) {
     return (
       <div className="flex h-32 items-center justify-center rounded-[6px] bg-[var(--raised)] text-xs text-[var(--faint)]">
-        Foto tidak dapat dimuat
+        {pick('Foto tidak dapat dimuat', 'Failed to load photo')}
       </div>
     )
   }
@@ -73,14 +75,14 @@ export function AuthorizedImage({
       <button
         type="button"
         onClick={() => setLightboxOpen(true)}
-        aria-label={`Lihat foto ukuran penuh: ${alt}`}
+        aria-label={pick(`Lihat foto ukuran penuh: ${alt}`, `View full-size photo: ${alt}`)}
         className="group relative block overflow-hidden rounded-[6px] cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       >
         <img src={src} alt={alt} className={className} />
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
           <span className="inline-flex items-center gap-1.5 rounded-[6px] bg-black/75 px-2.5 py-1 text-[12px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
             <Maximize2 className="h-3.5 w-3.5" />
-            <span>Lihat Penuh</span>
+            <span>{pick('Lihat Penuh', 'View Full')}</span>
           </span>
         </span>
       </button>
@@ -91,7 +93,7 @@ export function AuthorizedImage({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={`Pratinjau foto ${alt}`}
+            aria-label={pick(`Pratinjau foto ${alt}`, `Photo preview ${alt}`)}
             onClick={() => setLightboxOpen(false)}
             className="fixed inset-0 z-[100] flex flex-col bg-black/90 p-3 sm:p-6 backdrop-blur-sm"
           >
@@ -111,7 +113,7 @@ export function AuthorizedImage({
                   className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-white/20 bg-white/10 px-3 text-[13px] font-medium text-white hover:bg-white/20"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  <span className="hidden sm:inline">Buka Tab Baru</span>
+                  <span className="hidden sm:inline">{pick('Buka Tab Baru', 'Open in New Tab')}</span>
                 </a>
                 <a
                   href={src}
@@ -119,12 +121,12 @@ export function AuthorizedImage({
                   className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-white/20 bg-white/10 px-3 text-[13px] font-medium text-white hover:bg-white/20"
                 >
                   <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">Unduh</span>
+                  <span className="hidden sm:inline">{pick('Unduh', 'Download')}</span>
                 </a>
                 <button
                   type="button"
                   onClick={() => setLightboxOpen(false)}
-                  aria-label="Tutup pratinjau foto"
+                  aria-label={pick('Tutup pratinjau foto', 'Close photo preview')}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-[6px] border border-white/20 bg-white/10 text-white hover:bg-white/20"
                 >
                   <X className="h-5 w-5" />

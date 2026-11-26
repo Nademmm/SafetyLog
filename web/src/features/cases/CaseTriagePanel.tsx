@@ -2,6 +2,13 @@ import * as React from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
+import {
+  localizeCaseStatusLabel,
+  localizeCategoryName,
+  localizeContentText,
+  localizeRoleLabel,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { caseKeys } from '@/data/query-keys'
 import { getDuplicateCandidates } from '@/domain/case-rules'
 import { AiAssistButton } from '@/components/safety/AiAssistButton'
@@ -34,6 +41,7 @@ export function CaseTriagePanel({
   defaultPicId,
   onTriaged,
 }: CaseTriagePanelProps) {
+  const { lang, pick } = useLanguage()
   const [triageMode, setTriageMode] = React.useState<'assess' | 'reject' | 'duplicate'>('assess')
   const [duplicateSearch, setDuplicateSearch] = React.useState('')
   const [severityOverride, setSeverityOverride] = React.useState<number | null>(null)
@@ -83,7 +91,10 @@ export function CaseTriagePanel({
       setAiTriageState({
         caseId: caseData.id,
         data: null,
-        error: error instanceof ApiError ? error.message : 'Gagal meminta saran triase AI.',
+        error:
+          error instanceof ApiError
+            ? error.message
+            : pick('Gagal meminta saran triase AI.', 'Failed to request AI triage suggestion.'),
       })
     },
   })
@@ -112,7 +123,7 @@ export function CaseTriagePanel({
     e.preventDefault()
     setTriageErr(null)
     if (triageMode === 'duplicate' && !duplicateOfId) {
-      setTriageErr('Pilih kasus asli terlebih dahulu.')
+      setTriageErr(pick('Pilih kasus asli terlebih dahulu.', 'Please select the original case first.'))
       return
     }
     setTriageBusy(true)
@@ -141,23 +152,33 @@ export function CaseTriagePanel({
       setTriageSuccess(
         triageMode === 'assess'
           ? {
-              title: 'Penilaian Risiko Berhasil',
-              description:
+              title: pick('Penilaian Risiko Berhasil', 'Risk Assessment Saved'),
+              description: pick(
                 'Risiko kasus telah sukses dinilai dan tersimpan. Kasus siap dilanjutkan ke tahap analisis.',
+                'Case risk has been assessed and saved. The case is ready for analysis.',
+              ),
             }
           : triageMode === 'reject'
             ? {
-                title: 'Laporan Ditolak',
-                description: 'Laporan kasus berhasil ditolak dan status telah diperbarui.',
+                title: pick('Laporan Ditolak', 'Report Rejected'),
+                description: pick(
+                  'Laporan kasus berhasil ditolak dan status telah diperbarui.',
+                  'Case report was rejected and status has been updated.',
+                ),
               }
             : {
-                title: 'Ditandai sebagai Duplikat',
-                description: 'Kasus berhasil ditandai sebagai duplikat dari kasus yang dipilih.',
+                title: pick('Ditandai sebagai Duplikat', 'Marked as Duplicate'),
+                description: pick(
+                  'Kasus berhasil ditandai sebagai duplikat dari kasus yang dipilih.',
+                  'Case has been marked as a duplicate of the selected case.',
+                ),
               },
       )
       onTriaged()
     } catch (err) {
-      setTriageErr(err instanceof ApiError ? err.message : 'Gagal menyimpan triase.')
+      setTriageErr(
+        err instanceof ApiError ? err.message : pick('Gagal menyimpan triase.', 'Failed to save triage.'),
+      )
     } finally {
       setTriageBusy(false)
     }
@@ -168,7 +189,7 @@ export function CaseTriagePanel({
       <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-[16px] font-semibold text-[var(--text)]">
-            Penilaian Risiko &amp; Triase
+            {pick('Penilaian Risiko & Triase', 'Risk Assessment & Triage')}
           </h2>
           <div className="grid grid-cols-3 gap-1.5 sm:flex">
             {(['assess', 'reject', 'duplicate'] as const).map((m) => {
@@ -187,7 +208,11 @@ export function CaseTriagePanel({
                       : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                   }`}
                 >
-                  {m === 'assess' ? 'Nilai Risiko' : m === 'reject' ? 'Tolak' : 'Duplikat'}
+                  {m === 'assess'
+                    ? pick('Nilai Risiko', 'Assess Risk')
+                    : m === 'reject'
+                      ? pick('Tolak', 'Reject')
+                      : pick('Duplikat', 'Duplicate')}
                 </button>
               )
             })}
@@ -204,16 +229,21 @@ export function CaseTriagePanel({
           <div className="rounded-[6px] border border-[var(--border)] bg-[var(--ground)] p-3.5 space-y-2.5">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-[13px] font-semibold text-[var(--text)]">Saran triase AI</div>
+                <div className="text-[13px] font-semibold text-[var(--text)]">
+                  {pick('Saran triase AI', 'AI triage suggestion')}
+                </div>
                 <div className="text-[12px] text-[var(--faint)]">
-                  Rekomendasi awal, tetap tinjau dan simpan melalui triase resmi.
+                  {pick(
+                    'Rekomendasi awal, tetap tinjau dan simpan melalui triase resmi.',
+                    'Initial recommendation — review and save via official triage.',
+                  )}
                 </div>
               </div>
               <AiAssistButton
                 onClick={() => triageSuggestion.mutate()}
                 loading={triageSuggestion.isPending}
-                label="Minta Saran AI"
-                loadingLabel="Meminta saran..."
+                label={pick('Minta Saran AI', 'Ask AI Suggestion')}
+                loadingLabel={pick('Meminta saran...', 'Requesting...')}
               />
             </div>
 
@@ -233,29 +263,29 @@ export function CaseTriagePanel({
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-[13px] text-[var(--muted)]">
-                    Kategori <strong className="text-[var(--text)]">{aiTriage.category_name}</strong>
-                    {' · '}Keparahan <strong className="text-[var(--text)]">{aiTriage.severity}</strong>
-                    {' · '}Kemungkinan <strong className="text-[var(--text)]">{aiTriage.likelihood}</strong>
-                    {' '}(skala 1-{aiTriage.scale_max})
+                    {pick('Kategori', 'Category')} <strong className="text-[var(--text)]">{localizeCategoryName(lang, aiTriage.category_name)}</strong>
+                    {' · '}{pick('Keparahan', 'Severity')} <strong className="text-[var(--text)]">{aiTriage.severity}</strong>
+                    {' · '}{pick('Kemungkinan', 'Likelihood')} <strong className="text-[var(--text)]">{aiTriage.likelihood}</strong>
+                    {' '}({pick('skala', 'scale')} 1-{aiTriage.scale_max})
                   </div>
                   <button
                     type="button"
                     onClick={applyAiTriage}
                     className="h-11 shrink-0 rounded-[6px] border border-[var(--control)] bg-[var(--raised)] px-3.5 text-[13px] font-semibold text-[var(--text)] hover:bg-[var(--border)] cursor-pointer transition-colors"
                   >
-                    Gunakan saran
+                    {pick('Gunakan saran', 'Apply suggestion')}
                   </button>
                 </div>
                 {aiTriage.reasoning.length > 0 && (
                   <ul className="list-disc space-y-0.5 pl-5 text-[12px] text-[var(--muted)]">
                     {aiTriage.reasoning.map((reason, idx) => (
-                      <li key={`${reason}-${idx}`}>{reason}</li>
+                      <li key={`${reason}-${idx}`}>{localizeContentText(lang, reason)}</li>
                     ))}
                   </ul>
                 )}
                 {aiTriage.additional_information.length > 0 && (
                   <div className="text-[12px] text-[var(--muted)]">
-                    Informasi yang belum ada: {aiTriage.additional_information.join(' · ')}
+                    {pick('Informasi yang belum ada', 'Missing information')}: {aiTriage.additional_information.map((info) => localizeContentText(lang, info)).join(' · ')}
                   </div>
                 )}
               </div>
@@ -269,7 +299,7 @@ export function CaseTriagePanel({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="space-y-1.5">
                   <span className="block text-[13px] font-semibold text-[var(--text)]">
-                    Keparahan (1–5)
+                    {pick('Keparahan (1–5)', 'Severity (1–5)')}
                   </span>
                   <div className="grid grid-cols-5 gap-1.5">
                     {[1, 2, 3, 4, 5].map((n) => (
@@ -291,7 +321,7 @@ export function CaseTriagePanel({
 
                 <div className="space-y-1.5">
                   <span className="block text-[13px] font-semibold text-[var(--text)]">
-                    Kemungkinan (1–5)
+                    {pick('Kemungkinan (1–5)', 'Likelihood (1–5)')}
                   </span>
                   <div className="grid grid-cols-5 gap-1.5">
                     {[1, 2, 3, 4, 5].map((n) => (
@@ -315,13 +345,13 @@ export function CaseTriagePanel({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-[var(--text)]">
-                    Tunjuk PIC Kasus
+                    {pick('Tunjuk PIC Kasus', 'Assign Case PIC')}
                   </label>
                   <Select value={triagePicId} onChange={(e) => setTriagePicIdOverride(e.target.value)}>
-                    <option value="">Pilih PIC...</option>
+                    <option value="">{pick('Pilih PIC...', 'Select PIC...')}</option>
                     {assignableUsers.map((u) => (
                       <option key={u.id} value={u.id}>
-                        {u.name} ({u.role_label})
+                        {u.name} ({localizeRoleLabel(lang, u.role_label, u.role)})
                       </option>
                     ))}
                   </Select>
@@ -329,16 +359,16 @@ export function CaseTriagePanel({
 
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-[var(--text)]">
-                    Kategori Masalah
+                    {pick('Kategori Masalah', 'Issue Category')}
                   </label>
                   <Select
                     value={triageCategoryId}
                     onChange={(e) => setTriageCategoryIdOverride(e.target.value)}
                   >
-                    <option value="">Pilih kategori...</option>
+                    <option value="">{pick('Pilih kategori...', 'Select category...')}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
-                        {cat.name}
+                        {localizeCategoryName(lang, cat.name, (cat as unknown as { code?: string }).code)}
                       </option>
                     ))}
                   </Select>
@@ -350,13 +380,13 @@ export function CaseTriagePanel({
               {triageMode === 'duplicate' && (
                 <div className="space-y-2">
                   <label className="block text-[13px] font-semibold text-[var(--text)]">
-                    Pilih Kasus Asli (Rujukan Duplikat)
+                    {pick('Pilih Kasus Asli (Rujukan Duplikat)', 'Select Original Case (Duplicate Reference)')}
                   </label>
                   <input
                     type="search"
                     value={duplicateSearch}
                     onChange={(e) => setDuplicateSearch(e.target.value)}
-                    placeholder="Cari nomor kasus atau mesin..."
+                    placeholder={pick('Cari nomor kasus atau mesin...', 'Search case number or machine...')}
                     className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                   />
                   <Select
@@ -364,10 +394,10 @@ export function CaseTriagePanel({
                     onChange={(e) => setDuplicateOfId(e.target.value)}
                     required
                   >
-                    <option value="">Pilih kasus asli...</option>
+                    <option value="">{pick('Pilih kasus asli...', 'Select original case...')}</option>
                     {duplicateCandidates.map((cand) => (
                       <option key={cand.id} value={cand.id}>
-                        {cand.case_number} — {cand.machine?.code || 'Mesin'} ({cand.status_label})
+                        {cand.case_number} — {cand.machine?.code || pick('Mesin', 'Machine')} ({localizeCaseStatusLabel(lang, cand.status_label, cand.status)})
                       </option>
                     ))}
                   </Select>
@@ -375,7 +405,7 @@ export function CaseTriagePanel({
               )}
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-[var(--text)]">
-                  Alasan ({triageMode === 'reject' ? 'Penolakan' : 'Duplikat'})
+                  {pick('Alasan', 'Reason')} ({triageMode === 'reject' ? pick('Penolakan', 'Rejection') : pick('Duplikat', 'Duplicate')})
                 </label>
                 <textarea
                   rows={2}
@@ -393,7 +423,7 @@ export function CaseTriagePanel({
             disabled={triageBusy}
             className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
           >
-            {triageBusy ? 'Menyimpan...' : 'Simpan Triase'}
+            {triageBusy ? pick('Menyimpan...', 'Saving...') : pick('Simpan Triase', 'Save Triage')}
           </button>
         </form>
       </section>
@@ -426,7 +456,7 @@ export function CaseTriagePanel({
               onClick={() => setTriageSuccess(null)}
               className="h-11 w-full rounded-[8px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] hover:opacity-90 cursor-pointer"
             >
-              Mengerti
+              {pick('Mengerti', 'Got it')}
             </button>
           </div>
         </div>

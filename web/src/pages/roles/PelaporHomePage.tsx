@@ -8,6 +8,13 @@ import {
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth-helpers'
+import {
+  localizeActionStatusLabel,
+  localizeActionTypeLabel,
+  localizeContentText,
+  localizeMachineName,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { formatDateTime } from '@/lib/format'
 import { CaseStatusPill, CaseTypePill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
@@ -16,6 +23,7 @@ import type { CaseAction, SafetyCase } from '@/types/safetylog'
 
 export function PelaporHomePage() {
   const { user } = useAuth()
+  const { lang, pick } = useLanguage()
 
   const myCasesQuery = useQuery({
     queryKey: ['my-cases', 'home'],
@@ -63,10 +71,10 @@ export function PelaporHomePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Ruang Kerja Pelapor
+            {pick('Ruang Kerja Pelapor', 'Reporter Workspace')}
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            {user?.site?.name || 'Site Utama'}
+            {user?.site?.name || pick('Site Utama', 'Main Site')}
           </p>
         </div>
         {user?.role === 'reporter' && (
@@ -75,14 +83,17 @@ export function PelaporHomePage() {
             className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] transition-colors"
           >
             <Plus className="h-4 w-4 stroke-[2.2px]" />
-            <span>Lapor Masalah Baru</span>
+            <span>{pick('Lapor Masalah Baru', 'Report New Issue')}</span>
           </Link>
         )}
       </div>
 
       {(myCasesQuery.isError || myActionsQuery.isError) && (
         <QueryErrorBanner
-          message="Gagal memuat sebagian data ruang kerja Pelapor."
+          message={pick(
+            'Gagal memuat sebagian data ruang kerja Pelapor.',
+            'Failed to load some Reporter workspace data.',
+          )}
           onRetry={() => {
             void myCasesQuery.refetch()
             void myActionsQuery.refetch()
@@ -94,7 +105,7 @@ export function PelaporHomePage() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Laporan aktif saya
+            {pick('Laporan aktif saya', 'My active reports')}
           </div>
           <div className="mt-1.5 flex items-baseline gap-2">
             <span className="text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
@@ -102,14 +113,14 @@ export function PelaporHomePage() {
             </span>
             {criticalCasesCount > 0 && (
               <span className="text-[11.5px] font-semibold text-[var(--safety-danger-foreground)]">
-                · {criticalCasesCount} kritis
+                · {criticalCasesCount} {pick('kritis', 'critical')}
               </span>
             )}
           </div>
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Tindakan ditugaskan
+            {pick('Tindakan ditugaskan', 'Assigned actions')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {myActionsQuery.isLoading ? '—' : openActionsCount}
@@ -130,7 +141,7 @@ export function PelaporHomePage() {
             {overdueActionsCount > 0 && (
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             )}
-            <span>Tindakan terlambat</span>
+            <span>{pick('Tindakan terlambat', 'Overdue actions')}</span>
           </div>
           <div
             className={`mt-1.5 text-[24px] sm:text-[28px] font-semibold tabular-nums ${
@@ -151,7 +162,7 @@ export function PelaporHomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
-                Tindakan Saya (PIC)
+                {pick('Tindakan Saya (PIC)', 'My Actions (PIC)')}
               </h2>
               {openActionsCount > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--muted)] tabular-nums">
@@ -163,7 +174,7 @@ export function PelaporHomePage() {
               to="/my-actions"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Lihat semua</span>
+              <span>{pick('Lihat semua', 'View all')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -175,19 +186,27 @@ export function PelaporHomePage() {
                 className="flex items-center gap-2 bg-[var(--safety-danger-bg)] px-4 py-2.5 sm:px-5 text-[12.5px] font-medium text-[var(--safety-danger-foreground)]"
               >
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>{overdueActionsCount} tindakan melewati tenggat waktu.</span>
+                <span>
+                  {pick(
+                    `${overdueActionsCount} tindakan melewati tenggat waktu.`,
+                    `${overdueActionsCount} action(s) past due.`,
+                  )}
+                </span>
               </div>
             )}
 
             {myActionsQuery.isLoading ? (
-              <SectionLoading label="Memuat tindakan Anda..." className="py-8" />
+              <SectionLoading label={pick('Memuat tindakan Anda...', 'Loading your actions...')} className="py-8" />
             ) : myActionsQuery.isError ? (
               <div className="p-5 text-[14px] text-[var(--safety-danger-foreground)]">
-                Gagal memuat daftar tindakan.
+                {pick('Gagal memuat daftar tindakan.', 'Failed to load action list.')}
               </div>
             ) : sortedActions.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Tidak ada tindakan perbaikan yang ditugaskan kepada Anda saat ini.
+                {pick(
+                  'Tidak ada tindakan perbaikan yang ditugaskan kepada Anda saat ini.',
+                  'No corrective actions are currently assigned to you.',
+                )}
               </div>
             ) : (
               sortedActions.slice(0, 5).map((a) => {
@@ -215,7 +234,7 @@ export function PelaporHomePage() {
                               : 'text-[var(--muted)]'
                           }`}
                         >
-                          {a.action_type_label}
+                          {localizeActionTypeLabel(lang, a.action_type_label, a.action_type)}
                         </span>
                         {a.safety_case?.case_number && (
                           <>
@@ -237,7 +256,7 @@ export function PelaporHomePage() {
                                 : 'text-[var(--muted)]'
                             }`}
                           >
-                            {a.status_label}
+                            {localizeActionStatusLabel(lang, a.status_label, a.status)}
                           </span>
                         )}
                       </div>
@@ -255,7 +274,7 @@ export function PelaporHomePage() {
                             : 'text-[var(--faint)]'
                         }
                       >
-                        {isOverdue ? 'Lewat tenggat: ' : 'Tenggat: '}
+                        {isOverdue ? pick('Lewat tenggat: ', 'Overdue: ') : pick('Tenggat: ', 'Due: ')}
                         {formatDateTime(a.due_at)}
                       </span>
                       <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
@@ -272,7 +291,7 @@ export function PelaporHomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
-                Laporan Terakhir Saya
+                {pick('Laporan Terakhir Saya', 'My Recent Reports')}
               </h2>
               {cases.length > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--muted)] tabular-nums">
@@ -285,7 +304,7 @@ export function PelaporHomePage() {
                 to="/my-cases"
                 className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
               >
-                <span>Lihat semua</span>
+                <span>{pick('Lihat semua', 'View all')}</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}
@@ -293,15 +312,23 @@ export function PelaporHomePage() {
 
           <div className="overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface)] divide-y divide-[var(--rule)]">
             {myCasesQuery.isLoading ? (
-              <SectionLoading label="Memuat laporan Anda..." className="py-8" />
+              <SectionLoading label={pick('Memuat laporan Anda...', 'Loading your reports...')} className="py-8" />
             ) : myCasesQuery.isError ? (
               <div className="p-5 text-[14px] text-[var(--safety-danger-foreground)]">
-                Gagal memuat daftar laporan.
+                {pick('Gagal memuat daftar laporan.', 'Failed to load report list.')}
               </div>
             ) : cases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Belum ada laporan yang Anda kirim. Gunakan tombol <strong>Lapor Masalah Baru</strong>{' '}
-                untuk memulai.
+                {pick(
+                  <>
+                    Belum ada laporan yang Anda kirim. Gunakan tombol{' '}
+                    <strong>Lapor Masalah Baru</strong> untuk memulai.
+                  </>,
+                  <>
+                    No reports submitted yet. Use the <strong>Report New Issue</strong> button to
+                    start.
+                  </>,
+                )}
               </div>
             ) : (
               cases.slice(0, 5).map((c) => {
@@ -334,7 +361,7 @@ export function PelaporHomePage() {
                     </div>
 
                     <div className="text-[15px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                      {c.machine?.name || 'Mesin / Area'}
+                      {c.machine?.name ? localizeMachineName(lang, c.machine.name, c.machine.code) : pick('Mesin / Area', 'Machine / Area')}
                       {c.machine?.code ? (
                         <span className="ml-1.5 font-mono text-[12px] font-normal text-[var(--faint)]">
                           {c.machine.code}
@@ -343,7 +370,7 @@ export function PelaporHomePage() {
                     </div>
 
                     <p className="text-[13.5px] leading-relaxed text-[var(--muted)] line-clamp-2">
-                      {c.description}
+                      {localizeContentText(lang, c.description)}
                     </p>
 
                     <div className="flex items-center justify-between gap-2 pt-1">
@@ -355,12 +382,12 @@ export function PelaporHomePage() {
                         />
                         {c.is_machine_stopped && (
                           <span className="text-[11px] font-semibold text-[var(--safety-danger-foreground)]">
-                            · Mesin Berhenti
+                            · {pick('Mesin Berhenti', 'Machine Stopped')}
                           </span>
                         )}
                         {c.has_affected_people && (
                           <span className="text-[11px] font-semibold text-[var(--safety-danger-foreground)]">
-                            · Ada Korban
+                            · {pick('Ada Korban', 'Affected People')}
                           </span>
                         )}
                       </div>

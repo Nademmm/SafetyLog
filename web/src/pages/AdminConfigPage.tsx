@@ -1,12 +1,14 @@
 import * as React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '@/lib/api'
+import { localizeRiskLevelLabel, useLanguage } from '@/lib/i18n-helpers'
 import { useReferenceData } from '@/lib/reference'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
 import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { RiskConfig } from '@/types/safetylog'
 
 export function AdminConfigPage() {
+  const { lang, pick } = useLanguage()
   const queryClient = useQueryClient()
   const refQuery = useReferenceData()
   const riskConfigs = refQuery.data?.risk_configs ?? []
@@ -38,7 +40,11 @@ export function AdminConfigPage() {
       setSavedId(rc.id)
       void queryClient.invalidateQueries({ queryKey: ['reference-data'] })
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal menyimpan konfigurasi.')
+      setErrMsg(
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal menyimpan konfigurasi.', 'Failed to save configuration.'),
+      )
     } finally {
       setSavingId(null)
     }
@@ -72,7 +78,11 @@ export function AdminConfigPage() {
       void queryClient.invalidateQueries({ queryKey: ['reference-data'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal menyimpan konfigurasi umum.')
+      setErrMsg(
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal menyimpan konfigurasi umum.', 'Failed to save general configuration.'),
+      )
     } finally {
       setSavingOrgConfig(false)
     }
@@ -82,17 +92,19 @@ export function AdminConfigPage() {
     <div className="space-y-8 max-w-[1152px]">
       <div>
         <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-          Konfigurasi Matriks Risiko &amp; SLA
+          {pick('Konfigurasi Matriks Risiko & SLA', 'Risk Matrix & SLA Configuration')}
         </h1>
         <p className="mt-1 text-[14px] text-[var(--muted)]">
-          Ambang skor, target waktu (SLA), dan aturan organisasi disimpan di database sehingga mudah
-          disesuaikan dengan standar pabrik tanpa mengubah kode.
+          {pick(
+            'Ambang skor, target waktu (SLA), dan aturan organisasi disimpan di database sehingga mudah disesuaikan dengan standar pabrik tanpa mengubah kode.',
+            'Score thresholds, SLA targets, and organization rules are stored in the database so they can be adjusted to plant standards without code changes.',
+          )}
         </p>
       </div>
 
       {refQuery.isError && (
         <QueryErrorBanner
-          message="Gagal memuat konfigurasi organisasi."
+          message={pick('Gagal memuat konfigurasi organisasi.', 'Failed to load organization configuration.')}
           onRetry={() => void refQuery.refetch()}
         />
       )}
@@ -104,7 +116,7 @@ export function AdminConfigPage() {
       )}
 
       {refQuery.isLoading ? (
-        <SectionLoading label="Memuat konfigurasi organisasi..." />
+        <SectionLoading label={pick('Memuat konfigurasi organisasi...', 'Loading organization configuration...')} />
       ) : (
         <>
           {/* Risk Matrix & SLA Section */}
@@ -116,11 +128,13 @@ export function AdminConfigPage() {
               >
                 <div className="lg:col-span-4 space-y-1.5">
                   <h2 className="text-[16px] font-semibold text-[var(--text)]">
-                    Level Risiko: {rc.label}
+                    {pick('Level Risiko:', 'Risk Level:')} {localizeRiskLevelLabel(lang, rc.label, rc.level)}
                   </h2>
                   <p className="text-[14px] text-[var(--muted)]">
-                    Skor saat ini: {rc.min_score}–{rc.max_score}. Sementara:{' '}
-                    {rc.temporary_action_hours} jam · Permanen: {rc.permanent_action_hours} jam.
+                    {pick(
+                      `Skor saat ini: ${rc.min_score}–${rc.max_score}. Sementara: ${rc.temporary_action_hours} jam · Permanen: ${rc.permanent_action_hours} jam.`,
+                      `Current score: ${rc.min_score}–${rc.max_score}. Temporary: ${rc.temporary_action_hours}h · Permanent: ${rc.permanent_action_hours}h.`,
+                    )}
                   </p>
                 </div>
 
@@ -134,7 +148,7 @@ export function AdminConfigPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Skor Min
+                        {pick('Skor Min', 'Min Score')}
                       </label>
                       <input
                         name="min_score"
@@ -148,7 +162,7 @@ export function AdminConfigPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Skor Maks
+                        {pick('Skor Maks', 'Max Score')}
                       </label>
                       <input
                         name="max_score"
@@ -162,7 +176,7 @@ export function AdminConfigPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Respon (jam)
+                        {pick('Respon (jam)', 'Response (hrs)')}
                       </label>
                       <input
                         name="first_response_hours"
@@ -175,7 +189,7 @@ export function AdminConfigPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Sementara (jam)
+                        {pick('Sementara (jam)', 'Temporary (hrs)')}
                       </label>
                       <input
                         name="temporary_action_hours"
@@ -188,7 +202,7 @@ export function AdminConfigPage() {
                     </div>
                     <div className="col-span-2 sm:col-span-1 space-y-1.5">
                       <label className="block text-[13px] font-semibold text-[var(--text)]">
-                        Permanen (jam)
+                        {pick('Permanen (jam)', 'Permanent (hrs)')}
                       </label>
                       <input
                         name="permanent_action_hours"
@@ -208,13 +222,18 @@ export function AdminConfigPage() {
                       defaultChecked={rc.requires_preventive_action}
                       className="h-4 w-4 accent-[var(--accent)]"
                     />
-                    <span>Wajib tindakan Preventif sebelum kasus ditutup</span>
+                    <span>
+                      {pick(
+                        'Wajib tindakan Preventif sebelum kasus ditutup',
+                        'Require Preventive action before closing case',
+                      )}
+                    </span>
                   </label>
 
                   <div className="flex items-center justify-end gap-3 pt-1">
                     {savedId === rc.id && (
                       <span className="text-[13px] text-[var(--safety-safe-foreground)]">
-                        Tersimpan
+                        {pick('Tersimpan', 'Saved')}
                       </span>
                     )}
                     <button
@@ -222,7 +241,7 @@ export function AdminConfigPage() {
                       disabled={savingId === rc.id}
                       className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                     >
-                      {savingId === rc.id ? 'Menyimpan...' : 'Simpan'}
+                      {savingId === rc.id ? pick('Menyimpan...', 'Saving...') : pick('Simpan', 'Save')}
                     </button>
                   </div>
                 </form>
@@ -234,11 +253,13 @@ export function AdminConfigPage() {
           <div className="border-t border-[var(--rule)] pt-7 grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
             <div className="lg:col-span-4 space-y-1.5">
               <h2 className="text-[16px] font-semibold text-[var(--text)]">
-                Aturan Umum &amp; Pengingat Darurat
+                {pick('Aturan Umum & Pengingat Darurat', 'General Rules & Emergency Reminder')}
               </h2>
               <p className="text-[14px] text-[var(--muted)]">
-                Pengaturan jendela kasus terbuka, ambang mesin berulang, dan teks pengingat prosedur
-                darurat K3.
+                {pick(
+                  'Pengaturan jendela kasus terbuka, ambang mesin berulang, dan teks pengingat prosedur darurat K3.',
+                  'Settings for open case warning window, recurring machine threshold, and EHS emergency procedure reminder text.',
+                )}
               </p>
             </div>
 
@@ -249,7 +270,7 @@ export function AdminConfigPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-[var(--text)]">
-                    Peringatan Kasus Terbuka (hari)
+                    {pick('Peringatan Kasus Terbuka (hari)', 'Open Case Warning (days)')}
                   </label>
                   <input
                     name="open_case_warning_days"
@@ -263,7 +284,7 @@ export function AdminConfigPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-[var(--text)]">
-                    Ambang Mesin Berulang (kasus)
+                    {pick('Ambang Mesin Berulang (kasus)', 'Recurring Threshold (cases)')}
                   </label>
                   <input
                     name="recurring_case_threshold"
@@ -277,7 +298,7 @@ export function AdminConfigPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-semibold text-[var(--text)]">
-                    Rentang Mesin Berulang (hari)
+                    {pick('Rentang Mesin Berulang (hari)', 'Recurring Window (days)')}
                   </label>
                   <input
                     name="recurring_window_days"
@@ -293,7 +314,10 @@ export function AdminConfigPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-[var(--text)]">
-                  Teks Pengingat Prosedur Darurat (Insiden + Pekerja Terdampak)
+                  {pick(
+                    'Teks Pengingat Prosedur Darurat (Insiden + Pekerja Terdampak)',
+                    'Emergency Procedure Reminder Text (Incident + Affected Workers)',
+                  )}
                 </label>
                 <textarea
                   name="emergency_reminder_text"
@@ -310,7 +334,7 @@ export function AdminConfigPage() {
               <div className="flex items-center justify-end gap-3 pt-1">
                 {savedOrgConfig && (
                   <span className="text-[13px] text-[var(--safety-safe-foreground)]">
-                    Tersimpan
+                    {pick('Tersimpan', 'Saved')}
                   </span>
                 )}
                 <button
@@ -318,7 +342,9 @@ export function AdminConfigPage() {
                   disabled={savingOrgConfig}
                   className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
                 >
-                  {savingOrgConfig ? 'Menyimpan...' : 'Simpan Aturan Umum'}
+                  {savingOrgConfig
+                    ? pick('Menyimpan...', 'Saving...')
+                    : pick('Simpan Aturan Umum', 'Save General Rules')}
                 </button>
               </div>
             </form>

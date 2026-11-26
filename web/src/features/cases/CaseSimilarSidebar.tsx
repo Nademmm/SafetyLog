@@ -4,6 +4,13 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { ChevronRight } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import {
+  localizeAiText,
+  localizeCaseStatusLabel,
+  localizeContentText,
+  localizeMatchingReason,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { caseKeys } from '@/data/query-keys'
 import { AiAssistButton } from '@/components/safety/AiAssistButton'
 import type {
@@ -13,13 +20,22 @@ import type {
   SimilarCaseItem,
 } from '@/types/safetylog'
 
-const AI_DUPLICATE_LABELS: Record<
+const AI_DUPLICATE_LABELS_ID: Record<
   AiSimilarAnalysis['matches'][number]['duplicate_assessment'],
   string
 > = {
   possible_duplicate: 'Kemungkinan duplikat',
   needs_review: 'Perlu ditinjau',
   not_duplicate: 'Bukan duplikat',
+}
+
+const AI_DUPLICATE_LABELS_EN: Record<
+  AiSimilarAnalysis['matches'][number]['duplicate_assessment'],
+  string
+> = {
+  possible_duplicate: 'Possible duplicate',
+  needs_review: 'Needs review',
+  not_duplicate: 'Not duplicate',
 }
 
 export function CaseSimilarSidebar({
@@ -29,6 +45,7 @@ export function CaseSimilarSidebar({
   caseData: SafetyCase
   showSimilar: boolean
 }) {
+  const { lang, pick } = useLanguage()
   const similarQuery = useQuery({
     queryKey: caseKeys.similar(caseData.id),
     queryFn: () => apiFetch<{ data: SimilarCaseItem[] }>(`/cases/${caseData.id}/similar`),
@@ -57,7 +74,10 @@ export function CaseSimilarSidebar({
       setAiSimilarState({
         caseId: caseData.id,
         data: null,
-        error: error instanceof ApiError ? error.message : 'Gagal menganalisis kasus mirip.',
+        error:
+          error instanceof ApiError
+            ? error.message
+            : pick('Gagal menganalisis kasus mirip.', 'Failed to analyze similar cases.'),
       })
     },
   })
@@ -71,31 +91,35 @@ export function CaseSimilarSidebar({
           <div className="flex flex-col gap-2.5 border-b border-[var(--rule)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-[16px] font-semibold text-[var(--text)]">Kasus Mirip</h2>
+                <h2 className="text-[16px] font-semibold text-[var(--text)]">
+                  {pick('Kasus Mirip', 'Similar Cases')}
+                </h2>
                 {similarCases.length > 0 && (
                   <span className="font-mono text-[12px] font-medium text-[var(--muted)] tabular-nums">
                     ({similarCases.length})
                   </span>
                 )}
               </div>
-              <p className="mt-0.5 text-[12px] text-[var(--faint)]">Kemiripan teks &amp; mesin</p>
+              <p className="mt-0.5 text-[12px] text-[var(--faint)]">
+                {pick('Kemiripan teks & mesin', 'Text & machine similarity')}
+              </p>
             </div>
             <AiAssistButton
               onClick={() => similarAnalysis.mutate()}
               loading={similarAnalysis.isPending}
-              label="Analisis AI"
-              loadingLabel="Menganalisis..."
+              label={pick('Analisis AI', 'AI Analysis')}
+              loadingLabel={pick('Menganalisis...', 'Analyzing...')}
             />
           </div>
 
           <div className="divide-y divide-[var(--rule)]">
             {similarQuery.isLoading ? (
               <div className="px-4 py-4 sm:px-5 text-[13px] text-[var(--faint)]">
-                Mencari kasus mirip...
+                {pick('Mencari kasus mirip...', 'Searching similar cases...')}
               </div>
             ) : similarCases.length === 0 ? (
               <div className="px-4 py-4 sm:px-5 text-[13px] text-[var(--faint)]">
-                Tidak ada kasus mirip ditemukan.
+                {pick('Tidak ada kasus mirip ditemukan.', 'No similar cases found.')}
               </div>
             ) : (
               similarCases.map((sc) => (
@@ -117,19 +141,19 @@ export function CaseSimilarSidebar({
                       )}
                     </div>
                     <span className="shrink-0 font-mono text-[11.5px] font-semibold text-[var(--text)] tabular-nums">
-                      {sc.similarity_percent}% cocok
+                      {sc.similarity_percent}% {pick('cocok', 'match')}
                     </span>
                   </div>
 
                   <p className="text-[13px] leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">
-                    {sc.description}
+                    {localizeContentText(lang, sc.description)}
                   </p>
 
                   <div className="flex items-center justify-between gap-2 pt-0.5">
                     <span className="text-[11.5px] text-[var(--faint)] truncate">
                       {sc.matching_reasons?.length > 0
-                        ? sc.matching_reasons.join(' · ')
-                        : 'Kemiripan teks'}
+                        ? sc.matching_reasons.map((r) => localizeMatchingReason(lang, r)).join(' · ')
+                        : pick('Kemiripan teks', 'Text similarity')}
                     </span>
                     <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
                   </div>
@@ -152,23 +176,33 @@ export function CaseSimilarSidebar({
           {aiSimilar && (
             <div role="status" className="border-t border-[var(--rule)] bg-[var(--ground)]/50">
               <div className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2 sm:px-5">
-                <div className="text-[13px] font-semibold text-[var(--text)]">Analisis AI</div>
-                <div className="text-[11px] text-[var(--faint)]">Perlu ditinjau</div>
+                <div className="text-[13px] font-semibold text-[var(--text)]">
+                  {pick('Analisis AI', 'AI Analysis')}
+                </div>
+                <div className="text-[11px] text-[var(--faint)]">
+                  {pick('Perlu ditinjau', 'Needs review')}
+                </div>
               </div>
 
               {aiSimilar.possible_duplicate && (
                 <div className="mx-4 mb-2 sm:mx-5 rounded-[6px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] px-3 py-2 text-[12px] text-[var(--safety-warning-foreground)]">
-                  AI menemukan kemungkinan duplikat. Periksa sebelum melanjutkan.
+                  {pick(
+                    'AI menemukan kemungkinan duplikat. Periksa sebelum melanjutkan.',
+                    'AI found a possible duplicate. Review before continuing.',
+                  )}
                 </div>
               )}
 
               <p className="px-4 pb-3 sm:px-5 text-[12.5px] leading-relaxed text-[var(--muted)]">
-                {aiSimilar.summary}
+                {localizeAiText(lang, aiSimilar.summary)}
               </p>
 
               {aiSimilar.matches.length === 0 ? (
                 <div className="border-t border-[var(--rule)] px-4 py-3 sm:px-5 text-[12px] text-[var(--faint)]">
-                  Tidak ada kandidat kasus historis yang relevan untuk dianalisis.
+                  {pick(
+                    'Tidak ada kandidat kasus historis yang relevan untuk dianalisis.',
+                    'No relevant historical case candidates to analyze.',
+                  )}
                 </div>
               ) : (
                 <div className="divide-y divide-[var(--rule)] border-t border-[var(--rule)]">
@@ -182,16 +216,18 @@ export function CaseSimilarSidebar({
                           {match.case_number}
                         </Link>
                         <span className="font-mono text-[11px] font-medium text-[var(--muted)] tabular-nums">
-                          {match.similarity_percent}% mirip ·{' '}
-                          {AI_DUPLICATE_LABELS[match.duplicate_assessment]}
+                          {match.similarity_percent}% {pick('mirip', 'similar')} ·{' '}
+                          {(lang === 'en' ? AI_DUPLICATE_LABELS_EN : AI_DUPLICATE_LABELS_ID)[
+                            match.duplicate_assessment
+                          ]}
                         </span>
                       </div>
                       <p className="text-[12.5px] leading-snug text-[var(--text)]">
-                        {match.similarity_reason}
+                        {localizeAiText(lang, match.similarity_reason)}
                       </p>
                       {match.differences.length > 0 && (
                         <p className="text-[11.5px] text-[var(--faint)]">
-                          Perbedaan: {match.differences.join(' · ')}
+                          {pick('Perbedaan', 'Differences')}: {match.differences.map((d) => localizeAiText(lang, d)).join(' · ')}
                         </p>
                       )}
                     </div>
@@ -205,24 +241,26 @@ export function CaseSimilarSidebar({
 
       <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-3">
         <h2 className="text-[16px] font-semibold text-[var(--text)]">
-          Riwayat Perubahan (Audit Log)
+          {pick('Riwayat Perubahan (Audit Log)', 'Change History (Audit Log)')}
         </h2>
         <div className="divide-y divide-[var(--rule)]">
           {(caseData.status_histories ?? []).length === 0 ? (
             <div className="py-2 text-[13px] text-[var(--faint)]">
-              Belum ada riwayat perubahan.
+              {pick('Belum ada riwayat perubahan.', 'No change history yet.')}
             </div>
           ) : (
             caseData.status_histories!.map((h) => (
               <div key={h.id} className="py-2.5 space-y-0.5">
                 <div className="text-[13px] font-medium text-[var(--text)]">
-                  {h.from_status_label ? `${h.from_status_label} → ` : ''}
-                  {h.to_status_label}
+                  {h.from_status_label
+                    ? `${localizeCaseStatusLabel(lang, h.from_status_label, h.from_status)} → `
+                    : ''}
+                  {localizeCaseStatusLabel(lang, h.to_status_label, h.to_status)}
                 </div>
                 <div className="text-[12px] text-[var(--faint)]">
-                  {h.changed_by?.name || 'Sistem'} · {formatDateTime(h.created_at)}
+                  {h.changed_by?.name || pick('Sistem', 'System')} · {formatDateTime(h.created_at)}
                 </div>
-                {h.reason && <div className="text-[12px] text-[var(--muted)]">{h.reason}</div>}
+                {h.reason && <div className="text-[12px] text-[var(--muted)]">{localizeContentText(lang, h.reason)}</div>}
               </div>
             ))
           )}

@@ -3,6 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight, Settings, Users, Wrench } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import {
+  localizeContentText,
+  localizeMachineName,
+  localizeOverdueLabel,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { dashboardKeys } from '@/data/query-keys'
 import { OverduePill, RecurringPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
@@ -10,6 +16,7 @@ import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { DashboardData } from '@/types/safetylog'
 
 export function AdminHomePage() {
+  const { lang, pick } = useLanguage()
   const dashboardQuery = useQuery({
     queryKey: dashboardKeys.summary(),
     queryFn: () => apiFetch<{ data: DashboardData }>('/dashboard'),
@@ -26,24 +33,26 @@ export function AdminHomePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Ruang Kerja Manajer &amp; Admin
+            {pick('Ruang Kerja Manajer & Admin', 'Manager & Admin Workspace')}
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Ringkasan keandalan mesin, tindakan terlambat, serta pengelolaan area, mesin QR,
-            pengguna, dan konfigurasi SLA.
+            {pick(
+              'Ringkasan keandalan mesin, tindakan terlambat, serta pengelolaan area, mesin QR, pengguna, dan konfigurasi SLA.',
+              'Machine reliability summary, overdue actions, and management of areas, QR machines, users, and SLA config.',
+            )}
           </p>
         </div>
         <Link
           to="/dashboard"
           className="inline-flex h-11 shrink-0 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] transition-colors"
         >
-          Buka Dashboard Lengkap
+          {pick('Buka Dashboard Lengkap', 'Open Full Dashboard')}
         </Link>
       </div>
 
       {dashboardQuery.isError && (
         <QueryErrorBanner
-          message="Gagal memuat ringkasan pabrik."
+          message={pick('Gagal memuat ringkasan pabrik.', 'Failed to load plant summary.')}
           onRetry={() => void dashboardQuery.refetch()}
         />
       )}
@@ -52,7 +61,7 @@ export function AdminHomePage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Kasus terbuka
+            {pick('Kasus terbuka', 'Open cases')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {summary ? summary.open_cases_count : '—'}
@@ -60,7 +69,7 @@ export function AdminHomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Tindakan terlambat
+            {pick('Tindakan terlambat', 'Overdue actions')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.overdue_actions_count : '—'}
@@ -68,7 +77,7 @@ export function AdminHomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Selesai bulan ini
+            {pick('Selesai bulan ini', 'Closed this month')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
             {summary ? summary.closed_this_month_count : '—'}
@@ -76,7 +85,10 @@ export function AdminHomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Mesin berulang ({recurringRule.window_days}h)
+            {pick(
+              `Mesin berulang (${recurringRule.window_days}h)`,
+              `Recurring machines (${recurringRule.window_days}d)`,
+            )}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
@@ -93,12 +105,15 @@ export function AdminHomePage() {
           <div className="flex items-center justify-between gap-2 text-[15px] font-semibold text-[var(--text)]">
             <span className="inline-flex items-center gap-2">
               <Wrench className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors" />
-              <span>Area, Mesin &amp; Cetak QR</span>
+              <span>{pick('Area, Mesin & Cetak QR', 'Areas, Machines & QR Print')}</span>
             </span>
             <ArrowRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
           </div>
           <p className="text-[13px] leading-relaxed text-[var(--muted)]">
-            Tambah area produksi, daftarkan mesin baru, dan cetak kode QR tempel per mesin.
+            {pick(
+              'Tambah area produksi, daftarkan mesin baru, dan cetak kode QR tempel per mesin.',
+              'Add production areas, register machines, and print QR stickers per machine.',
+            )}
           </p>
         </Link>
 
@@ -109,12 +124,15 @@ export function AdminHomePage() {
           <div className="flex items-center justify-between gap-2 text-[15px] font-semibold text-[var(--text)]">
             <span className="inline-flex items-center gap-2">
               <Users className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors" />
-              <span>Pengguna &amp; Hak Akses</span>
+              <span>{pick('Pengguna & Hak Akses', 'Users & Access Roles')}</span>
             </span>
             <ArrowRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
           </div>
           <p className="text-[13px] leading-relaxed text-[var(--muted)]">
-            Kelola akun Pelapor, Supervisor, K3/Verifikator, dan Admin dalam organisasi.
+            {pick(
+              'Kelola akun Pelapor, Supervisor, K3/Verifikator, dan Admin dalam organisasi.',
+              'Manage Reporter, Supervisor, HSE/Verifier, and Admin accounts.',
+            )}
           </p>
         </Link>
 
@@ -125,12 +143,15 @@ export function AdminHomePage() {
           <div className="flex items-center justify-between gap-2 text-[15px] font-semibold text-[var(--text)]">
             <span className="inline-flex items-center gap-2">
               <Settings className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors" />
-              <span>Matriks Risiko &amp; SLA</span>
+              <span>{pick('Matriks Risiko & SLA', 'Risk Matrix & SLA')}</span>
             </span>
             <ArrowRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
           </div>
           <p className="text-[13px] leading-relaxed text-[var(--muted)]">
-            Atur ambang skor Rendah/Sedang/Tinggi dan target jam penyelesaian tanpa ubah kode.
+            {pick(
+              'Atur ambang skor Rendah/Sedang/Tinggi dan target jam penyelesaian tanpa ubah kode.',
+              'Configure Low/Medium/High thresholds and SLA targets without code changes.',
+            )}
           </p>
         </Link>
       </div>
@@ -141,7 +162,7 @@ export function AdminHomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
-                Mesin Masalah Berulang
+                {pick('Mesin Masalah Berulang', 'Recurring Issue Machines')}
               </h2>
               {recurringMachines.length > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--accent)] tabular-nums">
@@ -153,17 +174,19 @@ export function AdminHomePage() {
               to="/dashboard"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Semua mesin</span>
+              <span>{pick('Semua mesin', 'All machines')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {dashboardQuery.isLoading ? (
-              <SectionLoading label="Memuat data mesin..." className="py-8" />
+              <SectionLoading label={pick('Memuat data mesin...', 'Loading machine data...')} className="py-8" />
             ) : recurringMachines.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Belum ada mesin yang melewati ambang berulang (≥ {recurringRule.threshold} kasus
-                dalam {recurringRule.window_days} hari).
+                {pick(
+                  `Belum ada mesin yang melewati ambang berulang (≥ ${recurringRule.threshold} kasus dalam ${recurringRule.window_days} hari).`,
+                  `No machines have exceeded the recurring threshold (≥ ${recurringRule.threshold} cases in ${recurringRule.window_days} days).`,
+                )}
               </div>
             ) : (
               recurringMachines.map((m) => (
@@ -181,7 +204,7 @@ export function AdminHomePage() {
                       <RecurringPill label={m.recurring_label || 'Berulang'} />
                     </div>
                     <div className="truncate text-[14.5px] font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
-                      {m.machine_name}
+                      {localizeMachineName(lang, m.machine_name, m.machine_code)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -190,7 +213,10 @@ export function AdminHomePage() {
                         {m.cases_last_90_days}
                       </div>
                       <div className="text-[11.5px] text-[var(--faint)]">
-                        kasus ({recurringRule.window_days}h)
+                        {pick(
+                          `kasus (${recurringRule.window_days}h)`,
+                          `cases (${recurringRule.window_days}d)`,
+                        )}
                       </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
@@ -205,7 +231,7 @@ export function AdminHomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
-                Tindakan Terlambat
+                {pick('Tindakan Terlambat', 'Overdue Actions')}
               </h2>
               {overdueActions.length > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--safety-danger-foreground)] tabular-nums">
@@ -217,16 +243,16 @@ export function AdminHomePage() {
               to="/cases"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Cari kasus</span>
+              <span>{pick('Cari kasus', 'Search cases')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {dashboardQuery.isLoading ? (
-              <SectionLoading label="Memuat tindakan terlambat..." className="py-8" />
+              <SectionLoading label={pick('Memuat tindakan terlambat...', 'Loading overdue actions...')} className="py-8" />
             ) : overdueActions.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Tidak ada tindakan yang melewati tenggat SLA.
+                {pick('Tidak ada tindakan yang melewati tenggat SLA.', 'No actions past SLA due date.')}
               </div>
             ) : (
               overdueActions.slice(0, 5).map((oa) => (
@@ -248,12 +274,14 @@ export function AdminHomePage() {
                       )}
                     </div>
                     <div className="shrink-0">
-                      <OverduePill label={`${oa.overdue_label} (${oa.days_overdue}h)`} />
+                      <OverduePill
+                        label={`${localizeOverdueLabel(lang, oa.overdue_label)} (${oa.days_overdue}${pick('h', 'd')})`}
+                      />
                     </div>
                   </div>
 
                   <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">
-                    {oa.title}
+                    {localizeContentText(lang, oa.title)}
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-0.5 text-[12px] text-[var(--muted)]">
@@ -261,7 +289,9 @@ export function AdminHomePage() {
                       PIC: <strong className="font-medium text-[var(--text)]">{oa.pic?.name || '—'}</strong>
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0 tabular-nums text-[var(--safety-danger-foreground)] font-medium">
-                      <span>Tenggat {formatDateTime(oa.due_at)}</span>
+                      <span>
+                        {pick('Tenggat', 'Due')} {formatDateTime(oa.due_at)}
+                      </span>
                       <ChevronRight className="h-4 w-4 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />
                     </div>
                   </div>

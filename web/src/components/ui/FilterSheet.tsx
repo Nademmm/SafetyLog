@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { SlidersHorizontal, X } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { cn } from '@/lib/utils'
 
 interface FilterSheetProps {
@@ -23,6 +24,7 @@ export function FilterSheet({
   popoverWidthClassName = 'sm:w-[360px]',
   children,
 }: FilterSheetProps) {
+  const { pick } = useLanguage()
   const containerRef = React.useRef<HTMLDivElement | null>(null)
 
   React.useEffect(() => {
@@ -94,7 +96,7 @@ export function FilterSheet({
                 <button
                   type="button"
                   onClick={() => onOpenChange(false)}
-                  aria-label="Tutup filter"
+                  aria-label={pick('Tutup filter', 'Close filter')}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--ink)]"
                 >
                   <X className="h-4 w-4" />

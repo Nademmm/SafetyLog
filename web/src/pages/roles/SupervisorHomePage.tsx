@@ -3,6 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import {
+  localizeContentText,
+  localizeMachineName,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { caseKeys, dashboardKeys } from '@/data/query-keys'
 import { CaseStatusPill, CaseTypePill, OverduePill, RiskPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
@@ -10,6 +15,7 @@ import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { DashboardData, SafetyCase } from '@/types/safetylog'
 
 export function SupervisorHomePage() {
+  const { lang, pick } = useLanguage()
   const newCasesQuery = useQuery({
     queryKey: caseKeys.list({ scope: 'supervisor-new', status: 'new', per_page: 6 }),
     queryFn: () =>
@@ -38,23 +44,29 @@ export function SupervisorHomePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Ruang Kerja Supervisor
+            {pick('Ruang Kerja Supervisor', 'Supervisor Workspace')}
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Nilai risiko 5×5 untuk laporan baru, tunjuk PIC, dan pantau pelaksanaan tindakan.
+            {pick(
+              'Nilai risiko 5×5 untuk laporan baru, tunjuk PIC, dan pantau pelaksanaan tindakan.',
+              'Assess 5×5 risk for new reports, assign PICs, and track CAPA execution.',
+            )}
           </p>
         </div>
         <Link
           to="/cases?status=new"
           className="inline-flex h-11 shrink-0 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] transition-colors"
         >
-          Buka Antrean Triase
+          {pick('Buka Antrean Triase', 'Open Triage Queue')}
         </Link>
       </div>
 
       {hasError && (
         <QueryErrorBanner
-          message="Sebagian data Supervisor gagal dimuat."
+          message={pick(
+            'Sebagian data Supervisor gagal dimuat.',
+            'Failed to load some Supervisor data.',
+          )}
           onRetry={() => {
             void newCasesQuery.refetch()
             void activeCasesQuery.refetch()
@@ -67,7 +79,7 @@ export function SupervisorHomePage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Menunggu triase (Baru)
+            {pick('Menunggu triase (Baru)', 'Awaiting triage (New)')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {newCasesQuery.isLoading ? '—' : newCasesTotal}
@@ -75,7 +87,7 @@ export function SupervisorHomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Total kasus terbuka
+            {pick('Total kasus terbuka', 'Total open cases')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {summary ? summary.open_cases_count : '—'}
@@ -83,7 +95,7 @@ export function SupervisorHomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Risiko tinggi terbuka
+            {pick('Risiko tinggi terbuka', 'Open high-risk')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.high_risk_open_count : '—'}
@@ -91,7 +103,7 @@ export function SupervisorHomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Tindakan terlambat
+            {pick('Tindakan terlambat', 'Overdue actions')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.overdue_actions_count : '—'}
@@ -105,7 +117,7 @@ export function SupervisorHomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
-                Antrean Triase
+                {pick('Antrean Triase', 'Triage Queue')}
               </h2>
               {newCasesTotal > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--accent)] tabular-nums">
@@ -117,16 +129,16 @@ export function SupervisorHomePage() {
               to="/cases?status=new"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Semua</span>
+              <span>{pick('Semua', 'All')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {newCasesQuery.isLoading ? (
-              <SectionLoading label="Memuat antrean triase..." className="py-8" />
+              <SectionLoading label={pick('Memuat antrean triase...', 'Loading triage queue...')} className="py-8" />
             ) : newCases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Seluruh laporan baru sudah ditriase.
+                {pick('Seluruh laporan baru sudah ditriase.', 'All new reports have been triaged.')}
               </div>
             ) : (
               newCases.map((c) => {
@@ -155,7 +167,7 @@ export function SupervisorHomePage() {
 
                     <div className="space-y-1 min-w-0">
                       <div className="text-[15.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
-                        {c.machine?.name || 'Mesin / Area'}
+                        {c.machine?.name ? localizeMachineName(lang, c.machine.name, c.machine.code) : pick('Mesin / Area', 'Machine / Area')}
                         {c.machine?.code ? (
                           <span className="ml-1.5 font-mono text-[12.5px] font-normal text-[var(--faint)]">
                             {c.machine.code}
@@ -163,7 +175,7 @@ export function SupervisorHomePage() {
                         ) : null}
                       </div>
                       <p className="text-[13.5px] leading-relaxed text-[var(--muted)] line-clamp-2">
-                        {c.description}
+                        {localizeContentText(lang, c.description)}
                       </p>
                     </div>
 
@@ -171,7 +183,7 @@ export function SupervisorHomePage() {
                       <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[var(--muted)]">
                         {c.reporter?.name && (
                           <span>
-                            Pelapor:{' '}
+                            {pick('Pelapor:', 'Reporter:')}{' '}
                             <strong className="font-medium text-[var(--text)]">
                               {c.reporter.name}
                             </strong>
@@ -179,17 +191,17 @@ export function SupervisorHomePage() {
                         )}
                         {c.is_machine_stopped && (
                           <span className="font-semibold text-[var(--safety-danger-foreground)]">
-                            · Mesin Berhenti
+                            · {pick('Mesin Berhenti', 'Machine Stopped')}
                           </span>
                         )}
                         {c.has_affected_people && (
                           <span className="font-semibold text-[var(--safety-danger-foreground)]">
-                            · Ada Korban
+                            · {pick('Ada Korban', 'Affected People')}
                           </span>
                         )}
                       </div>
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-[5px] border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-2.5 py-1 text-[12.5px] font-semibold text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)] transition-colors">
-                        <span>Nilai Risiko</span>
+                        <span>{pick('Nilai Risiko', 'Assess Risk')}</span>
                         <ChevronRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
@@ -205,7 +217,7 @@ export function SupervisorHomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
-                Tindakan Sedang Berjalan
+                {pick('Tindakan Sedang Berjalan', 'Active Actions')}
               </h2>
               {activeCases.length > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--muted)] tabular-nums">
@@ -217,16 +229,16 @@ export function SupervisorHomePage() {
               to="/cases?status=in_progress"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Semua</span>
+              <span>{pick('Semua', 'All')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {activeCasesQuery.isLoading ? (
-              <SectionLoading label="Memuat kasus aktif..." className="py-8" />
+              <SectionLoading label={pick('Memuat kasus aktif...', 'Loading active cases...')} className="py-8" />
             ) : activeCases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Belum ada kasus dengan tindakan berjalan.
+                {pick('Belum ada kasus dengan tindakan berjalan.', 'No cases with active actions yet.')}
               </div>
             ) : (
               activeCases.map((c) => {
@@ -290,7 +302,7 @@ export function SupervisorHomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] leading-snug">
-                Tindakan Melewati Tenggat SLA
+                {pick('Tindakan Melewati Tenggat SLA', 'SLA Overdue Actions')}
               </h2>
               <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--safety-danger-foreground)] tabular-nums">
                 ({overdueActions.length})
@@ -300,16 +312,16 @@ export function SupervisorHomePage() {
               to="/dashboard"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Lihat Dashboard</span>
+              <span>{pick('Lihat Dashboard', 'View Dashboard')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
           <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)]">
             <div className="hidden md:grid md:grid-cols-12 md:gap-4 border-b border-[var(--rule)] px-5 py-2.5 text-[12px] font-medium text-[var(--faint)]">
-              <div className="col-span-5">Tindakan &amp; Kasus</div>
+              <div className="col-span-5">{pick('Tindakan & Kasus', 'Action & Case')}</div>
               <div className="col-span-3">PIC</div>
-              <div className="col-span-2">Tenggat SLA</div>
+              <div className="col-span-2">{pick('Tenggat SLA', 'SLA Due')}</div>
               <div className="col-span-2 text-right">Status</div>
             </div>
 

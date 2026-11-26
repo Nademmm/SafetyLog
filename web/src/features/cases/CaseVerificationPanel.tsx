@@ -2,6 +2,7 @@ import * as React from 'react'
 import { AlertTriangle, CheckCircle2, Lock, RotateCcw } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { localizeContentText, localizeRiskLevelLabel, useLanguage } from '@/lib/i18n-helpers'
 import { hasCompletedPreventiveAction } from '@/domain/case-rules'
 import { ReopenActionSelector } from '@/features/cases/ReopenActionSelector'
 import type { SafetyCase } from '@/types/safetylog'
@@ -15,6 +16,7 @@ export function CaseVerificationPanel({
   requiresPreventive: boolean
   onVerified: () => void
 }) {
+  const { lang, pick } = useLanguage()
   const [verifyMode, setVerifyMode] = React.useState<'approve' | 'reject'>('approve')
   const [learningSummary, setLearningSummary] = React.useState('')
   const [verifyRejectReason, setVerifyRejectReason] = React.useState('')
@@ -46,11 +48,18 @@ export function CaseVerificationPanel({
   const handleVerify = async (decision: 'approve' | 'reject') => {
     setVerifyErr(null)
     if (decision === 'approve' && !learningSummary.trim()) {
-      setVerifyErr('Ringkasan pembelajaran wajib diisi untuk menutup kasus.')
+      setVerifyErr(
+        pick(
+          'Ringkasan pembelajaran wajib diisi untuk menutup kasus.',
+          'Learning summary is required to close the case.',
+        ),
+      )
       return
     }
     if (decision === 'reject' && !verifyRejectReason.trim()) {
-      setVerifyErr('Alasan penolakan verifikasi wajib diisi.')
+      setVerifyErr(
+        pick('Alasan penolakan verifikasi wajib diisi.', 'Verification rejection reason is required.'),
+      )
       return
     }
     setVerifyBusy(true)
@@ -69,7 +78,7 @@ export function CaseVerificationPanel({
       setVerifyRejectReason('')
       onVerified()
     } catch (err) {
-      setVerifyErr(err instanceof ApiError ? err.message : 'Verifikasi gagal.')
+      setVerifyErr(err instanceof ApiError ? err.message : pick('Verifikasi gagal.', 'Verification failed.'))
     } finally {
       setVerifyBusy(false)
     }
@@ -77,12 +86,16 @@ export function CaseVerificationPanel({
 
   return (
     <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4">
-      <h2 className="text-[16px] font-semibold text-[var(--text)]">Verifikasi &amp; Tutup Kasus</h2>
+      <h2 className="text-[16px] font-semibold text-[var(--text)]">
+        {pick('Verifikasi & Tutup Kasus', 'Verify & Close Case')}
+      </h2>
 
       {available?.is_verifier_blocked_as_pic && (
         <div className="rounded-[6px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] p-3.5 text-[13px] text-[var(--safety-danger-foreground)]">
-          Anda terdaftar sebagai PIC pada kasus/tindakan ini. Sesuai aturan produk, Verifikator
-          tidak boleh sama dengan PIC.
+          {pick(
+            'Anda terdaftar sebagai PIC pada kasus/tindakan ini. Sesuai aturan produk, Verifikator tidak boleh sama dengan PIC.',
+            'You are assigned as PIC on this case/action. Per product rules, the Verifier cannot be the same person as the PIC.',
+          )}
         </div>
       )}
 
@@ -90,9 +103,18 @@ export function CaseVerificationPanel({
         <div className="flex items-start gap-2.5 rounded-[6px] border border-[var(--safety-warning-border)] bg-[var(--safety-warning-bg)] p-3.5 text-[13px] text-[var(--safety-warning-foreground)]">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>
-            Kasus berisiko <strong>{caseData.risk_assessment.risk_level_label}</strong> wajib
-            memiliki minimal 1 tindakan <strong>Preventif</strong> yang sudah selesai sebelum dapat
-            disetujui dan ditutup.
+            {pick('Kasus berisiko', 'Cases with')}{' '}
+            <strong>
+              {localizeRiskLevelLabel(
+                lang,
+                caseData.risk_assessment.risk_level_label,
+                caseData.risk_assessment.risk_level,
+              )}
+            </strong>{' '}
+            {pick(
+              'wajib memiliki minimal 1 tindakan Preventif yang sudah selesai sebelum dapat disetujui dan ditutup.',
+              'risk must have at least 1 completed Preventive action before they can be approved and closed.',
+            )}
           </span>
         </div>
       )}
@@ -107,7 +129,7 @@ export function CaseVerificationPanel({
         <div className="space-y-4">
           <div
             role="radiogroup"
-            aria-label="Keputusan verifikasi"
+            aria-label={pick('Keputusan verifikasi', 'Verification decision')}
             className="grid grid-cols-1 sm:grid-cols-2 gap-2"
           >
             <button
@@ -125,7 +147,7 @@ export function CaseVerificationPanel({
               }`}
             >
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>Setujui &amp; Tutup</span>
+              <span>{pick('Setujui & Tutup', 'Approve & Close')}</span>
             </button>
             <button
               type="button"
@@ -142,7 +164,7 @@ export function CaseVerificationPanel({
               }`}
             >
               <RotateCcw className="h-4 w-4 shrink-0" />
-              <span>Tolak &amp; Kembalikan</span>
+              <span>{pick('Tolak & Kembalikan', 'Reject & Return')}</span>
             </button>
           </div>
 
@@ -150,13 +172,16 @@ export function CaseVerificationPanel({
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-[var(--text)]">
-                  Ringkasan Pembelajaran <span className="text-[var(--safety-danger)]">*</span>
+                  {pick('Ringkasan Pembelajaran', 'Learning Summary')} <span className="text-[var(--safety-danger)]">*</span>
                 </label>
                 <textarea
                   rows={3}
                   value={learningSummary}
                   onChange={(e) => setLearningSummary(e.target.value)}
-                  placeholder="Apa pelajaran utama agar masalah ini tidak terulang?"
+                  placeholder={pick(
+                    'Apa pelajaran utama agar masalah ini tidak terulang?',
+                    'What is the key takeaway so this issue does not recur?',
+                  )}
                   className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
@@ -166,26 +191,29 @@ export function CaseVerificationPanel({
                 onClick={() => void handleVerify('approve')}
                 className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
               >
-                {verifyBusy ? 'Memproses...' : 'Setujui & Tutup Kasus'}
+                {verifyBusy ? pick('Memproses...', 'Processing...') : pick('Setujui & Tutup Kasus', 'Approve & Close Case')}
               </button>
             </div>
           ) : (
             <div className="space-y-3">
               <ReopenActionSelector
-                label="Tindakan yang dibuka ulang"
+                label={pick('Tindakan yang dibuka ulang', 'Actions to reopen')}
                 actions={completedActions}
                 selectedIds={rejectReopenActionIds}
                 onToggle={toggleRejectAction}
               />
               <div className="space-y-1.5">
                 <label className="block text-[13px] font-semibold text-[var(--text)]">
-                  Alasan Penolakan <span className="text-[var(--safety-danger)]">*</span>
+                  {pick('Alasan Penolakan', 'Rejection Reason')} <span className="text-[var(--safety-danger)]">*</span>
                 </label>
                 <textarea
                   rows={3}
                   value={verifyRejectReason}
                   onChange={(e) => setVerifyRejectReason(e.target.value)}
-                  placeholder="Jelaskan bagian mana yang perlu diperbaiki PIC..."
+                  placeholder={pick(
+                    'Jelaskan bagian mana yang perlu diperbaiki PIC...',
+                    'Explain what the PIC needs to fix...',
+                  )}
                   className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
@@ -195,7 +223,7 @@ export function CaseVerificationPanel({
                 onClick={() => void handleVerify('reject')}
                 className="h-11 w-full sm:w-auto rounded-[6px] bg-[var(--safety-danger)] px-5 text-[14px] font-semibold text-white hover:opacity-90 disabled:opacity-50 cursor-pointer"
               >
-                {verifyBusy ? 'Memproses...' : 'Tolak & Kembalikan ke PIC'}
+                {verifyBusy ? pick('Memproses...', 'Processing...') : pick('Tolak & Kembalikan ke PIC', 'Reject & Return to PIC')}
               </button>
             </div>
           )}
@@ -212,6 +240,7 @@ export function CaseReopenPanel({
   caseData: SafetyCase
   onReopened: () => void
 }) {
+  const { lang, pick } = useLanguage()
   const [reopenReason, setReopenReason] = React.useState('')
   const [caseReopenIdsOverride, setCaseReopenIdsOverride] = React.useState<number[] | null>(null)
   const [reopenBusy, setReopenBusy] = React.useState(false)
@@ -237,7 +266,9 @@ export function CaseReopenPanel({
     e.preventDefault()
     setReopenErr(null)
     if (!reopenReason.trim()) {
-      setReopenErr('Alasan membuka ulang kasus wajib diisi.')
+      setReopenErr(
+        pick('Alasan membuka ulang kasus wajib diisi.', 'Reason for reopening case is required.'),
+      )
       return
     }
     setReopenBusy(true)
@@ -252,7 +283,11 @@ export function CaseReopenPanel({
       setReopenReason('')
       onReopened()
     } catch (err) {
-      setReopenErr(err instanceof ApiError ? err.message : 'Gagal membuka ulang kasus.')
+      setReopenErr(
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal membuka ulang kasus.', 'Failed to reopen case.'),
+      )
     } finally {
       setReopenBusy(false)
     }
@@ -262,26 +297,28 @@ export function CaseReopenPanel({
     <section className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-3">
       <div className="flex items-center gap-2 text-[var(--safety-safe-foreground)]">
         <Lock className="h-4 w-4" />
-        <h2 className="text-[16px] font-semibold">Kasus Selesai &amp; Terkunci</h2>
+        <h2 className="text-[16px] font-semibold">{pick('Kasus Selesai & Terkunci', 'Case Closed & Locked')}</h2>
       </div>
       {caseData.verification.learning_summary && (
         <p className="text-[14px] text-[var(--text)]">
-          <strong>Pembelajaran:</strong> {caseData.verification.learning_summary}
+          <strong>{pick('Pembelajaran', 'Learning')}:</strong> {localizeContentText(lang, caseData.verification.learning_summary)}
         </p>
       )}
       <div className="text-[12px] text-[var(--faint)]">
-        Diverifikasi oleh {caseData.verification.verified_by?.name || '—'} pada{' '}
-        {formatDateTime(caseData.verification.verified_at)}
+        {pick('Diverifikasi oleh', 'Verified by')} {caseData.verification.verified_by?.name || '—'}{' '}
+        {pick('pada', 'on')} {formatDateTime(caseData.verification.verified_at)}
       </div>
 
       {caseData.available_actions?.can_reopen && (
         <form onSubmit={handleReopen} className="border-t border-[var(--rule)] pt-4 space-y-3">
-          <div className="text-[13px] font-semibold text-[var(--text)]">Buka Ulang Kasus</div>
+          <div className="text-[13px] font-semibold text-[var(--text)]">
+            {pick('Buka Ulang Kasus', 'Reopen Case')}
+          </div>
           {reopenErr && (
             <div className="text-[12px] text-[var(--safety-danger-foreground)]">{reopenErr}</div>
           )}
           <ReopenActionSelector
-            label="Pilih tindakan yang perlu dibuka ulang:"
+            label={pick('Pilih tindakan yang perlu dibuka ulang:', 'Select actions to reopen:')}
             actions={completedActions}
             selectedIds={caseReopenActionIds}
             onToggle={toggleReopenAction}
@@ -291,7 +328,7 @@ export function CaseReopenPanel({
               type="text"
               value={reopenReason}
               onChange={(e) => setReopenReason(e.target.value)}
-              placeholder="Alasan membuka ulang kasus..."
+              placeholder={pick('Alasan membuka ulang kasus...', 'Reason for reopening case...')}
               required
               className="h-11 w-full sm:flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
             />
@@ -300,7 +337,7 @@ export function CaseReopenPanel({
               disabled={reopenBusy}
               className="h-11 w-full sm:w-auto rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-4 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
             >
-              Buka Ulang
+              {pick('Buka Ulang', 'Reopen')}
             </button>
           </div>
         </form>

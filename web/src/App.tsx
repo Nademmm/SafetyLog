@@ -7,6 +7,7 @@ import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { ROUTE_ALLOWED_ROLES } from '@/domain/access-policy'
 import { ThemeProvider } from '@/lib/theme'
 import { LanguageProvider } from '@/lib/i18n'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AppShell } from '@/components/layout/AppShell'
 import { SectionLoading, WaveformLoader } from '@/components/ui/waveform-loader'
@@ -74,15 +75,17 @@ const queryClient = new QueryClient({
 })
 
 function PageFallback() {
-  return <SectionLoading label="Memuat halaman..." className="py-16" />
+  const { pick } = useLanguage()
+  return <SectionLoading label={pick('Memuat halaman...', 'Loading page...')} className="py-16" />
 }
 
 function HomeRedirect() {
   const { user, isLoading, isAuthenticated } = useAuth()
+  const { pick } = useLanguage()
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--ground)] flex items-center justify-center p-6">
-        <WaveformLoader label="Memuat SafetyLog..." />
+        <WaveformLoader label={pick('Memuat SafetyLog...', 'Loading SafetyLog...')} />
       </div>
     )
   }

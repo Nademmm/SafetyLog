@@ -9,6 +9,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { formatDateTime } from '@/lib/format'
+import { useLanguage } from '@/lib/i18n-helpers'
 import type { SafetyCase } from '@/types/safetylog'
 
 interface CasePipelineTrackerProps {
@@ -18,20 +19,23 @@ interface CasePipelineTrackerProps {
 interface StageDef {
   key: string
   shortLabel: string
+  shortLabelEn: string
   hint: string
+  hintEn: string
   icon: typeof FilePlus2
 }
 
 const STAGES: StageDef[] = [
-  { key: 'new', shortLabel: 'Baru', hint: 'Laporan masuk, menunggu triase Supervisor.', icon: FilePlus2 },
-  { key: 'assessed', shortLabel: 'Dinilai', hint: 'Menunggu penilaian risiko & penunjukan PIC oleh Supervisor.', icon: Gauge },
-  { key: 'analyzed', shortLabel: 'Dianalisis', hint: 'Menunggu analisis akar masalah (5W & 6M) oleh PIC.', icon: SearchCheck },
-  { key: 'in_progress', shortLabel: 'Tindakan', hint: 'Menunggu pelaksanaan tindakan perbaikan (CAPA).', icon: Wrench },
-  { key: 'pending_verification', shortLabel: 'Verifikasi', hint: 'Menunggu verifikasi independen K3.', icon: ShieldCheck },
-  { key: 'closed', shortLabel: 'Selesai', hint: 'Menunggu penutupan & penguncian kasus.', icon: Lock },
+  { key: 'new', shortLabel: 'Baru', shortLabelEn: 'New', hint: 'Laporan masuk, menunggu triase Supervisor.', hintEn: 'Report received, awaiting Supervisor triage.', icon: FilePlus2 },
+  { key: 'assessed', shortLabel: 'Dinilai', shortLabelEn: 'Assessed', hint: 'Menunggu penilaian risiko & penunjukan PIC oleh Supervisor.', hintEn: 'Awaiting risk assessment & PIC assignment.', icon: Gauge },
+  { key: 'analyzed', shortLabel: 'Dianalisis', shortLabelEn: 'Analyzed', hint: 'Menunggu analisis akar masalah (5W & 6M) oleh PIC.', hintEn: 'Awaiting root cause analysis (5W & 6M) by PIC.', icon: SearchCheck },
+  { key: 'in_progress', shortLabel: 'Tindakan', shortLabelEn: 'CAPA', hint: 'Menunggu pelaksanaan tindakan perbaikan (CAPA).', hintEn: 'Awaiting CAPA execution.', icon: Wrench },
+  { key: 'pending_verification', shortLabel: 'Verifikasi', shortLabelEn: 'Verify', hint: 'Menunggu verifikasi independen K3.', hintEn: 'Awaiting independent HSE verification.', icon: ShieldCheck },
+  { key: 'closed', shortLabel: 'Selesai', shortLabelEn: 'Closed', hint: 'Menunggu penutupan & penguncian kasus.', hintEn: 'Awaiting case closure & lock.', icon: Lock },
 ]
 
 export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
+  const { pick } = useLanguage()
   const rawIndex = STAGES.findIndex((s) => s.key === caseData.status)
   const currentIndex = rawIndex >= 0 ? rawIndex : 0
   const currentCaseKey = `${caseData.id}-${caseData.status}`
@@ -62,53 +66,70 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
 
   const getStageDetail = (idx: number): { text: string; meta: string | null } => {
     const stage = STAGES[idx]
+    const stageHint = pick(stage.hint, stage.hintEn)
     switch (stage.key) {
       case 'new':
         return {
-          text: caseData.reporter?.name ? `Dilaporkan oleh ${caseData.reporter.name}` : stage.hint,
+          text: caseData.reporter?.name
+            ? pick(`Dilaporkan oleh ${caseData.reporter.name}`, `Reported by ${caseData.reporter.name}`)
+            : stageHint,
           meta: formatDateTime(caseData.reported_at),
         }
       case 'assessed':
         return caseData.risk_assessment.triaged_at
           ? {
-              text: `Dinilai oleh ${caseData.risk_assessment.triaged_by?.name || 'Supervisor'}`,
+              text: pick(
+                `Dinilai oleh ${caseData.risk_assessment.triaged_by?.name || 'Supervisor'}`,
+                `Assessed by ${caseData.risk_assessment.triaged_by?.name || 'Supervisor'}`,
+              ),
               meta: formatDateTime(caseData.risk_assessment.triaged_at),
             }
-          : { text: stage.hint, meta: null }
+          : { text: stageHint, meta: null }
       case 'analyzed':
         return caseData.root_cause.analyzed_at
           ? {
-              text: `Dianalisis oleh ${caseData.root_cause.analyzed_by?.name || 'PIC'}${
-                caseData.root_cause.root_cause_category
+              text: pick(
+                `Dianalisis oleh ${caseData.root_cause.analyzed_by?.name || 'PIC'}`,
+                `Analyzed by ${caseData.root_cause.analyzed_by?.name || 'PIC'}`,
+              ) +
+                (caseData.root_cause.root_cause_category
                   ? ` (${caseData.root_cause.root_cause_category})`
-                  : ''
-              }`,
+                  : ''),
               meta: formatDateTime(caseData.root_cause.analyzed_at),
             }
-          : { text: stage.hint, meta: null }
+          : { text: stageHint, meta: null }
       case 'in_progress':
         return totalActions > 0
           ? {
-              text: `${completedActions} dari ${totalActions} tindakan CAPA selesai`,
-              meta: completedActions === totalActions ? 'Tuntas' : 'Berjalan',
+              text: pick(
+                `${completedActions} dari ${totalActions} tindakan CAPA selesai`,
+                `${completedActions} of ${totalActions} CAPA actions completed`,
+              ),
+              meta:
+                completedActions === totalActions
+                  ? pick('Tuntas', 'Done')
+                  : pick('Berjalan', 'In Progress'),
             }
-          : { text: stage.hint, meta: null }
+          : { text: stageHint, meta: null }
       case 'pending_verification':
         return caseData.verification.verified_at
           ? {
-              text: `Diverifikasi oleh ${caseData.verification.verified_by?.name || 'K3'}`,
+              text: pick(
+                `Diverifikasi oleh ${caseData.verification.verified_by?.name || 'K3'}`,
+                `Verified by ${caseData.verification.verified_by?.name || 'HSE'}`,
+              ),
               meta: formatDateTime(caseData.verification.verified_at),
             }
-          : { text: stage.hint, meta: null }
+          : { text: stageHint, meta: null }
       case 'closed':
         return caseData.verification.closed_at
           ? {
-              text: 'Ditutup & terkunci permanen',
+              text: pick('Ditutup & terkunci permanen', 'Closed & permanently locked'),
               meta: formatDateTime(caseData.verification.closed_at),
             }
-          : { text: stage.hint, meta: null }
+          : { text: stageHint, meta: null }
       default:
-        return { text: stage.hint, meta: null }
+        return { text: stageHint, meta: null }
     }
   }
 
@@ -124,11 +145,11 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
-            Alur Penanganan
+            {pick('Alur Penanganan', 'Case Pipeline')}
           </span>
           <span className="text-[var(--faint)]">·</span>
           <span className="font-semibold text-[13px] text-[var(--text)] truncate">
-            {inspectedStage.shortLabel}
+            {pick(inspectedStage.shortLabel, inspectedStage.shortLabelEn)}
           </span>
         </div>
 
@@ -169,10 +190,10 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
 
           <div className="flex items-baseline gap-1 font-mono">
             <span className="text-[13px] sm:text-[14px] font-bold text-[var(--text)] tabular-nums tracking-tight">
-              {isClosed ? 'Tuntas' : `${currentIndex + 1}/${STAGES.length}`}
+              {isClosed ? pick('Tuntas', 'Done') : `${currentIndex + 1}/${STAGES.length}`}
             </span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted)]">
-              {isClosed ? '' : 'tahap'}
+              {isClosed ? '' : pick('tahap', 'step')}
             </span>
           </div>
         </div>
@@ -231,7 +252,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
                       <>
                         <Icon className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" aria-hidden="true" />
                         <span className="text-[12px] sm:text-[13px] whitespace-nowrap">
-                          {stage.shortLabel}
+                          {pick(stage.shortLabel, stage.shortLabelEn)}
                         </span>
                       </>
                     ) : done ? (
@@ -259,7 +280,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
                   : 'bg-[var(--raised)] text-[var(--muted)]'
             }`}
           >
-            {inspectedStage.shortLabel}
+            {pick(inspectedStage.shortLabel, inspectedStage.shortLabelEn)}
           </span>
           <span className="text-[13px] leading-snug text-[var(--muted)]">{detail.text}</span>
         </div>
@@ -277,7 +298,7 @@ export function CasePipelineTracker({ caseData }: CasePipelineTrackerProps) {
                 onClick={() => setSelectedIndex(null)}
                 className="inline-flex min-h-[36px] sm:min-h-[44px] items-center rounded-[5px] border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-ink)] cursor-pointer transition-colors"
               >
-                Ke tahap aktif
+                {pick('Ke tahap aktif', 'To active step')}
               </button>
             )}
           </div>

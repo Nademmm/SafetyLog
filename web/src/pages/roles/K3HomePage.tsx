@@ -3,6 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import {
+  localizeContentText,
+  localizeMachineName,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { caseKeys, dashboardKeys } from '@/data/query-keys'
 import { CaseStatusPill, RiskPill } from '@/components/safety/StatusPill'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
@@ -10,6 +15,7 @@ import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { DashboardData, SafetyCase } from '@/types/safetylog'
 
 export function K3HomePage() {
+  const { lang, pick } = useLanguage()
   const pendingVerifyQuery = useQuery({
     queryKey: caseKeys.list({ scope: 'k3-pending', status: 'pending_verification', per_page: 8 }),
     queryFn: () =>
@@ -42,24 +48,26 @@ export function K3HomePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-            Ruang Kerja K3 / Verifikator
+            {pick('Ruang Kerja K3 / Verifikator', 'HSE / Verifier Workspace')}
           </h1>
           <p className="mt-1 text-[14px] text-[var(--muted)]">
-            Verifikasi independen (Verifikator ≠ PIC) dan pastikan kasus Sedang/Tinggi memiliki
-            tindakan Preventif selesai.
+            {pick(
+              'Verifikasi independen (Verifikator ≠ PIC) dan pastikan kasus Sedang/Tinggi memiliki tindakan Preventif selesai.',
+              'Independent verification (Verifier ≠ PIC) ensuring Medium/High cases have a completed Preventive action.',
+            )}
           </p>
         </div>
         <Link
           to="/cases?status=pending_verification"
           className="inline-flex h-11 shrink-0 items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] transition-colors"
         >
-          Periksa Antrean Verifikasi
+          {pick('Periksa Antrean Verifikasi', 'Review Verification Queue')}
         </Link>
       </div>
 
       {hasError && (
         <QueryErrorBanner
-          message="Sebagian data K3 gagal dimuat."
+          message={pick('Sebagian data K3 gagal dimuat.', 'Failed to load some HSE data.')}
           onRetry={() => {
             void pendingVerifyQuery.refetch()
             void highRiskQuery.refetch()
@@ -72,7 +80,7 @@ export function K3HomePage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--border)]">
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Menunggu verifikasi
+            {pick('Menunggu verifikasi', 'Pending verification')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--accent)] tabular-nums">
             {pendingVerifyQuery.isLoading ? '—' : pendingTotal}
@@ -80,7 +88,7 @@ export function K3HomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Risiko tinggi terbuka
+            {pick('Risiko tinggi terbuka', 'Open high-risk')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-danger-foreground)] tabular-nums">
             {summary ? summary.high_risk_open_count : '—'}
@@ -88,7 +96,7 @@ export function K3HomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Selesai bulan ini
+            {pick('Selesai bulan ini', 'Closed this month')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--safety-safe-foreground)] tabular-nums">
             {summary ? summary.closed_this_month_count : '—'}
@@ -96,7 +104,7 @@ export function K3HomePage() {
         </div>
         <div className="bg-[var(--surface)] p-4 sm:p-5">
           <div className="text-[12px] sm:text-[13px] font-medium text-[var(--muted)]">
-            Mesin berulang (90h)
+            {pick('Mesin berulang (90h)', 'Recurring machines (90d)')}
           </div>
           <div className="mt-1.5 text-[24px] sm:text-[28px] font-semibold text-[var(--text)] tabular-nums">
             {summary ? summary.recurring_machines_count : '—'}
@@ -110,7 +118,7 @@ export function K3HomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] truncate">
-                Antrean Verifikasi K3
+                {pick('Antrean Verifikasi K3', 'HSE Verification Queue')}
               </h2>
               {pendingTotal > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--accent)] tabular-nums">
@@ -122,16 +130,16 @@ export function K3HomePage() {
               to="/cases?status=pending_verification"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Semua</span>
+              <span>{pick('Semua', 'All')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {pendingVerifyQuery.isLoading ? (
-              <SectionLoading label="Memuat antrean verifikasi..." className="py-8" />
+              <SectionLoading label={pick('Memuat antrean verifikasi...', 'Loading verification queue...')} className="py-8" />
             ) : pendingCases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Tidak ada kasus yang menunggu verifikasi saat ini.
+                {pick('Tidak ada kasus yang menunggu verifikasi saat ini.', 'No cases awaiting verification right now.')}
               </div>
             ) : (
               pendingCases.map((c) => {
@@ -159,15 +167,15 @@ export function K3HomePage() {
                         )}
                       </div>
                       <span className="shrink-0 text-[12px] font-semibold text-[var(--accent)] group-hover:underline">
-                        Verifikasi
+                        {pick('Verifikasi', 'Verify')}
                       </span>
                     </div>
 
                     <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                      {c.machine?.name || 'Mesin / Area'}
+                      {c.machine?.name ? localizeMachineName(lang, c.machine.name, c.machine.code) : pick('Mesin / Area', 'Machine / Area')}
                     </div>
                     <p className="text-[13px] leading-snug text-[var(--muted)] line-clamp-2">
-                      {c.description}
+                      {localizeContentText(lang, c.description)}
                     </p>
 
                     <div className="flex items-center justify-between gap-2 pt-0.5">
@@ -190,7 +198,7 @@ export function K3HomePage() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[18px] font-semibold tracking-tight text-[var(--text)] leading-snug">
-                Kasus Risiko Tinggi Terbuka
+                {pick('Kasus Risiko Tinggi Terbuka', 'Open High-Risk Cases')}
               </h2>
               {highRiskCases.length > 0 && (
                 <span className="shrink-0 font-mono text-[12px] font-medium text-[var(--safety-danger-foreground)] tabular-nums">
@@ -202,16 +210,16 @@ export function K3HomePage() {
               to="/audit-logs"
               className="shrink-0 inline-flex min-h-[44px] items-center gap-1 px-1 text-[13px] font-medium text-[var(--accent)] hover:underline"
             >
-              <span>Audit Log</span>
+              <span>{pick('Audit Log', 'Audit Logs')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="overflow-hidden rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
             {highRiskQuery.isLoading ? (
-              <SectionLoading label="Memuat kasus risiko tinggi..." className="py-8" />
+              <SectionLoading label={pick('Memuat kasus risiko tinggi...', 'Loading high-risk cases...')} className="py-8" />
             ) : highRiskCases.length === 0 ? (
               <div className="p-5 text-[14px] text-[var(--muted)]">
-                Tidak ada kasus risiko tinggi yang terbuka.
+                {pick('Tidak ada kasus risiko tinggi yang terbuka.', 'No open high-risk cases.')}
               </div>
             ) : (
               highRiskCases.map((c) => (
@@ -238,14 +246,14 @@ export function K3HomePage() {
                   </div>
 
                   <div className="text-[14.5px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                    {c.machine?.name || 'Mesin / Area'}
+                    {c.machine?.name || pick('Mesin / Area', 'Machine / Area')}
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-0.5">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <CaseStatusPill status={c.status} label={c.status_label} />
                       <span className="text-[12px] text-[var(--muted)]">
-                        · PIC: <strong className="font-medium text-[var(--text)]">{c.risk_assessment.assigned_pic?.name || 'Belum ditunjuk'}</strong>
+                        · PIC: <strong className="font-medium text-[var(--text)]">{c.risk_assessment.assigned_pic?.name || pick('Belum ditunjuk', 'Unassigned')}</strong>
                       </span>
                     </div>
                     <ChevronRight className="h-4 w-4 shrink-0 text-[var(--faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--text)]" />

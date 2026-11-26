@@ -1,3 +1,4 @@
+import { localizeActionTypeLabel, localizeContentText, useLanguage } from '@/lib/i18n-helpers'
 import type { CaseAction } from '@/types/safetylog'
 
 interface ReopenActionSelectorProps {
@@ -13,6 +14,7 @@ export function ReopenActionSelector({
   selectedIds,
   onToggle,
 }: ReopenActionSelectorProps) {
+  const { lang } = useLanguage()
   if (actions.length === 0) return null
 
   return (
@@ -33,8 +35,10 @@ export function ReopenActionSelector({
                 className="h-5 w-5 shrink-0 rounded-[4px] accent-[var(--accent)] cursor-pointer"
               />
               <span className="min-w-0">
-                <span className="font-semibold">{act.action_type_label}</span>
-                <span className="text-[var(--muted)]"> · {act.title}</span>
+                <span className="font-semibold">
+                  {localizeActionTypeLabel(lang, act.action_type_label, act.action_type)}
+                </span>
+                <span className="text-[var(--muted)]"> · {localizeContentText(lang, act.title)}</span>
               </span>
             </label>
           )

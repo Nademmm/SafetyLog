@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-helpers'
-import { useLanguage, type TranslationKey } from '@/lib/i18n-helpers'
+import { localizeRoleLabel, useLanguage, type TranslationKey } from '@/lib/i18n-helpers'
 import { cn } from '@/lib/utils'
 import {
   getMobileBottomPoliciesForRole,
@@ -116,7 +116,7 @@ function NavGroupList({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
@@ -173,12 +173,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               SafetyLog
             </div>
             <div className="truncate text-[12px] text-[var(--faint)]">
-              {user.organization?.name || 'Pabrik Manufaktur'}
+              {user.organization?.name || (lang === 'en' ? 'Manufacturing Plant' : 'Pabrik Manufaktur')}
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4" aria-label="Navigasi utama">
+        <nav
+          className="flex-1 overflow-y-auto px-3 py-3 space-y-4"
+          aria-label={lang === 'en' ? 'Main navigation' : 'Navigasi utama'}
+        >
           <NavGroupList items={visibleItems} isActivePath={isActivePath} />
         </nav>
 
@@ -186,7 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="min-w-0">
             <div className="truncate text-[14px] font-medium text-[var(--text)]">{user.name}</div>
             <div className="truncate text-[12px] text-[var(--faint)]">
-              {user.role_label} · {user.site?.code || 'SITE'}
+              {localizeRoleLabel(lang, user.role_label, user.role)} · {user.site?.code || 'SITE'}
             </div>
           </div>
           <button
@@ -250,9 +253,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <div className="hidden lg:flex h-full items-center border-l border-[var(--rule)] pl-4 ml-2 gap-3">
               <div className="text-right">
-                <div className="text-[13px] font-medium text-[var(--text)]">{user.role_label}</div>
+                <div className="text-[13px] font-medium text-[var(--text)]">
+                  {localizeRoleLabel(lang, user.role_label, user.role)}
+                </div>
                 <div className="text-[12px] text-[var(--faint)]">
-                  {user.site?.name || 'Site Utama'}
+                  {user.site?.name || (lang === 'en' ? 'Main Site' : 'Site Utama')}
                 </div>
               </div>
               {canAccessReport && (
@@ -319,7 +324,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="min-w-0">
               <div className="truncate text-[14px] font-medium text-[var(--text)]">{user.name}</div>
               <div className="truncate text-[12px] text-[var(--faint)]">
-                {user.role_label} · {user.site?.name || 'Site Utama'}
+                {localizeRoleLabel(lang, user.role_label, user.role)} · {user.site?.name || (lang === 'en' ? 'Main Site' : 'Site Utama')}
               </div>
             </div>
             <button
@@ -336,7 +341,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Phone & Tablet Bottom Navigation Bar */}
       <nav
-        aria-label="Navigasi bawah mobile"
+        aria-label={lang === 'en' ? 'Mobile bottom navigation' : 'Navigasi bawah mobile'}
         className="print:hidden fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-[var(--border)] bg-[var(--surface)] pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {mobileBottomItems.map((item) => {

@@ -12,6 +12,12 @@ import {
   X,
 } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
+import {
+  localizeContentText,
+  localizeMachineName,
+  localizeRoleLabel,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { areaKeys, machineKeys, siteKeys, userKeys } from '@/data/query-keys'
 import { invalidateMasterDataMutation } from '@/data/invalidation'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
@@ -23,6 +29,7 @@ import type { AreaRef, Machine, SiteRef } from '@/types/safetylog'
 type AdminTab = 'machines' | 'areas' | 'sites'
 
 export function AdminMachinesPage() {
+  const { lang, pick } = useLanguage()
   const queryClient = useQueryClient()
   const [tab, setTab] = React.useState<AdminTab>('machines')
   const [showArchived, setShowArchived] = React.useState(false)
@@ -108,7 +115,7 @@ export function AdminMachinesPage() {
     e.preventDefault()
     setErrMsg(null)
     if (!newMachineName.trim() || !newMachineAreaId) {
-      setErrMsg('Area dan nama mesin wajib diisi.')
+      setErrMsg(pick('Area dan nama mesin wajib diisi.', 'Area and machine name are required.'))
       return
     }
     const selectedArea = areas.find((a) => String(a.id) === newMachineAreaId)
@@ -131,7 +138,7 @@ export function AdminMachinesPage() {
       setNewMachineDesc('')
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal menambah mesin.')
+      setErrMsg(err instanceof ApiError ? err.message : pick('Gagal menambah mesin.', 'Failed to add machine.'))
     } finally {
       setBusy(false)
     }
@@ -154,7 +161,9 @@ export function AdminMachinesPage() {
       setEditingMachine(null)
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal memperbarui mesin.')
+      setErrMsg(
+        err instanceof ApiError ? err.message : pick('Gagal memperbarui mesin.', 'Failed to update machine.'),
+      )
     } finally {
       setBusy(false)
     }
@@ -173,7 +182,9 @@ export function AdminMachinesPage() {
       }
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal mengubah status mesin.')
+      setErrMsg(
+        err instanceof ApiError ? err.message : pick('Gagal mengubah status mesin.', 'Failed to update machine status.'),
+      )
     }
   }
 
@@ -182,7 +193,7 @@ export function AdminMachinesPage() {
     setErrMsg(null)
     const siteId = newAreaSiteId ? Number(newAreaSiteId) : sites[0]?.id
     if (!siteId || !newAreaName.trim()) {
-      setErrMsg('Site dan nama area wajib diisi.')
+      setErrMsg(pick('Site dan nama area wajib diisi.', 'Site and area name are required.'))
       return
     }
     setBusy(true)
@@ -199,7 +210,7 @@ export function AdminMachinesPage() {
       setNewAreaPicId('')
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal menambah area.')
+      setErrMsg(err instanceof ApiError ? err.message : pick('Gagal menambah area.', 'Failed to add area.'))
     } finally {
       setBusy(false)
     }
@@ -222,7 +233,9 @@ export function AdminMachinesPage() {
       setEditingArea(null)
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal memperbarui area.')
+      setErrMsg(
+        err instanceof ApiError ? err.message : pick('Gagal memperbarui area.', 'Failed to update area.'),
+      )
     } finally {
       setBusy(false)
     }
@@ -238,7 +251,9 @@ export function AdminMachinesPage() {
       }
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal mengubah status area.')
+      setErrMsg(
+        err instanceof ApiError ? err.message : pick('Gagal mengubah status area.', 'Failed to update area status.'),
+      )
     }
   }
 
@@ -246,7 +261,7 @@ export function AdminMachinesPage() {
     e.preventDefault()
     setErrMsg(null)
     if (!newSiteName.trim()) {
-      setErrMsg('Nama site wajib diisi.')
+      setErrMsg(pick('Nama site wajib diisi.', 'Site name is required.'))
       return
     }
     setBusy(true)
@@ -258,7 +273,7 @@ export function AdminMachinesPage() {
       setNewSiteName('')
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal menambah site.')
+      setErrMsg(err instanceof ApiError ? err.message : pick('Gagal menambah site.', 'Failed to add site.'))
     } finally {
       setBusy(false)
     }
@@ -277,7 +292,9 @@ export function AdminMachinesPage() {
       setEditingSite(null)
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal memperbarui site.')
+      setErrMsg(
+        err instanceof ApiError ? err.message : pick('Gagal memperbarui site.', 'Failed to update site.'),
+      )
     } finally {
       setBusy(false)
     }
@@ -293,7 +310,9 @@ export function AdminMachinesPage() {
       }
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal mengubah status site.')
+      setErrMsg(
+        err instanceof ApiError ? err.message : pick('Gagal mengubah status site.', 'Failed to update site status.'),
+      )
     }
   }
 
@@ -306,7 +325,11 @@ export function AdminMachinesPage() {
       setQrModalMachine(res.data)
       invalidateMasterData()
     } catch (err) {
-      setErrMsg(err instanceof ApiError ? err.message : 'Gagal membuat ulang token QR.')
+      setErrMsg(
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal membuat ulang token QR.', 'Failed to regenerate QR token.'),
+      )
     }
   }
 
@@ -320,21 +343,25 @@ export function AdminMachinesPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-[24px] font-semibold tracking-tight text-[var(--text)]">
-              Site, Area, Mesin &amp; Kode QR
+              {pick('Site, Area, Mesin & Kode QR', 'Sites, Areas, Machines & QR Codes')}
             </h1>
             <p className="mt-1 text-[14px] text-[var(--muted)]">
-              Kelola master data pabrik, tetapkan PIC Area, dan cetak stiker QR per mesin.
+              {pick(
+                'Kelola master data pabrik, tetapkan PIC Area, dan cetak stiker QR per mesin.',
+                'Manage plant master data, assign Area PICs, and print QR stickers per machine.',
+              )}
             </p>
           </div>
 
           {/* Unified Filter Button (Mobile Sheet & Desktop Popover) */}
           {(() => {
             const tabOptions = [
-              { key: 'machines' as const, label: `Mesin & QR (${machines.length})` },
-              { key: 'areas' as const, label: `Area & PIC (${areas.length})` },
-              { key: 'sites' as const, label: `Site / Pabrik (${sites.length})` },
+              { key: 'machines' as const, label: `${pick('Mesin & QR', 'Machines & QR')} (${machines.length})` },
+              { key: 'areas' as const, label: `${pick('Area & PIC', 'Areas & PIC')} (${areas.length})` },
+              { key: 'sites' as const, label: `${pick('Site / Pabrik', 'Sites / Plants')} (${sites.length})` },
             ]
-            const activeTabLabel = tabOptions.find((item) => item.key === tab)?.label || 'Mesin & QR'
+            const activeTabLabel =
+              tabOptions.find((item) => item.key === tab)?.label || pick('Mesin & QR', 'Machines & QR')
             return (
               <div ref={filterPanelRef} className="relative shrink-0 self-start">
                 <button
@@ -356,7 +383,7 @@ export function AdminMachinesPage() {
                   <span>Filter</span>
                   <span className="rounded-[4px] bg-[var(--ground)] border border-[var(--border)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--muted)]">
                     {activeTabLabel}
-                    {showArchived ? ' · Arsip' : ''}
+                    {showArchived ? ` · ${pick('Arsip', 'Archived')}` : ''}
                   </span>
                   <ChevronDown
                     className={`hidden sm:block h-4 w-4 text-[var(--faint)] transition-transform ${
@@ -375,19 +402,19 @@ export function AdminMachinesPage() {
 
                     <div
                       role="dialog"
-                      aria-label="Filter master data pabrik"
+                      aria-label={pick('Filter master data pabrik', 'Plant master data filters')}
                       className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[16px] border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-12px_32px_rgba(0,0,0,0.3)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[300px] sm:rounded-[8px] sm:border sm:p-3 sm:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
                     >
                       <div className="mb-3 space-y-2 sm:hidden">
                         <div className="mx-auto h-1 w-10 rounded-full bg-[var(--control)]" />
                         <div className="flex items-center justify-between">
                           <span className="text-[15px] font-semibold text-[var(--text)]">
-                            Filter Data Master
+                            {pick('Filter Data Master', 'Master Data Filter')}
                           </span>
                           <button
                             type="button"
                             onClick={() => setFilterOpen(false)}
-                            aria-label="Tutup filter"
+                            aria-label={pick('Tutup filter', 'Close filter')}
                             className="flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--muted)] hover:bg-[var(--raised)]"
                           >
                             <X className="h-4 w-4" />
@@ -398,7 +425,7 @@ export function AdminMachinesPage() {
                       <div className="space-y-4">
                         <div className="space-y-1.5">
                           <span className="block px-1 text-[12px] font-medium text-[var(--faint)]">
-                            Tampilkan Kategori Data
+                            {pick('Tampilkan Kategori Data', 'Show Data Category')}
                           </span>
                           <div className="space-y-1">
                             {tabOptions.map((item) => {
@@ -429,7 +456,7 @@ export function AdminMachinesPage() {
                         <div className="border-t border-[var(--rule)] pt-3">
                           <label className="flex min-h-[44px] cursor-pointer items-center justify-between rounded-[6px] px-2 hover:bg-[var(--hover-row)]">
                             <span className="text-[13px] font-medium text-[var(--text)]">
-                              Tampilkan yang diarsipkan
+                              {pick('Tampilkan yang diarsipkan', 'Show archived')}
                             </span>
                             <input
                               type="checkbox"
@@ -456,7 +483,7 @@ export function AdminMachinesPage() {
 
         {(machinesQuery.isError || areasQuery.isError || sitesQuery.isError) && (
           <QueryErrorBanner
-            message="Gagal memuat sebagian data master pabrik."
+            message={pick('Gagal memuat sebagian data master pabrik.', 'Failed to load some plant master data.')}
             onRetry={invalidateMasterData}
           />
         )}
@@ -468,14 +495,16 @@ export function AdminMachinesPage() {
               onSubmit={handleCreateMachine}
               className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4"
             >
-              <h2 className="text-[16px] font-semibold text-[var(--text)]">Tambah Mesin Baru</h2>
+              <h2 className="text-[16px] font-semibold text-[var(--text)]">
+                {pick('Tambah Mesin Baru', 'Add New Machine')}
+              </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Select
                   value={newMachineAreaId}
                   onChange={(e) => setNewMachineAreaId(e.target.value)}
                   required
                 >
-                  <option value="">Pilih Area...</option>
+                  <option value="">{pick('Pilih Area...', 'Select Area...')}</option>
                   {activeAreas.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name} ({a.code})
@@ -487,7 +516,7 @@ export function AdminMachinesPage() {
                   type="text"
                   value={newMachineCode}
                   onChange={(e) => setNewMachineCode(e.target.value)}
-                  placeholder="Kode (opsional, otomatis bila kosong)"
+                  placeholder={pick('Kode (opsional, otomatis bila kosong)', 'Code (optional, auto-generated)')}
                   className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
 
@@ -495,7 +524,7 @@ export function AdminMachinesPage() {
                   type="text"
                   value={newMachineName}
                   onChange={(e) => setNewMachineName(e.target.value)}
-                  placeholder="Nama Mesin"
+                  placeholder={pick('Nama Mesin', 'Machine Name')}
                   required
                   className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
@@ -504,7 +533,7 @@ export function AdminMachinesPage() {
                   type="text"
                   value={newMachineDesc}
                   onChange={(e) => setNewMachineDesc(e.target.value)}
-                  placeholder="Keterangan singkat (opsional)"
+                  placeholder={pick('Keterangan singkat (opsional)', 'Brief description (optional)')}
                   className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
               </div>
@@ -513,16 +542,16 @@ export function AdminMachinesPage() {
                 disabled={busy}
                 className="h-11 rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
               >
-                {busy ? 'Menyimpan...' : 'Simpan Mesin'}
+                {busy ? pick('Menyimpan...', 'Saving...') : pick('Simpan Mesin', 'Save Machine')}
               </button>
             </form>
 
             <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
               {machinesQuery.isLoading ? (
-                <SectionLoading label="Memuat daftar mesin..." />
+                <SectionLoading label={pick('Memuat daftar mesin...', 'Loading machine list...')} />
               ) : machines.length === 0 ? (
                 <div className="p-6 text-[14px] text-[var(--faint)]">
-                  Belum ada mesin terdaftar.
+                  {pick('Belum ada mesin terdaftar.', 'No machines registered yet.')}
                 </div>
               ) : (
                 machines.map((m) => (
@@ -540,13 +569,17 @@ export function AdminMachinesPage() {
                         </span>
                         {m.is_active === false && (
                           <span className="rounded-[4px] bg-[var(--safety-danger-bg)] px-2 py-0.5 text-[11px] text-[var(--safety-danger-foreground)]">
-                            Diarsipkan
+                            {pick('Diarsipkan', 'Archived')}
                           </span>
                         )}
                       </div>
-                      <div className="text-[15px] font-medium text-[var(--text)]">{m.name}</div>
+                      <div className="text-[15px] font-medium text-[var(--text)]">
+                        {localizeMachineName(lang, m.name, m.code)}
+                      </div>
                       {m.description && (
-                        <div className="text-[12px] text-[var(--muted)]">{m.description}</div>
+                        <div className="text-[12px] text-[var(--muted)]">
+                          {localizeContentText(lang, m.description)}
+                        </div>
                       )}
                     </div>
 
@@ -555,7 +588,7 @@ export function AdminMachinesPage() {
                         to={`/machines/${m.id}/cases`}
                         className="inline-flex h-11 items-center rounded-[6px] border border-[var(--control)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)]"
                       >
-                        Riwayat
+                        {pick('Riwayat', 'History')}
                       </Link>
                       <button
                         type="button"
@@ -572,11 +605,11 @@ export function AdminMachinesPage() {
                       >
                         {m.is_active === false ? (
                           <>
-                            <RotateCcw className="h-3.5 w-3.5" /> Pulihkan
+                            <RotateCcw className="h-3.5 w-3.5" /> {pick('Pulihkan', 'Restore')}
                           </>
                         ) : (
                           <>
-                            <Archive className="h-3.5 w-3.5" /> Arsipkan
+                            <Archive className="h-3.5 w-3.5" /> {pick('Arsipkan', 'Archive')}
                           </>
                         )}
                       </button>
@@ -587,7 +620,7 @@ export function AdminMachinesPage() {
                           className="inline-flex h-11 items-center gap-1.5 rounded-[6px] bg-[var(--primary)] px-4 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] cursor-pointer"
                         >
                           <QrCode className="h-4 w-4" />
-                          <span>Cetak QR</span>
+                          <span>{pick('Cetak QR', 'Print QR')}</span>
                         </button>
                       )}
                     </div>
@@ -606,7 +639,7 @@ export function AdminMachinesPage() {
               className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4"
             >
               <h2 className="text-[16px] font-semibold text-[var(--text)]">
-                Tambah Area &amp; PIC Area
+                {pick('Tambah Area & PIC Area', 'Add Area & Area PIC')}
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Select
@@ -624,7 +657,7 @@ export function AdminMachinesPage() {
                   type="text"
                   value={newAreaName}
                   onChange={(e) => setNewAreaName(e.target.value)}
-                  placeholder="Nama Area (mis. Produksi Line 1)"
+                  placeholder={pick('Nama Area (mis. Produksi Line 1)', 'Area Name (e.g. Production Line 1)')}
                   required
                   className="h-11 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
@@ -632,10 +665,10 @@ export function AdminMachinesPage() {
                   value={newAreaPicId}
                   onChange={(e) => setNewAreaPicId(e.target.value)}
                 >
-                  <option value="">PIC Area (opsional)...</option>
+                  <option value="">{pick('PIC Area (opsional)...', 'Area PIC (optional)...')}</option>
                   {assignableUsers.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.name} ({u.role_label})
+                      {u.name} ({localizeRoleLabel(lang, u.role_label)})
                     </option>
                   ))}
                 </Select>
@@ -644,14 +677,16 @@ export function AdminMachinesPage() {
                   disabled={busy}
                   className="h-11 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                 >
-                  {busy ? 'Menyimpan...' : 'Simpan Area'}
+                  {busy ? pick('Menyimpan...', 'Saving...') : pick('Simpan Area', 'Save Area')}
                 </button>
               </div>
             </form>
 
             <div className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] divide-y divide-[var(--rule)]">
               {areas.length === 0 ? (
-                <div className="p-6 text-[14px] text-[var(--faint)]">Belum ada area terdaftar.</div>
+                <div className="p-6 text-[14px] text-[var(--faint)]">
+                  {pick('Belum ada area terdaftar.', 'No areas registered yet.')}
+                </div>
               ) : (
                 areas.map((a) => (
                   <div
@@ -668,13 +703,13 @@ export function AdminMachinesPage() {
                         )}
                         {a.is_active === false && (
                           <span className="rounded-[4px] bg-[var(--safety-danger-bg)] px-2 py-0.5 text-[11px] text-[var(--safety-danger-foreground)]">
-                            Diarsipkan
+                            {pick('Diarsipkan', 'Archived')}
                           </span>
                         )}
                       </div>
                       <div className="text-[15px] font-medium text-[var(--text)]">{a.name}</div>
                       <div className="text-[12px] text-[var(--muted)]">
-                        PIC Area: {a.pic_user ? a.pic_user.name : 'Belum ditetapkan'}
+                        {pick('PIC Area:', 'Area PIC:')} {a.pic_user ? a.pic_user.name : pick('Belum ditetapkan', 'Not assigned')}
                       </div>
                     </div>
 
@@ -694,11 +729,11 @@ export function AdminMachinesPage() {
                       >
                         {a.is_active === false ? (
                           <>
-                            <RotateCcw className="h-3.5 w-3.5" /> Pulihkan
+                            <RotateCcw className="h-3.5 w-3.5" /> {pick('Pulihkan', 'Restore')}
                           </>
                         ) : (
                           <>
-                            <Archive className="h-3.5 w-3.5" /> Arsipkan
+                            <Archive className="h-3.5 w-3.5" /> {pick('Arsipkan', 'Archive')}
                           </>
                         )}
                       </button>
@@ -718,14 +753,14 @@ export function AdminMachinesPage() {
               className="rounded-[8px] bg-[var(--surface)] border border-[var(--border)] p-5 space-y-4"
             >
               <h2 className="text-[16px] font-semibold text-[var(--text)]">
-                Tambah Site / Pabrik Baru
+                {pick('Tambah Site / Pabrik Baru', 'Add New Site / Plant')}
               </h2>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   value={newSiteName}
                   onChange={(e) => setNewSiteName(e.target.value)}
-                  placeholder="Nama Site / Pabrik (mis. Plant Karawang)"
+                  placeholder={pick('Nama Site / Pabrik (mis. Plant Karawang)', 'Site / Plant Name (e.g. Karawang Plant)')}
                   required
                   className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
                 />
@@ -734,7 +769,7 @@ export function AdminMachinesPage() {
                   disabled={busy}
                   className="h-11 rounded-[6px] bg-[var(--primary)] px-5 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 cursor-pointer"
                 >
-                  {busy ? 'Menyimpan...' : 'Simpan Site'}
+                  {busy ? pick('Menyimpan...', 'Saving...') : pick('Simpan Site', 'Save Site')}
                 </button>
               </div>
             </form>
@@ -752,7 +787,7 @@ export function AdminMachinesPage() {
                       </span>
                       {s.is_active === false && (
                         <span className="rounded-[4px] bg-[var(--safety-danger-bg)] px-2 py-0.5 text-[11px] text-[var(--safety-danger-foreground)]">
-                          Diarsipkan
+                          {pick('Diarsipkan', 'Archived')}
                         </span>
                       )}
                     </div>
@@ -774,11 +809,11 @@ export function AdminMachinesPage() {
                     >
                       {s.is_active === false ? (
                         <>
-                          <RotateCcw className="h-3.5 w-3.5" /> Pulihkan
+                          <RotateCcw className="h-3.5 w-3.5" /> {pick('Pulihkan', 'Restore')}
                         </>
                       ) : (
                         <>
-                          <Archive className="h-3.5 w-3.5" /> Arsipkan
+                          <Archive className="h-3.5 w-3.5" /> {pick('Arsipkan', 'Archive')}
                         </>
                       )}
                     </button>
@@ -805,12 +840,12 @@ export function AdminMachinesPage() {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-[17px] font-semibold text-[var(--text)]">
-                Edit Mesin {editingMachine.code}
+                {pick('Edit Mesin', 'Edit Machine')} {editingMachine.code}
               </h2>
               <button
                 type="button"
                 onClick={() => setEditingMachine(null)}
-                aria-label="Tutup"
+                aria-label={pick('Tutup', 'Close')}
                 className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)]"
               >
                 <X className="h-4 w-4" />
@@ -833,7 +868,9 @@ export function AdminMachinesPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-[13px] font-semibold text-[var(--text)]">Nama Mesin</label>
+                <label className="block text-[13px] font-semibold text-[var(--text)]">
+                  {pick('Nama Mesin', 'Machine Name')}
+                </label>
                 <input
                   type="text"
                   value={editingMachine.name}
@@ -843,7 +880,9 @@ export function AdminMachinesPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-[13px] font-semibold text-[var(--text)]">Deskripsi</label>
+                <label className="block text-[13px] font-semibold text-[var(--text)]">
+                  {pick('Deskripsi', 'Description')}
+                </label>
                 <input
                   type="text"
                   value={editingMachine.description || ''}
@@ -860,14 +899,14 @@ export function AdminMachinesPage() {
                 onClick={() => setEditingMachine(null)}
                 className="h-11 flex-1 rounded-[6px] border border-[var(--control)] text-[14px] text-[var(--text)]"
               >
-                Batal
+                {pick('Batal', 'Cancel')}
               </button>
               <button
                 type="submit"
                 disabled={busy}
                 className="h-11 flex-1 rounded-[6px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] disabled:opacity-50"
               >
-                Simpan
+                {pick('Simpan', 'Save')}
               </button>
             </div>
           </form>
@@ -889,12 +928,12 @@ export function AdminMachinesPage() {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-[17px] font-semibold text-[var(--text)]">
-                Edit Area {editingArea.code}
+                {pick('Edit Area', 'Edit Area')} {editingArea.code}
               </h2>
               <button
                 type="button"
                 onClick={() => setEditingArea(null)}
-                aria-label="Tutup"
+                aria-label={pick('Tutup', 'Close')}
                 className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)]"
               >
                 <X className="h-4 w-4" />
@@ -917,7 +956,9 @@ export function AdminMachinesPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-[13px] font-semibold text-[var(--text)]">Nama Area</label>
+                <label className="block text-[13px] font-semibold text-[var(--text)]">
+                  {pick('Nama Area', 'Area Name')}
+                </label>
                 <input
                   type="text"
                   value={editingArea.name}
@@ -927,7 +968,9 @@ export function AdminMachinesPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-[13px] font-semibold text-[var(--text)]">PIC Area</label>
+                <label className="block text-[13px] font-semibold text-[var(--text)]">
+                  {pick('PIC Area', 'Area PIC')}
+                </label>
                 <Select
                   value={editingArea.pic_user_id ?? ''}
                   onChange={(e) =>
@@ -937,10 +980,10 @@ export function AdminMachinesPage() {
                     })
                   }
                 >
-                  <option value="">Tidak ada PIC khusus</option>
+                  <option value="">{pick('Tidak ada PIC khusus', 'No specific PIC')}</option>
                   {assignableUsers.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.name} ({u.role_label})
+                      {u.name} ({localizeRoleLabel(lang, u.role_label)})
                     </option>
                   ))}
                 </Select>
@@ -952,14 +995,14 @@ export function AdminMachinesPage() {
                 onClick={() => setEditingArea(null)}
                 className="h-11 flex-1 rounded-[6px] border border-[var(--control)] text-[14px] text-[var(--text)]"
               >
-                Batal
+                {pick('Batal', 'Cancel')}
               </button>
               <button
                 type="submit"
                 disabled={busy}
                 className="h-11 flex-1 rounded-[6px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] disabled:opacity-50"
               >
-                Simpan
+                {pick('Simpan', 'Save')}
               </button>
             </div>
           </form>
@@ -981,19 +1024,21 @@ export function AdminMachinesPage() {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-[17px] font-semibold text-[var(--text)]">
-                Edit Site {editingSite.code}
+                {pick('Edit Site', 'Edit Site')} {editingSite.code}
               </h2>
               <button
                 type="button"
                 onClick={() => setEditingSite(null)}
-                aria-label="Tutup"
+                aria-label={pick('Tutup', 'Close')}
                 className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)]"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="space-y-1.5">
-              <label className="block text-[13px] font-semibold text-[var(--text)]">Nama Site</label>
+              <label className="block text-[13px] font-semibold text-[var(--text)]">
+                {pick('Nama Site', 'Site Name')}
+              </label>
               <input
                 type="text"
                 value={editingSite.name}
@@ -1008,14 +1053,14 @@ export function AdminMachinesPage() {
                 onClick={() => setEditingSite(null)}
                 className="h-11 flex-1 rounded-[6px] border border-[var(--control)] text-[14px] text-[var(--text)]"
               >
-                Batal
+                {pick('Batal', 'Cancel')}
               </button>
               <button
                 type="submit"
                 disabled={busy}
                 className="h-11 flex-1 rounded-[6px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] disabled:opacity-50"
               >
-                Simpan
+                {pick('Simpan', 'Save')}
               </button>
             </div>
           </form>

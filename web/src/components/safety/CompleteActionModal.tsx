@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Camera, Check, ImagePlus, Plus, Trash2, X } from 'lucide-react'
 import { ApiError, apiFetch } from '@/lib/api'
 import { compressImageFile } from '@/lib/image-compress'
+import { localize6MCategory, useLanguage } from '@/lib/i18n-helpers'
 import { useReferenceData } from '@/lib/reference'
 import { parseRootCauseCategories } from '@/data/normalizers'
 import { invalidateActionMutation } from '@/data/invalidation'
@@ -33,6 +34,7 @@ export function CompleteActionModal({
 }: CompleteActionModalProps) {
   const queryClient = useQueryClient()
   const refQuery = useReferenceData()
+  const { lang, pick } = useLanguage()
 
   const categories6M = React.useMemo(
     () => parseRootCauseCategories(refQuery.data?.configurations),
@@ -80,7 +82,9 @@ export function CompleteActionModal({
       const compressed = await Promise.all(files.map(compressImageFile))
       setPhotos((prev) => [...prev, ...compressed].slice(0, 5))
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Gagal memproses foto bukti.')
+      setErrorMsg(
+        err instanceof Error ? err.message : pick('Gagal memproses foto bukti.', 'Failed to process proof photo.'),
+      )
     }
     e.target.value = ''
   }
@@ -91,13 +95,18 @@ export function CompleteActionModal({
 
     const trimmedNote = completionNote.trim()
     if (!trimmedNote) {
-      setErrorMsg('Catatan hasil tindakan wajib diisi.')
+      setErrorMsg(pick('Catatan hasil tindakan wajib diisi.', 'Action result notes are required.'))
       return
     }
 
     const cleanedWhys = fiveWhys.map((w) => w.trim()).filter(Boolean)
     if (cleanedWhys.length === 0) {
-      setErrorMsg('Minimal 1 baris analisis 5 Why (Mengapa) wajib diisi oleh PIC.')
+      setErrorMsg(
+        pick(
+          'Minimal 1 baris analisis 5 Why (Mengapa) wajib diisi oleh PIC.',
+          'At least 1 row of 5 Why analysis is required from the PIC.',
+        ),
+      )
       return
     }
 
@@ -130,10 +139,15 @@ export function CompleteActionModal({
       onClose()
     } catch (err) {
       const baseMsg =
-        err instanceof ApiError ? err.message : 'Gagal menyimpan penyelesaian tindakan.'
+        err instanceof ApiError
+          ? err.message
+          : pick('Gagal menyimpan penyelesaian tindakan.', 'Failed to save action completion.')
       setErrorMsg(
         rootCauseSaved
-          ? `Analisis 5 Why & 6M sudah tersimpan, tetapi penyelesaian tindakan gagal: ${baseMsg}`
+          ? pick(
+              `Analisis 5 Why & 6M sudah tersimpan, tetapi penyelesaian tindakan gagal: ${baseMsg}`,
+              `5 Why & 6M analysis was saved, but completing the action failed: ${baseMsg}`,
+            )
           : baseMsg,
       )
     } finally {
@@ -163,7 +177,7 @@ export function CompleteActionModal({
                 id="complete-action-title"
                 className="text-[17px] font-semibold text-[var(--text)]"
               >
-                Lapor Penyelesaian Tindakan
+                {pick('Lapor Penyelesaian Tindakan', 'Report Action Completion')}
               </h2>
               {caseNumber && (
                 <span className="font-mono text-[12px] text-[var(--faint)] tabular-nums">
@@ -177,7 +191,7 @@ export function CompleteActionModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            aria-label="Tutup modal"
+            aria-label={pick('Tutup modal', 'Close modal')}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] disabled:opacity-40"
           >
             <X className="h-4 w-4" />
@@ -199,7 +213,7 @@ export function CompleteActionModal({
           {/* Bagian 1: Hasil Penyelesaian */}
           <div className="space-y-3">
             <div className="text-[12px] font-medium uppercase tracking-wider text-[var(--faint)]">
-              1. Hasil Perbaikan
+              {pick('1. Hasil Perbaikan', '1. Repair Result')}
             </div>
 
             <div className="space-y-1.5">
@@ -207,7 +221,7 @@ export function CompleteActionModal({
                 htmlFor="modal_completion_note"
                 className="block text-[13px] font-semibold text-[var(--text)]"
               >
-                Catatan Hasil Tindakan{' '}
+                {pick('Catatan Hasil Tindakan', 'Action Result Notes')}{' '}
                 <span className="text-[var(--safety-danger-foreground)]">*</span>
               </label>
               <textarea
@@ -215,7 +229,10 @@ export function CompleteActionModal({
                 rows={3}
                 value={completionNote}
                 onChange={(e) => setCompletionNote(e.target.value)}
-                placeholder="Jelaskan tindakan perbaikan atau pencegahan yang sudah dilakukan..."
+                placeholder={pick(
+                  'Jelaskan tindakan perbaikan atau pencegahan yang sudah dilakukan...',
+                  'Describe the corrective or preventive action completed...',
+                )}
                 required
                 className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
               />
@@ -223,12 +240,12 @@ export function CompleteActionModal({
 
             <div className="space-y-2">
               <label className="block text-[13px] font-semibold text-[var(--text)]">
-                Foto Bukti (Opsional, maks. 5 foto)
+                {pick('Foto Bukti (Opsional, maks. 5 foto)', 'Proof Photos (Optional, max 5 photos)')}
               </label>
               <div className="flex flex-wrap gap-2">
                 <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]">
                   <Camera className="h-4 w-4 text-[var(--muted)]" />
-                  <span>Ambil Foto</span>
+                  <span>{pick('Ambil Foto', 'Take Photo')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -239,7 +256,7 @@ export function CompleteActionModal({
                 </label>
                 <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--raised)]">
                   <ImagePlus className="h-4 w-4 text-[var(--muted)]" />
-                  <span>Dari Galeri</span>
+                  <span>{pick('Dari Galeri', 'From Gallery')}</span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -260,7 +277,7 @@ export function CompleteActionModal({
                       <button
                         type="button"
                         onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                        aria-label={`Hapus ${file.name}`}
+                        aria-label={pick(`Hapus ${file.name}`, `Remove ${file.name}`)}
                         className="text-[var(--faint)] hover:text-[var(--safety-danger-foreground)]"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -275,13 +292,13 @@ export function CompleteActionModal({
           {/* Bagian 2: Analisis Akar Penyebab (5 Why & 6M) oleh PIC */}
           <div className="border-t border-[var(--rule)] pt-4 space-y-4">
             <div className="text-[12px] font-medium uppercase tracking-wider text-[var(--faint)]">
-              2. Analisis Akar Penyebab (5 Why &amp; 6M)
+              {pick('2. Analisis Akar Penyebab (5 Why & 6M)', '2. Root Cause Analysis (5 Why & 6M)')}
             </div>
 
             {/* Kategori 6M */}
             <div className="space-y-1.5">
               <span className="block text-[13px] font-semibold text-[var(--text)]">
-                Kategori 6M <span className="text-[var(--safety-danger-foreground)]">*</span>
+                {pick('Kategori 6M', '6M Category')} <span className="text-[var(--safety-danger-foreground)]">*</span>
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {categories6M.map((cat) => {
@@ -298,7 +315,7 @@ export function CompleteActionModal({
                       }`}
                     >
                       {selected && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.5px]" />}
-                      <span>{cat}</span>
+                      <span>{localize6MCategory(lang, cat)}</span>
                     </button>
                   )
                 })}
@@ -309,7 +326,7 @@ export function CompleteActionModal({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-semibold text-[var(--text)]">
-                  5 Why (Mengapa masalah ini terjadi?){' '}
+                  {pick('5 Why (Mengapa masalah ini terjadi?)', '5 Why (Why did this issue occur?)')}{' '}
                   <span className="text-[var(--safety-danger-foreground)]">*</span>
                 </span>
                 <span className="font-mono text-[11px] text-[var(--faint)] tabular-nums">
@@ -332,8 +349,8 @@ export function CompleteActionModal({
                     }}
                     placeholder={
                       idx === 0
-                        ? 'Mengapa ke-1 (gejala awal yang ditemukan)...'
-                        : `Mengapa ke-${idx + 1}...`
+                        ? pick('Mengapa ke-1 (gejala awal yang ditemukan)...', 'Why #1 (initial symptom found)...')
+                        : pick(`Mengapa ke-${idx + 1}...`, `Why #${idx + 1}...`)
                     }
                     required={idx === 0}
                     className="h-11 flex-1 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
@@ -342,7 +359,7 @@ export function CompleteActionModal({
                     <button
                       type="button"
                       onClick={() => setFiveWhys((prev) => prev.filter((_, i) => i !== idx))}
-                      aria-label={`Hapus baris mengapa ke-${idx + 1}`}
+                      aria-label={pick(`Hapus baris mengapa ke-${idx + 1}`, `Remove why row #${idx + 1}`)}
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--faint)] hover:text-[var(--safety-danger-foreground)] cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -358,7 +375,7 @@ export function CompleteActionModal({
                   className="inline-flex h-11 items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span>Tambah baris Mengapa ({fiveWhys.length + 1})</span>
+                  <span>{pick(`Tambah baris Mengapa (${fiveWhys.length + 1})`, `Add Why row (${fiveWhys.length + 1})`)}</span>
                 </button>
               )}
             </div>
@@ -369,14 +386,17 @@ export function CompleteActionModal({
                 htmlFor="modal_rc_summary"
                 className="block text-[13px] font-semibold text-[var(--text)]"
               >
-                Ringkasan Akar Masalah (Opsional)
+                {pick('Ringkasan Akar Masalah (Opsional)', 'Root Cause Summary (Optional)')}
               </label>
               <input
                 id="modal_rc_summary"
                 type="text"
                 value={rcSummary}
                 onChange={(e) => setRcSummary(e.target.value)}
-                placeholder="Kosongkan untuk memakai jawaban Mengapa terakhir..."
+                placeholder={pick(
+                  'Kosongkan untuk memakai jawaban Mengapa terakhir...',
+                  'Leave blank to use the last Why answer...',
+                )}
                 className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
               />
             </div>
@@ -391,7 +411,7 @@ export function CompleteActionModal({
             disabled={submitting}
             className="h-11 flex-1 rounded-[6px] border border-[var(--control)] text-[14px] font-medium text-[var(--text)] hover:bg-[var(--raised)] disabled:opacity-50"
           >
-            Batal
+            {pick('Batal', 'Cancel')}
           </button>
           <button
             type="submit"
@@ -399,7 +419,7 @@ export function CompleteActionModal({
             disabled={submitting}
             className="h-11 flex-[1.5] rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50"
           >
-            {submitting ? 'Menyimpan...' : 'Simpan & Selesaikan'}
+            {submitting ? pick('Menyimpan...', 'Saving...') : pick('Simpan & Selesaikan', 'Save & Complete')}
           </button>
         </div>
       </div>

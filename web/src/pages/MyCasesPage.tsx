@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, Plus, Search, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { localizeContentText, localizeMachineName, useLanguage } from '@/lib/i18n-helpers'
 import { CaseStatusPill, CaseTypePill, RiskPill } from '@/components/safety/StatusPill'
 import { PaginationBar } from '@/components/safety/PaginationBar'
 import { QueryErrorBanner } from '@/components/safety/QueryErrorBanner'
@@ -13,6 +14,7 @@ import { SectionLoading } from '@/components/ui/waveform-loader'
 import type { PaginationMeta, SafetyCase } from '@/types/safetylog'
 
 export function MyCasesPage() {
+  const { lang, pick } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlQ = searchParams.get('q') || ''
   const page = Math.max(1, Number(searchParams.get('page') || '1') || 1)
@@ -54,15 +56,18 @@ export function MyCasesPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Kasus Saya"
-        description="Daftar laporan yang pernah Anda kirim beserta status tindak lanjutnya."
+        title={pick('Kasus Saya', 'My Cases')}
+        description={pick(
+          'Daftar laporan yang pernah Anda kirim beserta status tindak lanjutnya.',
+          'List of reports you have submitted and their follow-up status.',
+        )}
         actions={
           <Link
             to="/report"
             className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] transition-colors"
           >
             <Plus className="h-4 w-4 stroke-[2.2px]" />
-            <span>Lapor Baru</span>
+            <span>{pick('Lapor Baru', 'New Report')}</span>
           </Link>
         }
       />
@@ -78,14 +83,17 @@ export function MyCasesPage() {
             type="search"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
-            placeholder="Cari nomor kasus, mesin, atau deskripsi..."
+            placeholder={pick(
+              'Cari nomor kasus, mesin, atau deskripsi...',
+              'Search case number, machine, or description...',
+            )}
             className="pl-10 pr-10"
           />
           {qInput && (
             <button
               type="button"
               onClick={() => setQInput('')}
-              aria-label="Hapus pencarian"
+              aria-label={pick('Hapus pencarian', 'Clear search')}
               className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-[6px] text-[var(--faint)] hover:text-[var(--text)] cursor-pointer"
             >
               <X className="h-4 w-4" />
@@ -94,29 +102,33 @@ export function MyCasesPage() {
         </div>
         {!casesQuery.isLoading && (
           <div className="text-[12.5px] font-medium text-[var(--muted)] tabular-nums">
-            Menampilkan <strong className="text-[var(--text)]">{cases.length}</strong>
-            {totalCount > cases.length ? ` dari ${totalCount}` : ''} laporan
+            {pick('Menampilkan', 'Showing')} <strong className="text-[var(--text)]">{cases.length}</strong>
+            {totalCount > cases.length ? ` ${pick('dari', 'of')} ${totalCount}` : ''}{' '}
+            {pick('laporan', 'reports')}
           </div>
         )}
       </div>
 
       {casesQuery.isError && (
         <QueryErrorBanner
-          message="Gagal memuat daftar laporan Anda."
+          message={pick('Gagal memuat daftar laporan Anda.', 'Failed to load your reports.')}
           onRetry={() => void casesQuery.refetch()}
         />
       )}
 
       {casesQuery.isLoading ? (
         <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)]">
-          <SectionLoading label="Memuat laporan Anda..." className="py-10" />
+          <SectionLoading label={pick('Memuat laporan Anda...', 'Loading your reports...')} className="py-10" />
         </div>
       ) : cases.length === 0 ? (
         <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-5 py-10 text-center space-y-3">
           <p className="text-[14px] text-[var(--muted)]">
             {urlQ
-              ? `Tidak ada laporan yang cocok dengan "${urlQ}".`
-              : 'Belum ada laporan yang pernah Anda kirim.'}
+              ? pick(
+                  `Tidak ada laporan yang cocok dengan "${urlQ}".`,
+                  `No reports match "${urlQ}".`,
+                )
+              : pick('Belum ada laporan yang pernah Anda kirim.', 'No reports submitted yet.')}
           </p>
           {urlQ ? (
             <button
@@ -124,7 +136,7 @@ export function MyCasesPage() {
               onClick={() => setQInput('')}
               className="inline-flex h-11 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-4 text-[13.5px] font-semibold text-[var(--text)] hover:bg-[var(--raised)] cursor-pointer"
             >
-              Reset Pencarian
+              {pick('Reset Pencarian', 'Reset Search')}
             </button>
           ) : (
             <Link
@@ -132,7 +144,7 @@ export function MyCasesPage() {
               className="inline-flex h-11 items-center justify-center gap-2 rounded-[6px] bg-[var(--primary)] px-4 text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
             >
               <Plus className="h-4 w-4 stroke-[2.2px]" />
-              <span>Buat Laporan Pertama</span>
+              <span>{pick('Buat Laporan Pertama', 'Create First Report')}</span>
             </Link>
           )}
         </div>
@@ -168,7 +180,7 @@ export function MyCasesPage() {
 
                 {/* Line 2: Machine Name + Code & Description */}
                 <div className="text-[15px] font-semibold leading-snug text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
-                  {c.machine?.name || 'Mesin / Area'}
+                  {c.machine?.name ? localizeMachineName(lang, c.machine.name, c.machine.code) : pick('Mesin / Area', 'Machine / Area')}
                   {c.machine?.code ? (
                     <span className="ml-1.5 font-mono text-[12px] font-normal text-[var(--faint)]">
                       {c.machine.code}
@@ -176,7 +188,7 @@ export function MyCasesPage() {
                   ) : null}
                 </div>
                 <p className="text-[13px] leading-snug text-[var(--muted)] line-clamp-2">
-                  {c.description}
+                  {localizeContentText(lang, c.description)}
                 </p>
 
                 {/* Line 3: Status, Risk & Critical Flags */}
@@ -190,12 +202,12 @@ export function MyCasesPage() {
                     />
                     {c.is_machine_stopped && (
                       <span className="text-[11px] font-semibold text-[var(--safety-danger-foreground)]">
-                        · Mesin Berhenti
+                        · {pick('Mesin Berhenti', 'Machine Stopped')}
                       </span>
                     )}
                     {c.has_affected_people && (
                       <span className="text-[11px] font-semibold text-[var(--safety-danger-foreground)]">
-                        · Ada Korban
+                        · {pick('Ada Korban', 'Affected People')}
                       </span>
                     )}
                   </div>

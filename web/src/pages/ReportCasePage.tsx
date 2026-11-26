@@ -16,6 +16,14 @@ import { ApiError, apiFetch } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { formatDateTime } from '@/lib/format'
 import { compressImageFile } from '@/lib/image-compress'
+import {
+  localizeAreaName,
+  localizeCaseStatusLabel,
+  localizeCaseTypeName,
+  localizeContentText,
+  localizeMachineName,
+  useLanguage,
+} from '@/lib/i18n-helpers'
 import { useReferenceData } from '@/lib/reference'
 import { machineKeys } from '@/data/query-keys'
 import { unwrapQrMachine } from '@/data/normalizers'
@@ -31,7 +39,7 @@ import type {
   SafetyCaseSummary,
 } from '@/types/safetylog'
 
-const QUICK_SYMPTOMS = [
+const QUICK_SYMPTOMS_ID = [
   'Suara / getaran abnormal',
   'Motor panas / bau terbakar',
   'Belt / rantai kendor',
@@ -40,12 +48,22 @@ const QUICK_SYMPTOMS = [
   'Lantai sekitar licin',
 ]
 
+const QUICK_SYMPTOMS_EN = [
+  'Abnormal noise / vibration',
+  'Hot motor / burning smell',
+  'Loose belt / chain',
+  'Oil / fluid leak',
+  'Loose guard / sensor',
+  'Slippery floor around machine',
+]
+
 interface PhotoEntry {
   file: File
   url: string
 }
 
 export function ReportCasePage() {
+  const { lang, pick } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const qrToken = searchParams.get('qr')
   const queryClient = useQueryClient()
@@ -159,7 +177,10 @@ export function ReportCasePage() {
       setAiTriageState({
         key: currentTriageKey,
         data: null,
-        error: error instanceof ApiError ? error.message : 'Gagal meminta saran triase AI.',
+        error:
+          error instanceof ApiError
+            ? error.message
+            : pick('Gagal meminta saran triase AI.', 'Failed to request AI triage suggestion.'),
       })
     },
   })
@@ -206,7 +227,7 @@ export function ReportCasePage() {
       }))
       setPhotoEntries((prev) => [...prev, ...nextEntries].slice(0, 5))
     } catch (err) {
-      setPhotoError(err instanceof Error ? err.message : 'Gagal memproses foto.')
+      setPhotoError(err instanceof Error ? err.message : pick('Gagal memproses foto.', 'Failed to process photo.'))
     }
     e.target.value = ''
   }
@@ -229,7 +250,9 @@ export function ReportCasePage() {
     setSubmitError(null)
 
     if (!machine || !effectiveCaseTypeId || !description.trim()) {
-      setSubmitError('Harap pilih jenis temuan dan isi deskripsi singkat.')
+      setSubmitError(
+        pick('Harap pilih jenis temuan dan isi deskripsi singkat.', 'Please select a finding type and enter a brief description.'),
+      )
       return
     }
 
@@ -260,7 +283,9 @@ export function ReportCasePage() {
       if (err instanceof ApiError) {
         setSubmitError(err.message)
       } else {
-        setSubmitError('Gagal mengirim laporan. Periksa koneksi Anda.')
+        setSubmitError(
+          pick('Gagal mengirim laporan. Periksa koneksi Anda.', 'Failed to submit report. Check your connection.'),
+        )
       }
     } finally {
       setSubmitting(false)
@@ -276,10 +301,13 @@ export function ReportCasePage() {
             <CheckCircle2 className="h-6 w-6 text-[var(--safety-safe-foreground)] shrink-0" />
             <div>
               <h1 className="text-[20px] font-semibold text-[var(--text)]">
-                Laporan Berhasil Dikirim
+                {pick('Laporan Berhasil Dikirim', 'Report Submitted Successfully')}
               </h1>
               <p className="text-[13px] text-[var(--muted)]">
-                Supervisor segera menerima notifikasi untuk penilaian risiko.
+                {pick(
+                  'Supervisor segera menerima notifikasi untuk penilaian risiko.',
+                  'Supervisor has been notified for risk assessment.',
+                )}
               </p>
             </div>
           </div>
@@ -293,7 +321,9 @@ export function ReportCasePage() {
           <div className="rounded-[6px] border border-[var(--border)] bg-[var(--raised)] p-4 space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
-                <div className="text-[12px] text-[var(--faint)]">Nomor Kasus Resmi</div>
+                <div className="text-[12px] text-[var(--faint)]">
+                  {pick('Nomor Kasus Resmi', 'Official Case Number')}
+                </div>
                 <div className="font-mono text-[20px] sm:text-[22px] font-semibold text-[var(--text)] tabular-nums break-all">
                   {createdResult.caseData.case_number}
                 </div>
@@ -302,17 +332,19 @@ export function ReportCasePage() {
                 type="button"
                 onClick={() => void handleCopyCaseNumber(createdResult.caseData.case_number)}
                 className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] font-medium text-[var(--text)] hover:border-[var(--accent)] hover:bg-[var(--ground)] transition-colors"
-                aria-label="Salin nomor kasus"
+                aria-label={pick('Salin nomor kasus', 'Copy case number')}
               >
                 {copiedCaseNumber ? (
                   <>
                     <Check className="h-4 w-4 text-[var(--safety-safe-foreground)]" />
-                    <span className="text-[var(--safety-safe-foreground)]">Tersalin</span>
+                    <span className="text-[var(--safety-safe-foreground)]">
+                      {pick('Tersalin', 'Copied')}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Copy className="h-4 w-4 text-[var(--muted)]" />
-                    <span>Salin Nomor</span>
+                    <span>{pick('Salin Nomor', 'Copy Number')}</span>
                   </>
                 )}
               </button>
@@ -327,7 +359,7 @@ export function ReportCasePage() {
               to={`/cases/${createdResult.caseData.id}`}
               className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-[6px] bg-[var(--primary)] px-4 text-[15px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] sm:h-11 sm:min-h-[44px] sm:flex-1 sm:text-[14px]"
             >
-              Lihat Detail Kasus
+              {pick('Lihat Detail Kasus', 'View Case Details')}
             </Link>
             <button
               type="button"
@@ -341,7 +373,7 @@ export function ReportCasePage() {
               }}
               className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-4 text-[15px] font-medium text-[var(--text)] hover:bg-[var(--raised)] sm:h-11 sm:min-h-[44px] sm:flex-1 sm:text-[14px]"
             >
-              Pindai Mesin Lain
+              {pick('Pindai Mesin Lain', 'Scan Another Machine')}
             </button>
           </div>
         </div>
@@ -354,7 +386,10 @@ export function ReportCasePage() {
     const scanError = qrQuery.isError
       ? qrQuery.error instanceof ApiError
         ? qrQuery.error.message
-        : 'Kode QR tidak dikenali atau mesin sudah diarsipkan. Pindai ulang atau pilih mesin secara manual.'
+        : pick(
+            'Kode QR tidak dikenali atau mesin sudah diarsipkan. Pindai ulang atau pilih mesin secara manual.',
+            'QR code not recognized or machine is archived. Rescan or select machine manually.',
+          )
       : null
 
     const filteredMachines = (machinesQuery.data?.data ?? []).filter((m) => {
@@ -378,7 +413,7 @@ export function ReportCasePage() {
         <div className="mx-auto max-w-[540px] space-y-2.5">
           <div className="flex items-center justify-between px-1">
             <span className="text-[13px] text-[var(--muted)]">
-              Stiker QR rusak atau tidak terbaca?
+              {pick('Stiker QR rusak atau tidak terbaca?', 'QR sticker damaged or unreadable?')}
             </span>
             <button
               type="button"
@@ -386,7 +421,11 @@ export function ReportCasePage() {
               className="inline-flex h-11 items-center gap-1.5 rounded-[6px] px-2 text-[13px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
             >
               <ListFilter className="h-3.5 w-3.5" />
-              <span>{showManualPicker ? 'Tutup Daftar' : 'Pilih Mesin Manual'}</span>
+              <span>
+                {showManualPicker
+                  ? pick('Tutup Daftar', 'Close List')
+                  : pick('Pilih Mesin Manual', 'Select Machine Manually')}
+              </span>
             </button>
           </div>
 
@@ -396,15 +435,17 @@ export function ReportCasePage() {
                 type="search"
                 value={manualSearch}
                 onChange={(e) => setManualSearch(e.target.value)}
-                placeholder="Cari kode, nama mesin, atau area..."
+                placeholder={pick('Cari kode, nama mesin, atau area...', 'Search code, machine name, or area...')}
                 className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
               />
               <div className="max-h-64 overflow-y-auto divide-y divide-[var(--rule)] rounded-[6px] border border-[var(--border)] bg-[var(--ground)]">
                 {machinesQuery.isLoading ? (
-                  <div className="p-4 text-[13px] text-[var(--faint)]">Memuat daftar mesin...</div>
+                  <div className="p-4 text-[13px] text-[var(--faint)]">
+                    {pick('Memuat daftar mesin...', 'Loading machine list...')}
+                  </div>
                 ) : filteredMachines.length === 0 ? (
                   <div className="p-4 text-[13px] text-[var(--faint)]">
-                    Tidak ada mesin aktif yang cocok.
+                    {pick('Tidak ada mesin aktif yang cocok.', 'No matching active machines.')}
                   </div>
                 ) : (
                   filteredMachines.map((m) => (
@@ -421,16 +462,16 @@ export function ReportCasePage() {
                           </span>
                           {m.area && (
                             <span className="truncate text-[12px] text-[var(--faint)]">
-                              · {m.area.name}
+                              · {localizeAreaName(lang, m.area.name, m.area.code)}
                             </span>
                           )}
                         </div>
                         <div className="truncate text-[14px] font-medium text-[var(--text)]">
-                          {m.name}
+                          {localizeMachineName(lang, m.name, m.code)}
                         </div>
                       </div>
                       <span className="shrink-0 text-[12px] font-medium text-[var(--muted)]">
-                        Pilih →
+                        {pick('Pilih →', 'Select →')}
                       </span>
                     </button>
                   ))
@@ -459,12 +500,12 @@ export function ReportCasePage() {
               </span>
               {machine.area && (
                 <span className="truncate text-[12px] text-[var(--faint)]">
-                  · {machine.area.name}
+                  · {localizeAreaName(lang, machine.area.name, machine.area.code)}
                 </span>
               )}
             </div>
             <h1 className="truncate text-[18px] font-semibold text-[var(--text)]">
-              {machine.name}
+              {localizeMachineName(lang, machine.name, machine.code)}
             </h1>
           </div>
         </div>
@@ -475,7 +516,7 @@ export function ReportCasePage() {
           className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text)]"
         >
           <QrCode className="h-4 w-4" />
-          <span>Pindai Ulang</span>
+          <span>{pick('Pindai Ulang', 'Rescan')}</span>
         </button>
       </div>
 
@@ -488,8 +529,10 @@ export function ReportCasePage() {
           <div className="flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--safety-warning-foreground)] mt-0.5" />
             <div className="text-[13px] font-medium text-[var(--safety-warning-foreground)]">
-              Ada {openCases.length} kasus terbuka pada mesin ini. Tetap bisa lanjut melapor bila
-              temuan berbeda.
+              {pick(
+                `Ada ${openCases.length} kasus terbuka pada mesin ini. Tetap bisa lanjut melapor bila temuan berbeda.`,
+                `There are ${openCases.length} open cases on this machine. You can still submit if this is a different finding.`,
+              )}
             </div>
           </div>
           <div className="space-y-1.5">
@@ -504,7 +547,9 @@ export function ReportCasePage() {
                   <strong className="font-mono text-[var(--accent)]">{oc.case_number}</strong> ·{' '}
                   {oc.short_description}
                 </span>
-                <span className="shrink-0 text-[var(--faint)]">{oc.status_label}</span>
+                <span className="shrink-0 text-[var(--faint)]">
+                  {localizeCaseStatusLabel(lang, oc.status_label, oc.status)}
+                </span>
               </button>
             ))}
           </div>
@@ -515,8 +560,8 @@ export function ReportCasePage() {
               className="text-[12px] font-medium text-[var(--safety-warning-foreground)] hover:underline"
             >
               {showAllOpenCases
-                ? 'Sembunyikan sebagian'
-                : `Lihat semua (${openCases.length} kasus terbuka)`}
+                ? pick('Sembunyikan sebagian', 'Show fewer')
+                : pick(`Lihat semua (${openCases.length} kasus terbuka)`, `View all (${openCases.length} open cases)`)}
             </button>
           )}
         </div>
@@ -528,10 +573,16 @@ export function ReportCasePage() {
           role="alert"
           className="rounded-[8px] border border-[var(--safety-danger-border)] bg-[var(--safety-danger-bg)] p-3.5 text-[13px] text-[var(--safety-danger-foreground)]"
         >
-          <strong>Prosedur Darurat:</strong>{' '}
-          {String(
-            refQuery.data?.configurations?.emergency_reminder_text ||
-              'Segera ikuti prosedur tanggap darurat perusahaan dan hubungi petugas P3K/K3 terlebih dahulu.',
+          <strong>{pick('Prosedur Darurat:', 'Emergency Procedure:')}</strong>{' '}
+          {localizeContentText(
+            lang,
+            String(
+              refQuery.data?.configurations?.emergency_reminder_text ||
+                pick(
+                  'Segera ikuti prosedur tanggap darurat perusahaan dan hubungi petugas P3K/K3 terlebih dahulu.',
+                  'Immediately follow company emergency response procedures and contact first-aid/EHS personnel first.',
+                ),
+            ),
           )}
         </div>
       )}
@@ -549,7 +600,9 @@ export function ReportCasePage() {
 
         {/* 1. Jenis Temuan (Vertikal ke bawah, konsisten) */}
         <div className="space-y-2">
-          <span className="block text-[13px] font-semibold text-[var(--text)]">Jenis Temuan</span>
+          <span className="block text-[13px] font-semibold text-[var(--text)]">
+            {pick('Jenis Temuan', 'Finding Type')}
+          </span>
           <div className="flex flex-col gap-2">
             {caseTypes.map((ct) => {
               const selected = String(ct.id) === effectiveCaseTypeId
@@ -565,7 +618,7 @@ export function ReportCasePage() {
                       : 'border-[var(--control)] bg-[var(--surface)] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]'
                   }`}
                 >
-                  <span>{ct.name}</span>
+                  <span>{localizeCaseTypeName(lang, ct.name, ct.code)}</span>
                   {selected && <Check className="h-4 w-4 shrink-0 stroke-[2.2px]" />}
                 </button>
               )
@@ -577,11 +630,11 @@ export function ReportCasePage() {
         <div className="divide-y divide-[var(--rule)] rounded-[8px] border border-[var(--border)] bg-[var(--ground)]">
           <div className="flex flex-col gap-2.5 p-3.5 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-[14px] font-semibold text-[var(--text)]">
-              Mesin berhenti beroperasi?
+              {pick('Mesin berhenti beroperasi?', 'Did the machine stop operating?')}
             </span>
             <div
               role="group"
-              aria-label="Mesin berhenti beroperasi"
+              aria-label={pick('Mesin berhenti beroperasi', 'Did the machine stop operating')}
               className="grid grid-cols-2 gap-2 sm:w-[240px]"
             >
               <button
@@ -595,7 +648,7 @@ export function ReportCasePage() {
                 }`}
               >
                 {!isMachineStopped && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
-                <span>Tidak</span>
+                <span>{pick('Tidak', 'No')}</span>
               </button>
               <button
                 type="button"
@@ -608,18 +661,18 @@ export function ReportCasePage() {
                 }`}
               >
                 {isMachineStopped && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
-                <span>Ya, Berhenti</span>
+                <span>{pick('Ya, Berhenti', 'Yes, Stopped')}</span>
               </button>
             </div>
           </div>
 
           <div className="flex flex-col gap-2.5 p-3.5 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-[14px] font-semibold text-[var(--text)]">
-              Ada pekerja terdampak?
+              {pick('Ada pekerja terdampak?', 'Any workers affected?')}
             </span>
             <div
               role="group"
-              aria-label="Ada pekerja terdampak"
+              aria-label={pick('Ada pekerja terdampak', 'Any workers affected')}
               className="grid grid-cols-2 gap-2 sm:w-[240px]"
             >
               <button
@@ -633,7 +686,7 @@ export function ReportCasePage() {
                 }`}
               >
                 {!hasAffectedPeople && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
-                <span>Tidak</span>
+                <span>{pick('Tidak', 'No')}</span>
               </button>
               <button
                 type="button"
@@ -646,7 +699,7 @@ export function ReportCasePage() {
                 }`}
               >
                 {hasAffectedPeople && <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.2px]" />}
-                <span>Ya, Ada</span>
+                <span>{pick('Ya, Ada', 'Yes, Affected')}</span>
               </button>
             </div>
           </div>
@@ -655,10 +708,10 @@ export function ReportCasePage() {
         {/* 3. Deskripsi Kejadian + Quick Chips */}
         <div className="space-y-2">
           <label htmlFor="description" className="block text-[13px] font-semibold text-[var(--text)]">
-            Apa yang terjadi?
+            {pick('Apa yang terjadi?', 'What happened?')}
           </label>
           <div className="flex flex-wrap gap-1.5">
-            {QUICK_SYMPTOMS.map((sym) => (
+            {(lang === 'en' ? QUICK_SYMPTOMS_EN : QUICK_SYMPTOMS_ID).map((sym) => (
               <button
                 key={sym}
                 type="button"
@@ -674,7 +727,10 @@ export function ReportCasePage() {
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ketuk chip di atas atau ketik kondisi singkat..."
+            placeholder={pick(
+              'Ketuk chip di atas atau ketik kondisi singkat...',
+              'Tap a chip above or type a brief condition...',
+            )}
             required
             className="w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] p-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
           />
@@ -683,18 +739,21 @@ export function ReportCasePage() {
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-[13px] font-semibold text-[var(--text)]">
-                  Bantuan triase awal (opsional)
+                  {pick('Bantuan triase awal (opsional)', 'Initial triage assist (optional)')}
                 </div>
                 <div className="text-[12px] text-[var(--faint)]">
-                  Saran untuk dipertimbangkan supervisor. Tidak mengubah laporan yang dikirim.
+                  {pick(
+                    'Saran untuk dipertimbangkan supervisor. Tidak mengubah laporan yang dikirim.',
+                    'Suggestion for supervisor consideration. Does not alter the submitted report.',
+                  )}
                 </div>
               </div>
               <AiAssistButton
                 onClick={() => triageSuggestion.mutate()}
                 disabled={description.trim().length < 5}
                 loading={triageSuggestion.isPending}
-                label="Minta Saran AI"
-                loadingLabel="Meminta saran..."
+                label={pick('Minta Saran AI', 'Ask AI Suggestion')}
+                loadingLabel={pick('Meminta saran...', 'Requesting...')}
               />
             </div>
 
@@ -714,11 +773,11 @@ export function ReportCasePage() {
               >
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
                   <span className="text-[var(--muted)]">
-                    Kategori: <strong className="text-[var(--text)]">{aiTriage.category_name}</strong>
+                    {pick('Kategori:', 'Category:')} <strong className="text-[var(--text)]">{aiTriage.category_name}</strong>
                   </span>
                   <span className="text-[var(--muted)]">
-                    Keparahan <strong className="text-[var(--text)]">{aiTriage.severity}</strong> · Kemungkinan{' '}
-                    <strong className="text-[var(--text)]">{aiTriage.likelihood}</strong> (skala 1-{aiTriage.scale_max})
+                    {pick('Keparahan', 'Severity')} <strong className="text-[var(--text)]">{aiTriage.severity}</strong> · {pick('Kemungkinan', 'Likelihood')}{' '}
+                    <strong className="text-[var(--text)]">{aiTriage.likelihood}</strong> ({pick('skala', 'scale')} 1-{aiTriage.scale_max})
                   </span>
                 </div>
                 {aiTriage.reasoning.length > 0 && (
@@ -730,12 +789,15 @@ export function ReportCasePage() {
                 )}
                 {aiTriage.additional_information.length > 0 && (
                   <div className="text-[12px] text-[var(--muted)]">
-                    <span className="font-medium">Informasi yang belum ada:</span>{' '}
+                    <span className="font-medium">{pick('Informasi yang belum ada:', 'Missing information:')}</span>{' '}
                     {aiTriage.additional_information.join(' · ')}
                   </div>
                 )}
                 <div className="text-[11px] text-[var(--faint)]">
-                  Rekomendasi AI harus ditinjau, penilaian resmi dilakukan melalui triase.
+                  {pick(
+                    'Rekomendasi AI harus ditinjau, penilaian resmi dilakukan melalui triase.',
+                    'AI recommendation must be reviewed; official assessment is done during triage.',
+                  )}
                 </div>
               </div>
             )}
@@ -753,12 +815,12 @@ export function ReportCasePage() {
                 >
                   <img
                     src={entry.url}
-                    alt={entry.file.name || 'Preview foto'}
+                    alt={entry.file.name || pick('Preview foto', 'Photo preview')}
                     className="h-full w-full object-cover"
                   />
                   <button
                     type="button"
-                    aria-label="Hapus foto"
+                    aria-label={pick('Hapus foto', 'Remove photo')}
                     onClick={() => removePhoto(idx)}
                     className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/75 text-white"
                   >
@@ -777,7 +839,7 @@ export function ReportCasePage() {
               <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
                 <label className="inline-flex h-12 min-h-[48px] cursor-pointer items-center justify-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[14px] font-medium text-[var(--text)] hover:border-[var(--accent)] sm:h-11 sm:min-h-[44px]">
                   <Camera className="h-4 w-4 text-[var(--accent)]" />
-                  <span>Kamera</span>
+                  <span>{pick('Kamera', 'Camera')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -788,7 +850,7 @@ export function ReportCasePage() {
                 </label>
                 <label className="inline-flex h-12 min-h-[48px] cursor-pointer items-center justify-center gap-1.5 rounded-[6px] border border-[var(--control)] bg-[var(--ground)] px-3.5 text-[14px] font-medium text-[var(--text)] hover:border-[var(--accent)] sm:h-11 sm:min-h-[44px]">
                   <ImagePlus className="h-4 w-4 text-[var(--muted)]" />
-                  <span>Galeri ({photoEntries.length}/5)</span>
+                  <span>{pick('Galeri', 'Gallery')} ({photoEntries.length}/5)</span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -805,7 +867,7 @@ export function ReportCasePage() {
               disabled={submitting}
               className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-[6px] bg-[var(--primary)] px-6 text-[15px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] disabled:opacity-50 sm:h-11 sm:min-h-[44px] sm:flex-1 sm:text-[14px]"
             >
-              {submitting ? 'Mengirim Laporan...' : 'Kirim Laporan'}
+              {submitting ? pick('Mengirim Laporan...', 'Submitting Report...') : pick('Kirim Laporan', 'Submit Report')}
             </button>
           </div>
         </div>
@@ -825,7 +887,9 @@ export function ReportCasePage() {
           >
             <div className="flex items-start justify-between gap-2">
               <div>
-                <div className="text-[12px] text-[var(--faint)]">Ringkasan Kasus Terbuka</div>
+                <div className="text-[12px] text-[var(--faint)]">
+                  {pick('Ringkasan Kasus Terbuka', 'Open Case Summary')}
+                </div>
                 <div className="font-mono text-[16px] font-semibold text-[var(--accent)]">
                   {summaryQuery.data?.data.case_number || '...'}
                 </div>
@@ -833,7 +897,7 @@ export function ReportCasePage() {
               <button
                 type="button"
                 onClick={() => setSummaryCaseId(null)}
-                aria-label="Tutup ringkasan"
+                aria-label={pick('Tutup ringkasan', 'Close summary')}
                 className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-[var(--control)] text-[var(--muted)] hover:text-[var(--text)]"
               >
                 <X className="h-4 w-4" />
@@ -841,10 +905,12 @@ export function ReportCasePage() {
             </div>
 
             {summaryQuery.isLoading ? (
-              <div className="text-[13px] text-[var(--faint)]">Memuat ringkasan kasus...</div>
+              <div className="text-[13px] text-[var(--faint)]">
+                {pick('Memuat ringkasan kasus...', 'Loading case summary...')}
+              </div>
             ) : summaryQuery.isError ? (
               <div className="text-[13px] text-[var(--safety-danger-foreground)]">
-                Ringkasan kasus tidak dapat dimuat.
+                {pick('Ringkasan kasus tidak dapat dimuat.', 'Unable to load case summary.')}
               </div>
             ) : summaryQuery.data?.data ? (
               <div className="space-y-3 text-[13px]">
@@ -863,7 +929,7 @@ export function ReportCasePage() {
                   {summaryQuery.data.data.short_description}
                 </p>
                 <div className="text-[12px] text-[var(--faint)]">
-                  Dilaporkan: {formatDateTime(summaryQuery.data.data.reported_at)}
+                  {pick('Dilaporkan:', 'Reported:')} {formatDateTime(summaryQuery.data.data.reported_at)}
                 </div>
               </div>
             ) : null}
@@ -873,7 +939,7 @@ export function ReportCasePage() {
               onClick={() => setSummaryCaseId(null)}
               className="h-11 w-full rounded-[6px] bg-[var(--primary)] text-[14px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
             >
-              Tutup
+              {pick('Tutup', 'Close')}
             </button>
           </div>
         </div>
