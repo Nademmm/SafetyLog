@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import type { FieldErrors, UseFormRegister } from 'react-hook-form'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -27,6 +28,7 @@ export function SignIn6({
   serverError,
   onSubmit,
 }: SignIn6Props) {
+  const { t } = useLanguage()
   const [showPassword, setShowPassword] = React.useState(false)
 
   return (
@@ -39,7 +41,7 @@ export function SignIn6({
         </div>
 
         <h2 className="mt-auto max-w-[15ch] text-[28px] leading-[1.15] font-semibold tracking-tight text-white">
-          Dari temuan mesin ke pencegahan tuntas.
+          {t('login.headline')}
         </h2>
       </div>
 
@@ -54,11 +56,9 @@ export function SignIn6({
 
         <div className="flex flex-col gap-1">
           <h1 className="text-[20px] font-semibold tracking-tight text-[var(--text)]">
-            Masuk ke Ruang Kerja
+            {t('login.title')}
           </h1>
-          <p className="text-[14px] text-[var(--muted)]">
-            Gunakan email dan kata sandi akun perusahaan Anda.
-          </p>
+          <p className="text-[14px] text-[var(--muted)]">{t('login.subtitle')}</p>
         </div>
 
         {serverError && (
@@ -73,13 +73,13 @@ export function SignIn6({
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ss-email">Alamat Email</Label>
+            <Label htmlFor="ss-email">{t('login.emailLabel')}</Label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--faint)]" />
               <Input
                 id="ss-email"
                 type="email"
-                placeholder="nama@perusahaan.com"
+                placeholder={t('login.emailPlaceholder')}
                 autoComplete="email"
                 {...register('email')}
                 className="pl-10"
@@ -93,13 +93,13 @@ export function SignIn6({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ss-password">Kata Sandi</Label>
+            <Label htmlFor="ss-password">{t('login.passwordLabel')}</Label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--faint)]" />
               <Input
                 id="ss-password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Masukkan kata sandi"
+                placeholder={t('login.passwordPlaceholder')}
                 autoComplete="current-password"
                 {...register('password')}
                 className="pl-10 pr-11"
@@ -107,7 +107,7 @@ export function SignIn6({
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                 className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[6px] text-[var(--faint)] hover:text-[var(--text)] transition-colors cursor-pointer"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -124,20 +124,18 @@ export function SignIn6({
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Memverifikasi...</span>
+                <span>{t('login.submitting')}</span>
               </>
             ) : (
               <>
-                <span>Masuk ke Sistem</span>
+                <span>{t('login.submit')}</span>
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
           </Button>
         </form>
 
-        <p className="text-[13px] text-[var(--faint)] text-center">
-          Kendala akses akun? Hubungi Administrator pabrik Anda.
-        </p>
+        <p className="text-[13px] text-[var(--faint)] text-center">{t('login.footer')}</p>
       </div>
     </Card>
   )

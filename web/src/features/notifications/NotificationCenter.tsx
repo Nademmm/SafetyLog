@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Bell, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
+import { useLanguage } from '@/lib/i18n-helpers'
 import { cn } from '@/lib/utils'
 import { notificationKeys } from '@/data/query-keys'
 import { invalidateNotificationMutation } from '@/data/invalidation'
 import type { AppNotification, UserRole } from '@/types/safetylog'
 
 export function NotificationCenter({ userRole }: { userRole: UserRole }) {
+  const { t, pick } = useLanguage()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [open, setOpen] = React.useState(false)
@@ -63,7 +65,7 @@ export function NotificationCenter({ userRole }: { userRole: UserRole }) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        aria-label="Notifikasi"
+        aria-label={t('notif.title')}
         aria-expanded={open}
         className="relative flex h-11 w-11 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]"
       >
@@ -78,7 +80,7 @@ export function NotificationCenter({ userRole }: { userRole: UserRole }) {
       {open && (
         <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-[52px] z-50 sm:w-[360px] rounded-[8px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
           <div className="flex items-center justify-between border-b border-[var(--rule)] px-4 py-3">
-            <span className="text-[14px] font-semibold text-[var(--text)]">Notifikasi</span>
+            <span className="text-[14px] font-semibold text-[var(--text)]">{t('notif.title')}</span>
             <div className="flex items-center gap-3">
               {unreadCount > 0 && (
                 <button
@@ -86,13 +88,13 @@ export function NotificationCenter({ userRole }: { userRole: UserRole }) {
                   onClick={() => markAllReadMutation.mutate()}
                   className="text-[12px] text-[var(--muted)] hover:text-[var(--text)]"
                 >
-                  Tandai semua dibaca
+                  {t('notif.markAll')}
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Tutup notifikasi"
+                aria-label={t('notif.close')}
                 className="text-[var(--faint)] hover:text-[var(--text)]"
               >
                 <X className="h-4 w-4" />
@@ -111,9 +113,17 @@ export function NotificationCenter({ userRole }: { userRole: UserRole }) {
             >
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>
-                Anda memiliki <strong className="font-semibold">{overdueCount}</strong> tindakan
-                terlambat. Ketuk untuk membuka{' '}
-                {userRole === 'reporter' ? 'Tindakan Saya' : 'Dashboard'}.
+                {pick(
+                  <>
+                    Anda memiliki <strong className="font-semibold">{overdueCount}</strong> tindakan
+                    terlambat. Ketuk untuk membuka{' '}
+                    {userRole === 'reporter' ? 'Tindakan Saya' : 'Dashboard'}.
+                  </>,
+                  <>
+                    You have <strong className="font-semibold">{overdueCount}</strong> overdue
+                    actions. Tap to open {userRole === 'reporter' ? 'My Actions' : 'Dashboard'}.
+                  </>,
+                )}
               </span>
             </button>
           )}
@@ -121,7 +131,7 @@ export function NotificationCenter({ userRole }: { userRole: UserRole }) {
           <div className="max-h-[340px] overflow-y-auto divide-y divide-[var(--rule)]">
             {notifications.length === 0 ? (
               <div className="px-4 py-6 text-center text-[13px] text-[var(--faint)]">
-                Belum ada notifikasi baru.
+                {t('notif.empty')}
               </div>
             ) : (
               notifications.slice(0, 8).map((n) => (
@@ -142,7 +152,7 @@ export function NotificationCenter({ userRole }: { userRole: UserRole }) {
                     <span className="text-[13px] font-medium text-[var(--text)]">{n.title}</span>
                     {!n.read_at && (
                       <span className="shrink-0 rounded-[4px] bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
-                        Baru
+                        {t('notif.new')}
                       </span>
                     )}
                   </div>

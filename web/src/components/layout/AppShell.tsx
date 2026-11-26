@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-helpers'
+import { useLanguage, type TranslationKey } from '@/lib/i18n-helpers'
 import { cn } from '@/lib/utils'
 import {
   getMobileBottomPoliciesForRole,
@@ -26,6 +27,7 @@ import {
   type RoutePolicy,
 } from '@/domain/access-policy'
 import { SafetyLogMark } from '@/components/ui/SafetyLogMark'
+import { LanguageToggle } from '@/components/safety/LanguageToggle'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
 import { NotificationCenter } from '@/features/notifications/NotificationCenter'
 
@@ -42,10 +44,10 @@ const NAV_ICONS: Record<NonNullable<RoutePolicy['navIcon']>, React.ComponentType
   config: Settings,
 }
 
-const SECTION_LABELS: Record<NavSection, string> = {
-  main: 'Utama',
-  manage: 'Operasional',
-  admin: 'Administrasi',
+const SECTION_KEY_MAP: Record<NavSection, TranslationKey> = {
+  main: 'nav.section.main',
+  manage: 'nav.section.manage',
+  admin: 'nav.section.admin',
 }
 
 function NavGroupList({
@@ -59,6 +61,7 @@ function NavGroupList({
   onNavigate?: () => void
   compact?: boolean
 }) {
+  const { t } = useLanguage()
   const sections = Array.from(
     new Set(items.map((item) => item.navSection).filter((s): s is NavSection => Boolean(s))),
   )
@@ -74,13 +77,14 @@ function NavGroupList({
                 : 'px-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--faint)]'
             }
           >
-            {SECTION_LABELS[section]}
+            {t(SECTION_KEY_MAP[section])}
           </div>
           {items
             .filter((item) => item.navSection === section)
             .map((item) => {
               const Icon = item.navIcon ? NAV_ICONS[item.navIcon] : LayoutDashboard
               const active = isActivePath(item.path)
+              const navKey = `nav.${item.id}` as TranslationKey
               return (
                 <Link
                   key={item.path}
@@ -100,7 +104,7 @@ function NavGroupList({
                       active ? 'text-[var(--accent)]' : 'text-[var(--faint)]',
                     )}
                   />
-                  <span className="truncate">{item.navLabel}</span>
+                  <span className="truncate">{t(navKey)}</span>
                 </Link>
               )
             })}
@@ -112,6 +116,7 @@ function NavGroupList({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
+  const { t } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
@@ -190,7 +195,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex h-11 w-full items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-3 text-[13px] font-medium text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)] cursor-pointer"
           >
             <LogOut className="h-4 w-4 stroke-[1.75px]" />
-            <span>Keluar</span>
+            <span>{t('shell.logout')}</span>
           </button>
         </div>
       </aside>
@@ -202,7 +207,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              aria-label="Buka menu navigasi"
+              aria-label={t('shell.openMenu')}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] lg:hidden"
             >
               <Menu className="h-5 w-5" />
@@ -221,7 +226,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   type="search"
                   value={quickQuery}
                   onChange={(e) => setQuickQuery(e.target.value)}
-                  placeholder="Cari kasus, mesin, kata kunci..."
+                  placeholder={t('shell.searchPlaceholder')}
                   className="h-11 w-[210px] md:w-[260px] lg:w-[340px] rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[14px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
@@ -229,6 +234,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center h-full gap-1.5 sm:gap-2 shrink-0">
+            <LanguageToggle />
             <ThemeToggle />
 
             <NotificationCenter userRole={user.role} />
@@ -238,7 +244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 to="/report"
                 className="inline-flex h-11 items-center rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)] lg:hidden"
               >
-                Lapor
+                {t('shell.reportShort')}
               </Link>
             )}
 
@@ -254,7 +260,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   to="/report"
                   className="inline-flex h-11 items-center rounded-[6px] bg-[var(--primary)] px-3.5 text-[13px] font-semibold text-[var(--primary-ink)] hover:bg-[var(--primary-hover)]"
                 >
-                  Lapor Kasus
+                  {t('shell.reportCase')}
                 </Link>
               )}
             </div>
@@ -279,7 +285,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                aria-label="Tutup menu"
+                aria-label={t('shell.closeMenu')}
                 className="flex h-11 w-11 items-center justify-center rounded-[6px] border border-[var(--control)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)]"
               >
                 <X className="h-5 w-5" />
@@ -295,7 +301,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   type="search"
                   value={quickQuery}
                   onChange={(e) => setQuickQuery(e.target.value)}
-                  placeholder="Cari nomor kasus, mesin, kata kunci..."
+                  placeholder={t('shell.searchPlaceholderMobile')}
                   className="h-11 w-full rounded-[6px] border border-[var(--control)] bg-[var(--surface)] pl-9 pr-3 text-[15px] text-[var(--text)] placeholder:text-[var(--faint)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
@@ -322,7 +328,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className="inline-flex h-11 items-center gap-2 rounded-[6px] border border-[var(--control)] bg-[var(--surface)] px-4 text-[14px] text-[var(--text)]"
             >
               <LogOut className="h-4 w-4" />
-              <span>Keluar</span>
+              <span>{t('shell.logout')}</span>
             </button>
           </div>
         </div>
@@ -352,7 +358,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 />
               )}
               <Icon className="h-5 w-5 stroke-[1.75px]" />
-              <span className="truncate max-w-[84px]">{item.mobileLabel || item.navLabel}</span>
+              <span className="truncate max-w-[84px]">
+                {t(`nav.${item.id}.short` as TranslationKey)}
+              </span>
             </Link>
           )
         })}

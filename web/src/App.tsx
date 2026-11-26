@@ -6,6 +6,7 @@ import { AuthProvider } from '@/lib/auth'
 import { roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { ROUTE_ALLOWED_ROLES } from '@/domain/access-policy'
 import { ThemeProvider } from '@/lib/theme'
+import { LanguageProvider } from '@/lib/i18n'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AppShell } from '@/components/layout/AppShell'
 import { SectionLoading, WaveformLoader } from '@/components/ui/waveform-loader'
@@ -108,9 +109,10 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <BrowserRouter>
+        <LanguageProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/qr/:qrToken" element={<QrResolveRedirect />} />
@@ -281,6 +283,7 @@ export default function App() {
             </BrowserRouter>
           </AuthProvider>
         </QueryClientProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
   )

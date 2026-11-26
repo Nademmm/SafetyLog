@@ -6,21 +6,28 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ApiError } from '@/lib/api'
 import { isRedirectAllowedForRole, roleHomePath, useAuth } from '@/lib/auth-helpers'
 import { useTheme } from '@/lib/theme-helpers'
+import { useLanguage } from '@/lib/i18n-helpers'
+import { LanguageToggle } from '@/components/safety/LanguageToggle'
 import { ThemeToggle } from '@/components/safety/ThemeToggle'
 import { DitheringShader } from '@/components/ui/dithering-shader'
 import { SignIn6, type SignIn6FormValues } from '@/components/ui/sign-in-6'
 
-const loginSchema = z.object({
-  email: z.string().email('Masukkan alamat email yang valid.'),
-  password: z.string().min(1, 'Kata sandi wajib diisi.'),
-})
-
 export function LoginPage() {
   const { login, isAuthenticated, user } = useAuth()
   const { theme } = useTheme()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [serverError, setServerError] = React.useState<string | null>(null)
+
+  const loginSchema = React.useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t('login.emailInvalid')),
+        password: z.string().min(1, t('login.passwordRequired')),
+      }),
+    [t],
+  )
 
   const redirectTo = searchParams.get('redirect')
 
@@ -54,7 +61,7 @@ export function LoginPage() {
       if (err instanceof ApiError) {
         setServerError(err.message)
       } else {
-        setServerError('Tidak dapat terhubung ke server SafetyLog. Periksa koneksi Anda.')
+        setServerError(t('login.networkError'))
       }
     }
   }
@@ -75,9 +82,10 @@ export function LoginPage() {
         className="pointer-events-none fixed inset-0 z-0"
       />
 
-      {/* Top Bar with Theme Switcher */}
+      {/* Top Bar with Language & Theme Switchers */}
       <header className="relative z-10 flex h-16 items-center justify-end px-4 sm:px-8">
-        <div className="rounded-[8px] bg-[var(--surface)]/90 p-0.5">
+        <div className="flex items-center gap-2 rounded-[8px] bg-[var(--surface)]/90 p-1">
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>
